@@ -1,0 +1,80 @@
+import React, { useState } from 'react';
+import DashboardShell from '../components/admin/DashboardShell';
+import { FieldError, FlashMessages, Modal, Pagination, StatsGrid, TableEmpty } from '../components/admin/common';
+
+function statusPill(status, label) {
+    return <span className={`status-pill ${status}`}>{label}</span>;
+}
+
+export default function AdminTransfersPage({ layout, data, flash, errors, old, csrfToken, logoutAction }) {
+    const [items, setItems] = useState([{ id: Date.now(), sku: '', product_id: '', product_name: '', available: '', requested_qty: '', notes: '' }]);
+    const [viewTransfer, setViewTransfer] = useState(null);
+    const fromWarehouseId = old?.from_warehouse_id || '';
+    const stats = [
+        { label: 'Traspasos registrados', value: data.stats.total, chip: 'Total historico', chipClass: 'chip-muted' },
+        { label: 'Pendientes', value: data.stats.pending, chip: 'Por atender' },
+        { label: 'En transito', value: data.stats.in_transit, chip: 'Moviendose' },
+        { label: 'Recibidos', value: data.stats.received, chip: 'Confirmados', chipClass: 'chip-success' },
+    ];
+    const statusLabels = { pendiente: 'Pendiente', en_transito: 'En transito', recibido: 'Recibido' };
+
+    const addItem = () => setItems((current) => [...current, { id: Date.now() + Math.random(), sku: '', product_id: '', product_name: '', available: '', requested_qty: '', notes: '' }]);
+    const removeItem = (id) => setItems((current) => current.length > 1 ? current.filter((item) => item.id !== id) : current);
+    const updateItem = (id, patch) => setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
+    const lookupItem = async (id, sku, warehouseId) => {
+        if (!sku) return;
+        const params = new URLSearchParams({ sku });
+        if (warehouseId) params.append('warehouse_id', warehouseId);
+        const response = await fetch(`${data.routes.lookup}?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok) {
+            updateItem(id, { product_id: '', product_name: payload.message || 'No pudimos encontrar el producto.', available: '0', requested_qty: '' });
+            return;
+        }
+        updateItem(id, {
+            product_id: payload.product_id,
+            product_name: `${payload.name} (${payload.sku})`,
+            available: `${payload.available_quantity ?? 0} uds`,
+            requested_qty: payload.available_quantity && payload.available_quantity > 0 ? payload.available_quantity : 1,
+        });
+    };
+
+    return (
+        <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
+            <FlashMessages flash={flash} />
+            <StatsGrid items={stats} />
+            <div className="card">
+                <div className="chart-head"><h4>Reportes ejecutivos</h4><a className="pill-button" target="_blank" rel="noopener" href={data.routes.report}>Generar reporte PDF</a></div>
+                <p style={{ color: 'rgba(255,255,255,0.7)' }}>Descarga un resumen profesional listo para compartir con los responsables logisticos.</p>
+            </div>
+            <div className="card">
+                <div className="chart-head"><h4>Nuevo traspaso</h4></div>
+                <form method="POST" action={data.routes.store}>
+                    <input type="hidden" name="_token" value={csrfToken} />
+                    <div className="form-grid">
+                        <div className="form-group"><label>Almacen origen</label><select name="from_warehouse_id" className="select-light" defaultValue={fromWarehouseId}><option value="">Seleccionar Santa Cruz o Cochabamba</option>{data.sourceWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name} ({warehouse.code})</option>)}</select><FieldError errors={errors} name="from_warehouse_id" /></div>
+                        <div className="form-group"><label>Almacen destino</label><input type="text" className="input-ghost" value={`${data.targetWarehouse?.name || 'Deposito La Paz'} (${data.targetWarehouse?.code || 'LPZ'})`} readOnly /></div>
+                        <div className="form-group"><label>Fecha estimada</label><input type="date" name="expected_date" className="input-ghost" defaultValue={old?.expected_date || ''} /><FieldError errors={errors} name="expected_date" /></div>
+                        <div className="form-group"><label>Estado inicial</label><select name="status" className="select-light" defaultValue={old?.status || 'pendiente'}>{data.statuses.map((status) => <option key={status} value={status}>{statusLabels[status] || status}</option>)}</select><FieldError errors={errors} name="status" /></div>
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Notas generales</label><textarea name="notes" className="input-ghost" rows="2" defaultValue={old?.notes || ''} /></div>
+                    </div>
+                    <div className="transfer-items-wrapper">
+                        <div className="chart-head" style={{ marginTop: '1.2rem' }}><h4>Productos a traspasar</h4><button type="button" className="pill-button" onClick={addItem}>Agregar producto</button></div>
+                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '1rem' }}>Introduce el codigo (SKU) para rellenar automaticamente los datos y la cantidad disponible en el almacen de origen.</p>
+                        <div>{items.map((item, index) => <div className="transfer-item-row" key={item.id}><div className="form-grid"><div className="form-group"><label>Codigo (SKU)</label><input type="text" className="input-ghost" value={item.sku} onChange={(e) => updateItem(item.id, { sku: e.target.value })} onBlur={(e) => lookupItem(item.id, e.target.value.trim(), fromWarehouseId)} /><input type="hidden" name={`items[${index}][product_id]`} value={item.product_id} required /></div><div className="form-group"><label>Producto</label><input type="text" className="input-ghost" value={item.product_name} readOnly /></div><div className="form-group"><label>Disponible en origen</label><input type="text" className="input-ghost" value={item.available} readOnly /></div><div className="form-group"><label>Cantidad solicitada</label><input type="number" min="1" className="input-ghost" name={`items[${index}][requested_qty]`} value={item.requested_qty} onChange={(e) => updateItem(item.id, { requested_qty: e.target.value })} required /></div><div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Notas</label><textarea className="input-ghost" name={`items[${index}][notes]`} rows="1" value={item.notes} onChange={(e) => updateItem(item.id, { notes: e.target.value })} /></div></div><button type="button" className="btn-danger remove-item" onClick={() => removeItem(item.id)}>Quitar</button></div>)}</div>
+                        <FieldError errors={errors} name="items" />
+                    </div>
+                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}><button type="submit" className="pill-button">Guardar traspaso</button></div>
+                </form>
+            </div>
+            <div className="card">
+                <div className="chart-head"><h4>Traspasos recientes</h4><span className="chip">{data.transfers.total} registros - mayor a menor</span></div>
+                <div className="table-wrapper"><table className="data-table"><thead><tr><th>ID</th><th>Origen</th><th>Destino</th><th>Estado</th><th>Origen de solicitud</th><th>Detalles</th></tr></thead><tbody>{data.transfers.data.length ? data.transfers.data.map((transfer) => <tr key={transfer.id}><td>#{transfer.id}</td><td>{transfer.fromWarehouse?.name || 'No definido'}</td><td>{transfer.toWarehouse?.name || 'N/A'}</td><td>{statusPill(transfer.status, statusLabels[transfer.status] || transfer.status)}</td><td>{transfer.agentRequest ? <span className="source-chip"><i className="ri-robot-2-line" />Sugerencia de agente inteligente</span> : <span className="chip chip-muted">Registro manual</span>}</td><td><button type="button" className="btn-secondary" onClick={() => setViewTransfer(transfer)}>Ver detalles</button></td></tr>) : <TableEmpty colSpan={6} text="Sin traspasos registrados." />}</tbody></table></div>
+                <Pagination pagination={data.transfers} />
+            </div>
+            <Modal open={!!viewTransfer} title={viewTransfer ? `Traspaso #${viewTransfer.id}` : 'Traspaso'} onClose={() => setViewTransfer(null)} wide>
+                {viewTransfer && <div style={{ display: 'grid', gap: '1rem' }}><div className="summary">{[{ label: 'Estado', value: statusPill(viewTransfer.status, statusLabels[viewTransfer.status] || viewTransfer.status) }, { label: 'Fecha estimada', value: viewTransfer.expected_date_formatted }, { label: 'Solicitado por', value: viewTransfer.requested_by_label }, { label: 'Aprobado por', value: viewTransfer.agentRequest ? viewTransfer.approved_by_label : '-' }, { label: 'Productos', value: `${viewTransfer.items_count} item(s)` }].map((card) => <div className="summary-card" key={card.label}><strong>{card.label}</strong><span>{card.value}</span></div>)}</div><div className="detail-section"><h4>Origen de solicitud</h4>{viewTransfer.agentRequest ? <><span className="source-chip"><i className="ri-robot-2-line" />Sugerencia de agente inteligente</span><p className="transfer-detail">Solicitud creada: {viewTransfer.agentRequest.created_at_formatted}</p><p className="transfer-detail">Aprobado por: {viewTransfer.approved_by_label}</p>{viewTransfer.agentRequest.priority && <p className="transfer-detail">Prioridad: {viewTransfer.agentRequest.priority}</p>}{viewTransfer.agentRequest.reason && <p className="transfer-detail">Motivo: {viewTransfer.agentRequest.reason}</p>}</> : <span className="chip chip-muted">Registro manual</span>}</div><div className="table-wrapper"><table className="data-table"><thead><tr><th>Producto</th><th>SKU</th><th>Solicitado</th><th>Recibido</th><th>Danado</th><th>Notas</th></tr></thead><tbody>{viewTransfer.items.length ? viewTransfer.items.map((item, index) => <tr key={`${item.sku}-${index}`}><td><strong>{item.product_name}</strong></td><td>{item.sku}</td><td>{item.requested_qty} uds</td><td>{item.received_qty} uds</td><td>{item.damaged_qty} uds</td><td>{item.notes}</td></tr>) : <TableEmpty colSpan={6} text="Sin productos registrados." />}</tbody></table></div><div className="detail-section"><h4>Notas generales</h4><p style={{ margin: 0, color: 'rgba(255,255,255,0.74)' }}>{viewTransfer.notes}</p></div><div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}><button type="button" className="btn-secondary" onClick={() => setViewTransfer(null)}>Cerrar</button><a className="pill-button" target="_blank" rel="noopener" href={viewTransfer.report_url}>Generar reporte PDF</a></div></div>}
+            </Modal>
+        </DashboardShell>
+    );
+}

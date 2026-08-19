@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+    --primary: #4e6baf;
+    --primary-dark: #3a5186;
+    --primary-light: #86acd4;
+    --accent: #42568b;
+    --glass: rgba(255, 255, 255, 0.08);
+}
+
+* {
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(-45deg, #1A2865, #394480, #4E6BAF, #394480);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    color: #fff;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(134, 172, 212, 0.15), transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(78, 107, 175, 0.15), transparent 40%);
+    z-index: -1;
+}
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+}
+
+.glass-panel {
+    width: 100%;
+    max-width: 1100px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2.5rem;
+    backdrop-filter: blur(25px);
+    padding: 2rem;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.auth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2.5rem;
+}
+
+.panel-info {
+    padding: 2rem;
+    border-radius: 2rem;
+    background: linear-gradient(160deg, rgba(78, 107, 175, 0.8), rgba(58, 81, 134, 0.8));
+    position: relative;
+    overflow: hidden;
+}
+
+.panel-info::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 40%, rgba(255, 255, 255, 0.15));
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+
+.panel-info:hover::after {
+    opacity: 1;
+}
+
+.panel-copy {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.form-card {
+    padding: 2rem;
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 2rem;
+}
+
+.form-card p {
+    margin: 0 0 2rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.form-control {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transition: border 0.3s ease, transform 0.3s ease;
+}
+
+.password-field {
+    position: relative;
+}
+
+.password-input {
+    padding-right: 4rem;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.7rem;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.82);
+    cursor: pointer;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, color 0.25s ease;
+}
+
+.password-toggle:hover {
+    background: rgba(134, 172, 212, 0.22);
+    border-color: rgba(134, 172, 212, 0.45);
+    color: #fff;
+}
+
+.password-toggle:focus-visible {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(134, 172, 212, 0.18);
+}
+
+.password-toggle i {
+    font-size: 1.15rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+.pill-button {
+    border: none;
+    width: 100%;
+    border-radius: 1.4rem;
+    padding: 0.95rem 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(78, 107, 175, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pill-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 35px rgba(78, 107, 175, 0.55);
+}
+
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.2rem;
+    margin-top: 2rem;
+}
+
+.role-card {
+    padding: 1rem;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    min-height: 150px;
+}
+
+.role-card h4 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.role-card span {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.role-card p {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.link-muted {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-muted:hover {
+    color: #fff;
+}
+
+.locked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 640px) {
+    .glass-panel {
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+    }
+
+    .panel-info,
+    .form-card {
+        padding: 1.5rem;
+    }
+}
