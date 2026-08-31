@@ -9,14 +9,15 @@ function statusPill(status, label) {
 export default function AdminCompaniesPage({ layout, data, flash, errors, old, csrfToken, logoutAction }) {
     const [editingCompany, setEditingCompany] = useState(null);
     const [viewingCompany, setViewingCompany] = useState(null);
+    const [companyToDeactivate, setCompanyToDeactivate] = useState(null);
     const [createType, setCreateType] = useState(old?.company_type || 'empresa_institucional');
+    const [createCompanyOpen, setCreateCompanyOpen] = useState(() => Object.keys(errors || {}).length > 0);
     const editType = editingCompany?.company_type || 'empresa_institucional';
-    const typeLabel = (type) => type === 'tienda_barrio' ? 'Tienda de barrio' : 'Empresa institucional';
     const stats = [
-        { label: 'Cartera total', value: data.stats.total, chip: 'Activos + desactivados' },
-        { label: 'Empresas institucionales', value: data.stats.institutional, chip: 'Usan precios corporativos', chipClass: 'chip-muted' },
-        { label: 'Tiendas de barrio', value: data.stats.retail, chip: 'Con duenas registradas', chipClass: 'chip-muted' },
-        { label: 'Desactivados', value: data.stats.inactive, chip: 'En papelera (recuperables)', chipClass: 'chip-muted' },
+        { label: 'Cartera total', value: data.stats.total, chip: 'Activos + desactivados', cardClass: 'company-stat-card company-stat-card--total', icon: 'ri-community-line' },
+        { label: 'Empresas institucionales', value: data.stats.institutional, chip: 'Usan precios corporativos', cardClass: 'company-stat-card company-stat-card--institutional', icon: 'ri-building-4-line' },
+        { label: 'Tiendas de barrio', value: data.stats.retail, chip: 'Con duenas registradas', cardClass: 'company-stat-card company-stat-card--retail', icon: 'ri-store-2-line' },
+        { label: 'Desactivados', value: data.stats.inactive, chip: 'En papelera (recuperables)', cardClass: 'company-stat-card company-stat-card--inactive', icon: 'ri-archive-line' },
     ];
 
     const renderCompanyFields = (prefix = '', company = {}) => {
@@ -44,7 +45,6 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                 <div className="form-group"><label>Telefono</label><input type="text" name="phone" className="input-ghost" defaultValue={value('phone')} /></div>
                 <div className="form-group"><label>{type === 'tienda_barrio' ? 'Direccion de entrega' : 'Direccion fiscal'}</label><input type="text" name="address" className="input-ghost" defaultValue={value('address')} required /></div>
                 <div className="form-group"><label>Ciudad</label><input type="text" name="city" className="input-ghost" defaultValue={value('city')} required /></div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}><hr style={{ borderColor: 'rgba(255,255,255,0.1)' }} /><p style={{ margin: '0.6rem 0', color: 'rgba(255,255,255,0.7)' }}>{type === 'tienda_barrio' ? 'captura los datos de la duena para coordinar entregas.' : 'Registra responsable y datos fiscales para la empresa.'}</p></div>
                 <div className="form-group"><label>{type === 'tienda_barrio' ? 'Nombre de la duena' : 'Nombre del representante'}</label><input type="text" name="owner_first_name" className="input-ghost" defaultValue={value('owner_first_name')} required /></div>
                 <div className="form-group"><label>{type === 'tienda_barrio' ? 'Apellido paterno de la duena' : 'Apellido paterno'}</label><input type="text" name="owner_last_name_paterno" className="input-ghost" defaultValue={value('owner_last_name_paterno')} required /></div>
                 <div className="form-group"><label>{type === 'tienda_barrio' ? 'Apellido materno de la duena' : 'Apellido materno'}</label><input type="text" name="owner_last_name_materno" className="input-ghost" defaultValue={value('owner_last_name_materno')} /></div>
@@ -56,30 +56,43 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
         <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
             <FlashMessages flash={flash} />
             <StatsGrid items={stats} />
-            <div className="card">
-                <div className="chart-head"><h4>Registrar cliente</h4><span className="chip">Modo {typeLabel(createType)}</span></div>
-                <form method="POST" action={data.routes.store} className="form-grid">
+            <div className="card user-directory-header">
+                <div>
+                    <h2>Clientes</h2>
+                </div>
+                <button type="button" className="pill-button user-create-open-button" onClick={() => setCreateCompanyOpen(true)}>
+                    <i className="ri-building-2-line" /> Crear cliente
+                </button>
+            </div>
+
+            <Modal open={createCompanyOpen} title="Crear cliente" onClose={() => setCreateCompanyOpen(false)} wide contentClassName="user-create-modal">
+                <form method="POST" action={data.routes.store} className="user-create-form">
                     <input type="hidden" name="_token" value={csrfToken} />
-                    {renderCompanyFields()}
-                    <div className="form-group" style={{ alignSelf: 'flex-end' }}><button type="submit" className="pill-button">Guardar cliente</button></div>
+                    <div className="user-create-fields">
+                        {renderCompanyFields()}
+                    </div>
+                    <div className="user-create-actions">
+                        <button type="button" className="btn-secondary user-create-cancel" onClick={() => setCreateCompanyOpen(false)}>Cancelar</button>
+                        <button type="submit" className="pill-button user-create-submit"><i className="ri-building-2-line" /> Crear cliente</button>
+                    </div>
                 </form>
                 <FieldError errors={errors} name="company_type" />
                 <FieldError errors={errors} name="name" />
                 <FieldError errors={errors} name="nit" />
-            </div>
-            <div className="card">
-                <div className="chart-head"><h4>Filtrar cartera</h4><a className="pill-button" target="_blank" rel="noopener" href={data.routes.report}>Generar reporte PDF</a></div>
-                <form method="GET" action={data.routes.index} className="form-grid">
-                    <div className="form-group"><label>Buscar por nombre, NIT, ciudad o contacto</label><input type="text" name="search" className="input-ghost" defaultValue={data.filters.search || ''} /></div>
-                    <div className="form-group"><label>Tipo</label><select name="type" className="select-light" defaultValue={data.filters.type || ''}><option value="">Todos</option>{Object.entries(data.companyTypes).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
-                    <div className="form-group" style={{ alignSelf: 'flex-end' }}><a href={data.routes.index} className="clean-link">Limpiar</a></div>
+            </Modal>
+            <div className="card user-filter-card">
+                <div className="chart-head"><div><span className="section-kicker">Directorio</span><h4>Buscar clientes</h4></div><a className="pill-button user-report-button" target="_blank" rel="noopener" href={data.routes.report}><i className="ri-file-chart-line" /> Reporte PDF</a></div>
+                <form method="GET" action={data.routes.index} className="form-grid user-filter-form">
+                    <div className="form-group"><label><i className="ri-search-line" /> Nombre, NIT, ciudad o contacto</label><input type="text" name="search" className="input-ghost" placeholder="Ej. Supermercado Victoria o 1234567890" defaultValue={data.filters.search || ''} /></div>
+                    <div className="form-group"><label><i className="ri-filter-3-line" /> Tipo de cliente</label><select name="type" className="select-light" defaultValue={data.filters.type || ''}><option value="">Todos</option>{Object.entries(data.companyTypes).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+                    <div className="user-filter-actions"><a href={data.routes.index} className="clean-link"><i className="ri-refresh-line" /> Limpiar</a><button type="submit" className="pill-button user-filter-submit"><i className="ri-search-line" /> Buscar</button></div>
                 </form>
             </div>
             {[
                 ['activeCompanies', 'Clientes activos', true],
                 ['inactiveCompanies', 'Clientes desactivados', false],
             ].map(([key, title, active]) => (
-                <div className="card" key={key}>
+                <div className={`card user-table-card ${active ? 'user-table-card--active' : 'user-table-card--inactive'}`} key={key}>
                     <div className="chart-head"><h4>{title}</h4><span className="chip">{data[key].total} registros</span></div>
                     <div className="table-wrapper">
                         <table className="data-table">
@@ -87,7 +100,7 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                             <tbody>
                                 {data[key].data.length ? data[key].data.map((company) => (
                                     <tr key={company.id}>
-                                        <td>{statusPill(company.company_type === 'tienda_barrio' ? 'retail' : 'institutional', company.type_label)}</td>
+                                        <td>{statusPill(company.company_type === 'tienda_barrio' ? 'retail' : 'institutional', company.company_type === 'tienda_barrio' ? 'Tienda' : 'Institucional')}</td>
                                         <td><strong>{company.name}</strong><p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>NIT: {company.nit}</p></td>
                                         <td>{company.owner_full_name || 'Sin datos'}</td>
                                         <td>{company.city}</td>
@@ -100,10 +113,10 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                                                     <>
                                                         <button type="button" className="btn-secondary" onClick={() => setViewingCompany(company)}>Ver</button>
                                                         <button type="button" className="btn-secondary" onClick={() => setEditingCompany(company)}>Editar</button>
-                                                        <form method="POST" action={company.destroy_url} onSubmit={(e) => !window.confirm(`Desactivar a ${company.name}?`) && e.preventDefault()}>
+                                                        <form method="POST" action={company.destroy_url}>
                                                             <input type="hidden" name="_token" value={csrfToken} />
                                                             <input type="hidden" name="_method" value="DELETE" />
-                                                            <button type="submit" className="btn-danger">Desactivar</button>
+                                                            <button type="button" className="btn-danger" onClick={() => setCompanyToDeactivate(company)}>Desactivar</button>
                                                         </form>
                                                     </>
                                                 ) : (
@@ -123,34 +136,45 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                     <Pagination pagination={data[key]} />
                 </div>
             ))}
-            <Modal open={!!editingCompany} title="Editar cliente" onClose={() => setEditingCompany(null)}>
-                {editingCompany && (
-                    <form method="POST" action={editingCompany.update_url}>
+            <Modal open={!!companyToDeactivate} title="Desactivar cliente" onClose={() => setCompanyToDeactivate(null)} contentClassName="user-edit-modal company-confirm-modal">
+                {companyToDeactivate && (
+                    <form method="POST" action={companyToDeactivate.destroy_url} className="company-confirm-form">
                         <input type="hidden" name="_token" value={csrfToken} />
-                        <input type="hidden" name="_method" value="PUT" />
-                        <div className="form-grid">{renderCompanyFields('edit_', editingCompany)}</div>
-                        <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.8rem' }}>
-                            <button type="button" className="btn-secondary" onClick={() => setEditingCompany(null)}>Cancelar</button>
-                            <button type="submit" className="pill-button">Guardar cambios</button>
+                        <input type="hidden" name="_method" value="DELETE" />
+                        <div className="company-confirm-icon"><i className="ri-alert-line" /></div>
+                        <h4>Desactivar a {companyToDeactivate.name}?</h4>
+                        <p>El registro pasara a la lista de clientes desactivados.</p>
+                        <div className="company-confirm-actions">
+                            <button type="button" className="btn-secondary user-edit-cancel" onClick={() => setCompanyToDeactivate(null)}>Cancelar</button>
+                            <button type="submit" className="btn-danger company-confirm-submit">Desactivar</button>
                         </div>
                     </form>
                 )}
             </Modal>
-            <Modal open={!!viewingCompany} title="Detalle del cliente" onClose={() => setViewingCompany(null)} wide>
+            <Modal open={!!editingCompany} title="Editar cliente" onClose={() => setEditingCompany(null)} wide contentClassName="user-edit-modal company-edit-modal">
+                {editingCompany && (
+                    <form method="POST" action={editingCompany.update_url} className="user-edit-form">
+                        <input type="hidden" name="_token" value={csrfToken} />
+                        <input type="hidden" name="_method" value="PUT" />
+                        <div className="user-edit-fields">{renderCompanyFields('edit_', editingCompany)}</div>
+                        <div className="user-edit-actions">
+                            <button type="button" className="btn-secondary user-edit-cancel" onClick={() => setEditingCompany(null)}>Cancelar</button>
+                            <button type="submit" className="pill-button user-edit-submit"><i className="ri-save-3-line" /> Guardar cambios</button>
+                        </div>
+                    </form>
+                )}
+            </Modal>
+            <Modal open={!!viewingCompany} title="Detalle del cliente" onClose={() => setViewingCompany(null)} wide contentClassName="user-edit-modal company-view-modal">
                 {viewingCompany && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '12px' }}>
-                        <div>
-                            <p><strong>Nombre:</strong> {viewingCompany.name}</p>
-                            <p><strong>NIT:</strong> {viewingCompany.nit}</p>
-                            <p><strong>Tipo:</strong> {viewingCompany.type_label}</p>
-                            <p><strong>Ciudad:</strong> {viewingCompany.city}</p>
-                        </div>
-                        <div>
-                            <p><strong>Email:</strong> {viewingCompany.email || 'N/D'}</p>
-                            <p><strong>Telefono:</strong> {viewingCompany.phone || 'N/D'}</p>
-                            <p><strong>Direccion:</strong> {viewingCompany.address}</p>
-                            <p><strong>Responsable:</strong> {viewingCompany.owner_full_name}</p>
-                        </div>
+                    <div className="company-view-grid">
+                        <div className="company-view-item"><span>Nombre</span><strong>{viewingCompany.name}</strong></div>
+                        <div className="company-view-item"><span>NIT</span><strong>{viewingCompany.nit}</strong></div>
+                        <div className="company-view-item"><span>Tipo</span><strong>{viewingCompany.company_type === 'tienda_barrio' ? 'Tienda' : 'Institucional'}</strong></div>
+                        <div className="company-view-item"><span>Ciudad</span><strong>{viewingCompany.city}</strong></div>
+                        <div className="company-view-item"><span>Email</span><strong>{viewingCompany.email || 'N/D'}</strong></div>
+                        <div className="company-view-item"><span>Telefono</span><strong>{viewingCompany.phone || 'N/D'}</strong></div>
+                        <div className="company-view-item"><span>Direccion</span><strong>{viewingCompany.address}</strong></div>
+                        <div className="company-view-item"><span>Responsable</span><strong>{viewingCompany.owner_full_name}</strong></div>
                     </div>
                 )}
             </Modal>

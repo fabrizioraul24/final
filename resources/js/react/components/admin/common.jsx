@@ -1,23 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 export function FlashMessages({ flash }) {
-    if (!flash?.status && !flash?.error) {
+    const message = flash?.error || flash?.status;
+    const isError = Boolean(flash?.error);
+    const [visible, setVisible] = useState(Boolean(message));
+    const [leaving, setLeaving] = useState(false);
+
+    useEffect(() => {
+        if (!message) {
+            setVisible(false);
+            return undefined;
+        }
+
+        setVisible(true);
+        setLeaving(false);
+
+        const fadeTimer = window.setTimeout(() => setLeaving(true), 3600);
+        const dismissTimer = window.setTimeout(() => setVisible(false), 4000);
+
+        return () => {
+            window.clearTimeout(fadeTimer);
+            window.clearTimeout(dismissTimer);
+        };
+    }, [message]);
+
+    if (!message || !visible) {
         return null;
     }
 
     return (
-        <>
-            {flash.status && (
-                <div className="card">
-                    <span className="chip chip-muted">{flash.status}</span>
-                </div>
-            )}
-            {flash.error && (
-                <div className="card" style={{ border: '1px solid rgba(248,113,113,0.4)' }}>
-                    <span className="chip" style={{ background: 'rgba(248,113,113,0.2)', color: '#fee2e2' }}>{flash.error}</span>
-                </div>
-            )}
-        </>
+        <div className={`flash-toast${isError ? ' flash-toast--error' : ''}${leaving ? ' is-leaving' : ''}`} role={isError ? 'alert' : 'status'}>
+            <span className="flash-toast__icon"><i className={isError ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} /></span>
+            <p>{message}</p>
+            <button className="flash-toast__close" type="button" title="Cerrar notificacion" onClick={() => setVisible(false)}>
+                <i className="ri-close-line" />
+            </button>
+        </div>
     );
 }
 
@@ -88,8 +106,11 @@ export function StatsGrid({ items }) {
     return (
         <div className="stats-grid">
             {items.map((item) => (
-                <div className="card" key={item.label}>
-                    <h3>{item.label}</h3>
+                <div className={`card stats-card ${item.cardClass || ''}`} key={item.label}>
+                    <div className="stats-card-head">
+                        <h3>{item.label}</h3>
+                        {item.icon && <span className="stats-card-icon"><i className={item.icon} /></span>}
+                    </div>
                     <div className="value">{item.value}</div>
                     <span className={`chip ${item.chipClass || ''}`}>{item.chip}</span>
                 </div>

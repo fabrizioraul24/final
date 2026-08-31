@@ -23,12 +23,15 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class AiReplenishmentAgentController extends Controller
 {
     use LogsAudit;
 
     private const CACHE_KEY = 'admin_ai_replenishment_dataset_v2';
+    private const LAST_RUN_CACHE_KEY = 'admin_ai_replenishment_last_run_at';
+    private const STARTED_AT_CACHE_KEY = 'admin_ai_replenishment_started_at';
 
     public function index(Request $request, AiReplenishmentAgentService $service): View
     {
@@ -81,7 +84,9 @@ class AiReplenishmentAgentController extends Controller
                 'categoryId' => $categoryId,
                 'categories' => Category::orderBy('name')->get()->map(fn (Category $category) => ['id' => $category->id, 'name' => $category->name]),
                 'agentOnline' => (bool) ($health['online'] ?? false),
-                'lastRunAt' => optional($payload['last_run_at'] ?? now())->format('d/m/Y H:i'),
+                'lastRunAt' => $this->lastRunLabel($payload),
+                'lastRunAtIso' => Cache::get(self::LAST_RUN_CACHE_KEY),
+                'startedAtIso' => Cache::get(self::STARTED_AT_CACHE_KEY),
                 'error' => $payload['error'] ?? null,
                 'forecasts' => AdminReact::paginator($forecastsPaginator),
                 'forecastsTotal' => $forecasts->count(),
@@ -95,6 +100,7 @@ class AiReplenishmentAgentController extends Controller
                     'index' => route('admin.agent.replenishment'),
                     'report' => route('admin.agent.replenishment.report', ['search' => $search, 'category_id' => $categoryId]),
                     'run' => route('admin.agent.replenishment.run'),
+                    'status' => route('admin.agent.replenishment.status'),
                 ],
             ],
         ], 'adminAgentReplenishment'));
@@ -166,6 +172,9 @@ class AiReplenishmentAgentController extends Controller
 
         $result = $service->createPendingRequests($payload['transfer_requests'] ?? []);
         Cache::forget(self::CACHE_KEY);
+        $now = now();
+        Cache::put(self::LAST_RUN_CACHE_KEY, $now->toIso8601String());
+        Cache::add(self::STARTED_AT_CACHE_KEY, $now->toIso8601String(), now()->addYear());
 
         $this->logAudit('ai_replenishment_agent', 'run_now', [], [
             'created' => count($result['created']),
@@ -173,6 +182,20 @@ class AiReplenishmentAgentController extends Controller
         ], 'Ejecucion manual del agente de reposicion');
 
         return back()->with('status', 'Analisis ejecutado. Creadas: ' . count($result['created']) . '. Omitidas por duplicado/datos: ' . count($result['skipped']) . '.');
+    }
+
+    public function status(AiReplenishmentAgentService $service): JsonResponse
+    {
+        $this->authorizeAgentAccess();
+
+        $health = $service->health();
+
+        return response()->json([
+            'agentOnline' => (bool) ($health['online'] ?? false),
+            'lastRunAtIso' => Cache::get(self::LAST_RUN_CACHE_KEY),
+            'startedAtIso' => Cache::get(self::STARTED_AT_CACHE_KEY),
+            'checkedAtIso' => now()->toIso8601String(),
+        ]);
     }
 
     public function approveTransferRequest(Request $request, int $id): RedirectResponse
@@ -604,6 +627,13 @@ class AiReplenishmentAgentController extends Controller
                 'alertProductCards' => $alertProductCards->all(),
             ];
         });
+    }
+
+    private function lastRunLabel(array $payload): string
+    {
+        $lastRun = Cache::get(self::LAST_RUN_CACHE_KEY, $payload['last_run_at'] ?? null);
+
+        return $lastRun ? Carbon::parse($lastRun)->format('d/m/Y H:i') : 'Pendiente de primera revisión';
     }
 
     private function requestPayload(TransferRequest $request): array

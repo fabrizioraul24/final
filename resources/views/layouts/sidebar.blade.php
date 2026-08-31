@@ -63,44 +63,14 @@
         </main>
     </div>
 
-    <div class="chatbot-panel" id="chatbotPanel">
-        <div class="chatbot-messages">
-            <div class="chatbot-message bot">
-                <strong>Pil Bot:</strong><br>
-                Hola! Soy tu asistente virtual. Muy pronto podre ayudarte con consultas sobre pedidos, inventario y KPIs.
-            </div>
-            <div class="chatbot-message user">
-                Genial, estare atento a las nuevas funciones.
-            </div>
-        </div>
-        <div class="chatbot-input">
-            <input type="text" placeholder="Pronto podras escribirme aqui..." disabled>
-            <button class="pill-button" disabled>Enviar</button>
-        </div>
-    </div>
-    <button class="chatbot-button" id="chatbotToggle" title="Chatbot experimental">
-        <i class="ri-message-3-line"></i>
-    </button>
-
     <script>
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.getElementById('sidebar');
-        const chatbotToggle = document.getElementById('chatbotToggle');
-        const chatbotPanel = document.getElementById('chatbotPanel');
 
         sidebarToggle?.addEventListener('click', () => {
             sidebar?.classList.toggle('open');
         });
 
-        chatbotToggle.addEventListener('click', () => {
-            chatbotPanel.classList.toggle('active');
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!chatbotPanel.contains(event.target) && event.target !== chatbotToggle) {
-                chatbotPanel.classList.remove('active');
-            }
-        });
     </script>
     <script src="{{ asset('landing/dashboard-live-search.js') }}"></script>
     @stack('scripts')

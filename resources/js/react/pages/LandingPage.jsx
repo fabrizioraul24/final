@@ -1,292 +1,400 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+const menuItems = ['Nuestra historia', 'Productos', 'Nuestras plantas'];
+const tickerItems = ['CALIDAD', 'NUTRICIÓN', 'CONFIANZA', 'BOLIVIA'];
 
-function formatCurrency(value) {
-    const amount = Number(value || 0);
+const stats = [
+  { value: '65', label: 'años creciendo\njuntos' },
+  { value: '3', label: 'plantas\nen Bolivia' },
+  { value: '14', label: 'categorías\nde productos' },
+];
 
-    if (amount <= 0) {
-        return 'Consultar';
-    }
+const categories = [
+  {
+    code: '01',
+    title: 'Leches',
+    subtitle: 'Nutrición que acompaña cada mañana',
+    tone: 'sky',
+    icon: 'glass',
+  },
+  {
+    code: '02',
+    title: 'Yogurts',
+    subtitle: 'Sabor, fruta y practicidad',
+    tone: 'pink',
+    icon: 'yogurt',
+  },
+  {
+    code: '03',
+    title: 'Jugos y néctares',
+    subtitle: 'Frutas seleccionadas para refrescar',
+    tone: 'gold',
+    icon: 'fruit',
+  },
+  {
+    code: '04',
+    title: 'Helados',
+    subtitle: 'Pequeños momentos de felicidad',
+    tone: 'cream',
+    icon: 'icecream',
+  },
+];
 
-    return `Bs ${amount.toFixed(2)}`;
+const plants = [
+  {
+    code: '01',
+    city: 'Cochabamba',
+    description: 'Donde comenzó nuestra historia en 1960',
+  },
+  {
+    code: '02',
+    city: 'La Paz',
+    description: 'Conectados con la región altiplánica',
+  },
+  {
+    code: '03',
+    city: 'Santa Cruz',
+    description: 'Capacidad moderna para el oriente',
+  },
+];
+
+const footerExplore = ['Nosotros', 'Productos', 'Plantas'];
+const footerConnect = ['Trabaja con nosotros', 'Contáctanos', 'Blog PIL'];
+
+function Logo() {
+  return (
+    <div className="logo" aria-label="PIL Bolivia">
+      <div className="logo-mark">
+        <span>PIL</span>
+      </div>
+      <span className="logo-text">BOLIVIA</span>
+    </div>
+  );
 }
 
-function truncate(text, limit = 105) {
-    if (!text) {
-        return 'Un producto PIL pensado para compartir sabor y confianza.';
-    }
+function FindPILSection() {
+  return (
+    <section className="find-section">
+      <div className="find-card">
+        <div className="find-copy">
+          <div className="section-kicker dark-kicker">SIEMPRE CERCA DE TI</div>
+          <h2 className="find-title">Encuentra PIL cerca de casa.</h2>
+        </div>
 
-    return text.length > limit ? `${text.slice(0, limit - 3)}...` : text;
+        <div className="find-action">
+          <p>Visita nuestras Bodegas PIL y PIL Express. Consulta el punto de venta mas cercano.</p>
+          <a className="find-button" href="#">
+            <span>Ver puntos de venta</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
 }
 
-export default function LandingPage({
-    nav,
-    hero,
-    status,
-    featuredProducts,
-    productsCount,
-    authModal,
-}) {
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalProductName, setModalProductName] = useState('');
-    const carouselRef = useRef(null);
+function Footer() {
+  return (
+    <footer className="landing-footer">
+      <div className="footer-grid">
+        <div className="footer-brand">
+          <div className="footer-logo">PIL</div>
+          <p>Nutrición, sabor y confianza para las familias bolivianas.</p>
+        </div>
 
-    const modalCopy = useMemo(() => {
-        if (!modalProductName) {
-            return authModal.defaultCopy;
-        }
+        <div className="footer-col">
+          <div className="footer-label">Explora</div>
+          {footerExplore.map((item) => (
+            <a href="#" key={item}>{item}</a>
+          ))}
+        </div>
 
-        return `Para comprar ${modalProductName} y descubrir mas favoritos de PIL Andina, registrate o inicia sesion.`;
-    }, [authModal.defaultCopy, modalProductName]);
+        <div className="footer-col">
+          <div className="footer-label">Conecta</div>
+          {footerConnect.map((item) => (
+            <a href="#" key={item}>{item}</a>
+          ))}
+        </div>
 
-    useEffect(() => {
-        document.body.classList.toggle('modal-open', modalOpen);
+        <div className="footer-contact">
+          <div className="footer-label">Línea gratuita</div>
+          <strong>800-10-4848</strong>
+          <span>Atención al cliente</span>
+        </div>
+      </div>
 
-        return () => {
-            document.body.classList.remove('modal-open');
-        };
-    }, [modalOpen]);
+      <div className="footer-bottom">
+        <span>© 2026 PIL Bolivia</span>
+        <span>Hecho con orgullo boliviano</span>
+        <a href="#inicio">Volver arriba ↑</a>
+      </div>
+    </footer>
+  );
+}
 
-    useEffect(() => {
-        const handleEscape = (event) => {
-            if (event.key === 'Escape') {
-                setModalOpen(false);
-            }
-        };
+function Nav() {
+  return (
+    <header className="topbar">
+      <Logo />
+      <nav className="menu" aria-label="Principal">
+        {menuItems.map((item) => (
+          <a key={item} href="#">
+            {item}
+          </a>
+        ))}
+      </nav>
+      <div className="topbar-actions">
+        <a className="pill pill-outline" href="/login">
+          Ingreso
+        </a>
+        <a className="pill pill-white" href="#">
+          <span>Contáctanos</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </header>
+  );
+}
 
-        document.addEventListener('keydown', handleEscape);
+function Hero() {
+  return (
+    <main className="hero">
+      <div className="hero-left">
+        <div className="eyebrow">
+          <span className="eyebrow-line" />
+          <span>DESDE 1960</span>
+        </div>
 
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, []);
+        <h1 className="headline">
+          <span>Alimentando</span>
+          <span>
+            a <em>Bolivia.</em>
+          </span>
+        </h1>
 
-    const scrollCarousel = (direction) => {
-        const carousel = carouselRef.current;
+        <p className="lead">
+          65 años creciendo junto a las familias bolivianas, con alimentos
+          nutritivos, deliciosos y de confianza.
+        </p>
 
-        if (!carousel) {
-            return;
-        }
+        <div className="cta-row">
+          <a className="pill pill-coral" href="#">
+            <span>Conoce nuestros productos</span>
+            <span aria-hidden="true">→</span>
+          </a>
 
-        const card = carousel.querySelector('.featured-card');
-        const amount = card ? card.getBoundingClientRect().width + 18 : 320;
+          <a className="history-link" href="#">
+            <span>Nuestra historia</span>
+            <span aria-hidden="true">↓</span>
+          </a>
+        </div>
 
-        carousel.scrollBy({
-            left: direction * amount,
-            behavior: 'smooth',
-        });
-    };
+        <div className="microcopy">
+          <strong>Calidad que nos une</strong>
+          <span>Tradición · Nutrición · Confianza</span>
+        </div>
+      </div>
 
-    const openModal = (productName = '') => {
-        setModalProductName(productName);
-        setModalOpen(true);
-    };
+      <div className="hero-visual">
+        <div className="visual-accent" />
+        <div className="years-badge">
+          <strong>65</strong>
+          <span>AÑOS</span>
+          <span>CONTIGO</span>
+        </div>
 
-    return (
-        <>
-            <div className="landing-shell">
-                <nav className="main-nav">
-                    <a href="#inicio" className="brand-mark">
-                        <span className="brand-icon"><i className="ri-heart-3-line" /></span>
-                        <span>
-                            <strong>PIL Andina</strong>
-                            <small>Uniendo a las familias bolivianas</small>
-                        </span>
-                    </a>
+        <div className="photo-frame">
+          <img
+            src="https://images.pexels.com/photos/7504997/pexels-photo-7504997.jpeg?auto=compress&cs=tinysrgb&w=1600"
+            alt="Madre e hija tomando leche"
+          />
+        </div>
 
-                    <button
-                        id="menu-btn"
-                        className="menu-toggle"
-                        type="button"
-                        aria-label="Abrir menu"
-                        onClick={() => setMenuOpen((value) => !value)}
-                    >
-                        <i className="ri-menu-line" />
-                    </button>
+        <div className="sabor-note">sabor de casa</div>
+        <div className="discover-rail">
+          <span>DESCUBRIR</span>
+          <span aria-hidden="true">←</span>
+        </div>
+      </div>
+    </main>
+  );
+}
 
-                    <div id="nav-links" className={`nav-links${menuOpen ? ' is-open' : ''}`}>
-                        {nav.map((link) => (
-                            <a key={link.label} href={link.href} className={link.className || undefined}>
-                                {link.label}
-                            </a>
-                        ))}
-                    </div>
-                </nav>
+function Ticker() {
+  return (
+    <footer className="ticker" aria-label="Valores de marca">
+      <div className="ticker-track">
+        {[...tickerItems, ...tickerItems, ...tickerItems].map((item, index) => (
+          <span key={`${item}-${index}`}>
+            {item}
+            <i aria-hidden="true">✦</i>
+          </span>
+        ))}
+      </div>
+    </footer>
+  );
+}
 
-                <main>
-                    <section id="inicio" className="hero-panel">
-                        <div className="hero-copy">
-                            <span className="eyebrow">
-                                <i className="ri-award-line" />
-                                Sabor, confianza y tradicion
-                            </span>
-                            <h1>{hero.title}</h1>
-                            <p>{hero.description}</p>
+function HistorySection() {
+  return (
+    <section className="history-section">
+      <div className="section-kicker dark-kicker">01 / NUESTRA ESENCIA</div>
+      <div className="history-grid">
+        <div className="history-left">
+          <h2 className="section-title dark">
+            Una historia que se
+            <span>sirve todos los días.</span>
+          </h2>
 
-                            <div className="hero-actions">
-                                <a href="#destacados" className="btn-primary">
-                                    <span>Ver favoritos</span>
-                                    <i className="ri-arrow-right-line" />
-                                </a>
-                                <button type="button" className="btn-secondary" onClick={() => openModal()}>
-                                    <span>Comprar ahora</span>
-                                </button>
-                            </div>
+          <div className="history-photo">
+            <img
+              src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1600&q=80"
+              alt="Planta de producción"
+            />
+            <div className="photo-tag">1960</div>
+          </div>
+        </div>
 
-                            <div className="hero-promise">
-                                {hero.promises.map((promise) => (
-                                    <article key={promise.text} className="promise-pill">
-                                        <i className={promise.icon} />
-                                        <span>{promise.text}</span>
-                                    </article>
-                                ))}
-                            </div>
+        <div className="history-right">
+          <p className="section-copy lead-copy dark-copy">
+            Nacimos en Cochabamba y crecimos con una idea clara: acercar
+            nutrición de calidad a cada rincón del país.
+          </p>
+          <p className="section-copy body-copy dark-copy">
+            Hoy, nuestro trabajo reúne tradición, tecnología y el esfuerzo de
+            miles de manos bolivianas. Cada producto que llega a tu mesa lleva
+            una historia de cuidado y compromiso.
+          </p>
 
-                            {!status.connectionAvailable && (
-                                <div className="status-banner warning">
-                                    <i className="ri-alert-line" />
-                                    <span>No pudimos cargar el catalogo en este momento. Intenta nuevamente en unos instantes.</span>
-                                </div>
-                            )}
-
-                            {status.connectionAvailable && !status.stockAvailable && (
-                                <div className="status-banner soft">
-                                    <i className="ri-information-line" />
-                                    <span>El catalogo ya esta disponible. Algunas cantidades pueden confirmarse al ingresar a tu cuenta.</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="hero-visual">
-                            <div className="hero-image-card">
-                                <img src={hero.imageUrl} alt="Productos PIL Andina" />
-                            </div>
-                            <div className="visual-badge badge-top">
-                                <strong>{hero.startingPriceLabel}</strong>
-                                <span>listas para compartir</span>
-                            </div>
-                            {hero.heroProductName && (
-                                <div className="visual-badge badge-bottom">
-                                    <strong>{hero.heroProductName}</strong>
-                                    <span>uno de los mas elegidos</span>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <section id="promesa" className="insight-grid">
-                        {hero.insights.map((insight) => (
-                            <article key={insight.title} className="insight-card">
-                                <i className={insight.icon} />
-                                <strong>{insight.title}</strong>
-                                <p>{insight.text}</p>
-                            </article>
-                        ))}
-                    </section>
-
-                    <section id="destacados" className="carousel-section">
-                        <div className="section-heading">
-                            <div>
-                                <span className="eyebrow">
-                                    <i className="ri-fire-line" />
-                                    Los mas elegidos
-                                </span>
-                                <h2>Favoritos que conquistan a las familias bolivianas</h2>
-                            </div>
-                            <div className="carousel-actions">
-                                <button type="button" className="carousel-btn" aria-label="Anterior" onClick={() => scrollCarousel(-1)}>
-                                    <i className="ri-arrow-left-s-line" />
-                                </button>
-                                <button type="button" className="carousel-btn" aria-label="Siguiente" onClick={() => scrollCarousel(1)}>
-                                    <i className="ri-arrow-right-s-line" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="carousel-viewport">
-                            <div id="featured-carousel" className="featured-carousel" ref={carouselRef}>
-                                {featuredProducts.length > 0 ? featuredProducts.map((product) => (
-                                    <article key={product.id} className="featured-card">
-                                        <div className="card-media">
-                                            <img src={product.imageUrl} alt={product.name} />
-                                            <span className="featured-badge">Favorito PIL</span>
-                                        </div>
-                                        <div className="card-body">
-                                            <div className="card-topline">
-                                                <span>{product.categoryName}</span>
-                                                <small>{product.totalSoldLabel}</small>
-                                            </div>
-                                            <h3>{product.name}</h3>
-                                            <p>{truncate(product.description)}</p>
-                                        </div>
-                                        <div className="card-footer">
-                                            <div>
-                                                <strong>{formatCurrency(product.price)}</strong>
-                                                <span>{product.stockLabel}</span>
-                                            </div>
-                                            <button type="button" className="mini-cta" onClick={() => openModal(product.name)}>
-                                                Comprar
-                                            </button>
-                                        </div>
-                                    </article>
-                                )) : (
-                                    <article className="empty-state">
-                                        <i className="ri-inbox-archive-line" />
-                                        <strong>No hay productos disponibles por ahora.</strong>
-                                        <p>Vuelve pronto para descubrir los favoritos de PIL Andina.</p>
-                                    </article>
-                                )}
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="momentos" className="flow-section">
-                        <div className="section-heading">
-                            <div>
-                                <span className="eyebrow">
-                                    <i className="ri-sun-foggy-line" />
-                                    Momentos que importan
-                                </span>
-                                <h2>Una marca cercana para cada momento del dia</h2>
-                            </div>
-                        </div>
-
-                        <div className="flow-grid">
-                            {hero.moments.map((moment) => (
-                                <article key={moment.number} className="flow-card">
-                                    <span>{moment.number}</span>
-                                    <h3>{moment.title}</h3>
-                                    <p>{moment.text}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </section>
-                </main>
-            </div>
-
-            <div id="auth-modal" className={`auth-modal${modalOpen ? ' is-open' : ''}`} aria-hidden={modalOpen ? 'false' : 'true'}>
-                <div className="auth-modal__backdrop" onClick={() => setModalOpen(false)} />
-                <div className="auth-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-                    <button
-                        type="button"
-                        className="auth-modal__close"
-                        aria-label="Cerrar"
-                        onClick={() => setModalOpen(false)}
-                    >
-                        <i className="ri-close-line" />
-                    </button>
-                    <span className="eyebrow">
-                        <i className="ri-user-heart-line" />
-                        Continua con PIL Andina
-                    </span>
-                    <h3 id="auth-modal-title">Registrate o inicia sesion para poder hacer tu compra.</h3>
-                    <p id="auth-modal-copy">{modalCopy}</p>
-                    <div className="auth-modal__actions">
-                        <a href={authModal.registerUrl} className="btn-primary">Registrarme</a>
-                        <a href={authModal.loginUrl} className="btn-secondary">Iniciar sesion</a>
-                    </div>
+          <div className="stats-row">
+            {stats.map((stat) => (
+              <div className="stat" key={stat.value}>
+                <div className="stat-value">{stat.value}</div>
+                <div className="stat-label">
+                  {stat.label.split('\n').map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
                 </div>
-            </div>
-        </>
-    );
+              </div>
+            ))}
+          </div>
+
+          <a className="section-link dark-link" href="#">
+            <span>Conoce más de nosotros</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CategoryCard({ code, title, subtitle, tone, icon }) {
+  return (
+    <article className={`category-card ${tone}`}>
+      <div className="card-code">{code}</div>
+      <div className={`product-illustration ${icon}`} aria-hidden="true">
+        {icon === 'glass' && <div className="glass" />}
+        {icon === 'yogurt' && (
+          <div className="yogurt">
+            <div className="yogurt-spoon" />
+          </div>
+        )}
+        {icon === 'fruit' && <div className="fruit" />}
+        {icon === 'icecream' && <div className="icecream" />}
+      </div>
+      <div className="card-copy">
+        <h3>{title}</h3>
+        <p>{subtitle}</p>
+      </div>
+      <button className="card-arrow" type="button" aria-label={title}>
+        ↗
+      </button>
+    </article>
+  );
+}
+
+function CategoriesSection() {
+  return (
+    <section className="categories-section">
+      <div className="section-kicker light-kicker">02 / PARA CADA MOMENTO</div>
+      <div className="categories-head">
+        <h2 className="section-title light">Elige tu favorito.</h2>
+        <p className="section-copy light-copy">
+          Desde el desayuno hasta ese antojo de la tarde: hay un producto PIL
+          para acompañarte.
+        </p>
+      </div>
+
+      <div className="cards-grid">
+        {categories.map((card) => (
+          <CategoryCard key={card.code} {...card} />
+        ))}
+      </div>
+
+      <a className="section-link light-link centered" href="#">
+        <span>Ver las 14 categorías</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </section>
+  );
+}
+
+function PlantsSection() {
+  return (
+    <section className="plants-section">
+      <div className="plants-photo-wrap">
+        <img
+          src="https://images.pexels.com/photos/257700/pexels-photo-257700.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          alt="Planta industrial con camiones de distribución"
+        />
+        <div className="made-badge">
+          <span>Hecho aquí</span>
+          <strong>en Bolivia</strong>
+        </div>
+      </div>
+
+      <div className="plants-content">
+        <div className="section-kicker dark-kicker">03 / PRESENCIA NACIONAL</div>
+        <h2 className="section-title plants-title">
+          Tres plantas.
+          <span>Un mismo</span>
+          <span>compromiso.</span>
+        </h2>
+        <p className="plants-copy">
+          Estamos estratégicamente presentes para producir y acercar alimentos
+          de calidad a las familias de todo el país.
+        </p>
+
+        <div className="plants-list">
+          {plants.map((plant) => (
+            <a className="plant-row" href="#" key={plant.code}>
+              <span className="plant-code">{plant.code}</span>
+              <span className="plant-text">
+                <strong>{plant.city}</strong>
+                <span>{plant.description}</span>
+              </span>
+              <span className="plant-arrow" aria-hidden="true">
+                →
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function App() {
+  return (
+    <div className="page">
+      <div className="backdrop-arc" />
+      <Nav />
+      <Hero />
+      <Ticker />
+      <HistorySection />
+      <CategoriesSection />
+      <PlantsSection />
+      <FindPILSection />
+      <Footer />
+    </div>
+  );
 }

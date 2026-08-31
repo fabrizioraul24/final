@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\AiReplenishmentAgentService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class CheckAiReplenishmentAgent extends Command
 {
@@ -24,6 +25,11 @@ class CheckAiReplenishmentAgent extends Command
             $payload['transfer_requests'] ?? [],
             $this->option('window') ? (int) $this->option('window') : null
         );
+
+        $now = now();
+        Cache::put('admin_ai_replenishment_last_run_at', $now->toIso8601String());
+        Cache::add('admin_ai_replenishment_started_at', $now->toIso8601String(), now()->addYear());
+        Cache::forget('admin_ai_replenishment_dataset_v2');
 
         $this->info('Solicitudes creadas: ' . count($result['created']));
         $this->line('Solicitudes omitidas: ' . count($result['skipped']));

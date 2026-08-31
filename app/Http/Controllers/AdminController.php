@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Product;
+use App\Models\ProductLot;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Transfer;
 use App\Models\User;
 use App\Support\AdminReact;
@@ -16,11 +18,11 @@ class AdminController extends Controller
     public function index(): View
     {
         $data = $this->getDashboardData();
-        $layout = AdminReact::layout('Radar Ejecutivo', 'dashboard');
+        $layout = AdminReact::layout('Panel de control', 'dashboard');
 
         return view('react-page', [
             'page' => 'adminDashboard',
-            'title' => 'Dashboard Administrador | Pil Andina',
+            'title' => 'Panel de control Administrador | Pil Andina',
             'stylesheets' => [asset('landing/dashboard.css')],
             'props' => [
                 'layout' => $layout,
@@ -79,23 +81,7 @@ class AdminController extends Controller
                         'detail' => 'Hoy: Bs ' . number_format($data['kpis']['sales_today'], 2),
                     ],
                 ],
-                'insights' => [
-                    [
-                        'label' => 'Categoria lider',
-                        'value' => $data['categoryMix']['labels'][0] ?? 'Sin datos',
-                        'detail' => $data['topCategoryShare'] . '% del catalogo activo',
-                    ],
-                    [
-                        'label' => 'Rol dominante',
-                        'value' => $data['roleMix']['labels'][0] ?? 'Sin datos',
-                        'detail' => $data['topRoleShare'] . '% de usuarios',
-                    ],
-                    [
-                        'label' => 'Traspasos recibidos',
-                        'value' => $data['receivedShare'] . '%',
-                        'detail' => $data['receivedTransfers'] . ' de ' . $data['transferTotal'] . ' completados',
-                    ],
-                ],
+                'insights' => $data['insights'],
                 'recentActivity' => $data['recentActivity'],
                 'categoryBreakdown' => $data['categoryBreakdown'],
                 'roleBreakdown' => $data['roleBreakdown'],
@@ -269,8 +255,43 @@ class AdminController extends Controller
                 'total' => (float) $row->total,
             ])->values();
 
+        $topProductsData = SaleItem::select('product_id', DB::raw('SUM(quantity) as quantity'), DB::raw('SUM(subtotal) as total'))
+            ->whereHas('sale')
+            ->with('product:id,name')
+            ->groupBy('product_id')
+            ->orderByDesc('quantity')
+            ->take(8)
+            ->get();
+        $maxProductQuantity = max(1, (int) ($topProductsData->max('quantity') ?? 1));
+        $topProducts = $topProductsData->map(fn ($row) => [
+            'name' => $row->product->name ?? 'Producto sin nombre',
+            'quantity' => (int) $row->quantity,
+            'total' => (float) $row->total,
+            'popularity' => (int) round(((int) $row->quantity / $maxProductQuantity) * 100),
+        ])->values();
+
+        $regionSales = Sale::select('delivery_city', DB::raw('COUNT(*) as orders'), DB::raw('SUM(total_amount) as sales'))
+            ->whereNotNull('delivery_city')
+            ->where('delivery_city', '!=', '')
+            ->groupBy('delivery_city')
+            ->orderByDesc('sales')
+            ->take(3)
+            ->get()
+            ->map(fn ($row) => [
+                'label' => $row->delivery_city,
+                'orders' => (int) $row->orders,
+                'sales' => 'Bs ' . number_format((float) $row->sales, 0),
+            ])->values();
+
         // Critical stock alerts
-        $criticalStocks = \App\Models\ProductLot::whereColumn('quantity', '<', 'safety_threshold')
+        $criticalStocksQuery = ProductLot::whereColumn('quantity', '<', 'safety_threshold');
+        $criticalStocksTotal = (clone $criticalStocksQuery)->count();
+        $expiredLotsTotal = ProductLot::query()
+            ->where('quantity', '>', 0)
+            ->whereDate('expires_at', '<', $today)
+            ->count();
+
+        $criticalStocks = $criticalStocksQuery
             ->with(['product:id,name,sku', 'warehouse:id,name'])
             ->limit(6)
             ->get()
@@ -281,6 +302,41 @@ class AdminController extends Controller
                 'quantity' => (int) $lot->quantity,
                 'threshold' => (int) $lot->safety_threshold,
             ])->values();
+
+        $insights = collect([
+            $criticalStocksTotal > 0 ? [
+                'label' => 'Stock para reponer',
+                'value' => $criticalStocksTotal . ' producto' . ($criticalStocksTotal === 1 ? '' : 's'),
+                'detail' => 'Cantidad disponible por debajo del nivel de seguridad.',
+            ] : [
+                'label' => 'Stock operativo',
+                'value' => 'Estable',
+                'detail' => 'No hay productos por debajo del nivel de seguridad.',
+            ],
+            $expiredLotsTotal > 0 ? [
+                'label' => 'Lotes vencidos',
+                'value' => $expiredLotsTotal . ' lote' . ($expiredLotsTotal === 1 ? '' : 's'),
+                'detail' => 'Requieren revision antes de una nueva salida.',
+            ] : [
+                'label' => 'Vencimientos',
+                'value' => 'Al dia',
+                'detail' => 'No hay lotes vencidos con stock disponible.',
+            ],
+            $kpis['transfers_active'] > 0 ? [
+                'label' => 'Traspasos en curso',
+                'value' => (string) $kpis['transfers_active'],
+                'detail' => 'Pendientes o en transito entre almacenes.',
+            ] : [
+                'label' => 'Traspasos',
+                'value' => 'Sin pendientes',
+                'detail' => 'No hay movimientos internos abiertos.',
+            ],
+            [
+                'label' => 'Ventas frente a ayer',
+                'value' => ($salesDelta >= 0 ? '+' : '') . number_format($salesDelta, 1) . '%',
+                'detail' => $salesDelta >= 0 ? 'Variacion favorable del volumen diario.' : 'Variacion por revisar frente al dia anterior.',
+            ],
+        ])->values();
 
         return [
             'kpis' => $kpis,
@@ -306,7 +362,10 @@ class AdminController extends Controller
             'monthlyTarget' => $monthlyTarget,
             'monthlyTargetProgress' => $monthlyTargetProgress,
             'topSellers' => $topSellers,
+            'topProducts' => $topProducts,
+            'regionSales' => $regionSales,
             'criticalStocks' => $criticalStocks,
+            'insights' => $insights,
         ];
     }
 }

@@ -31,7 +31,7 @@ class AdminReact
     public static function layout(string $pageTitle, string $activeKey): array
     {
         $items = [
-            'dashboard' => ['label' => 'Dashboard', 'href' => route('dashboard.admin'), 'icon' => 'ri-dashboard-line', 'page' => 'adminDashboard'],
+            'dashboard' => ['label' => 'Panel de control', 'href' => route('dashboard.admin'), 'icon' => 'ri-dashboard-line', 'page' => 'adminDashboard'],
             'users' => ['label' => 'Usuarios', 'href' => route('dashboard.users'), 'icon' => 'ri-group-line', 'page' => 'adminUsers'],
             'companies' => ['label' => 'Clientes', 'href' => route('dashboard.companies'), 'icon' => 'ri-user-smile-line', 'page' => 'adminCompanies'],
             'products' => ['label' => 'Productos', 'href' => route('dashboard.products'), 'icon' => 'ri-shopping-bag-line', 'page' => 'adminProducts'],

@@ -33,6 +33,17 @@ class ProductLotController extends Controller
 
         $productsWithLots->setCollection($this->decorateLotProducts($productsWithLots->getCollection()));
 
+        $today = Carbon::today();
+        $stats = [
+            'products' => ProductLot::query()->distinct('product_id')->count('product_id'),
+            'lots' => ProductLot::count(),
+            'stock' => (int) ProductLot::sum('quantity'),
+            'expiring' => ProductLot::query()
+                ->where('quantity', '>', 0)
+                ->whereBetween('expires_at', [$today, $today->copy()->addDays(30)])
+                ->count(),
+        ];
+
         return view('react-page', AdminReact::page('lots', 'Lotes | Pil Andina', 'Gestion de Lotes (FEFO)', 'lots', [
             'data' => [
                 'productsWithLots' => AdminReact::paginator($productsWithLots->through(fn (Product $product) => $this->lotProductPayload($product))),
@@ -44,6 +55,7 @@ class ProductLotController extends Controller
                     'warehouse_id' => $this->resolvedWarehouseId($warehouseId),
                     'expires_at' => $expires,
                 ],
+                'stats' => $stats,
                 'routes' => [
                     'index' => route('dashboard.lots'),
                     'store' => route('dashboard.lots.store'),

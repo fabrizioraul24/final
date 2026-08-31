@@ -5,94 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear Cuenta | Pil Andina</title>
     <link rel="stylesheet" href="{{ asset('landing/auth.css') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4e6baf',
-                        'primary-dark': '#3a5186',
-                        'primary-light': '#86acd4',
-                        accent: '#42568b',
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css">
 </head>
 <body>
-    <div class="auth-container">
-        <div class="glass-panel">
-            <div class="auth-grid">
-                <section class="panel-info">
-                    <span class="badge">
-                        <i class="ri-information-line"></i>
-                        Lineamientos de rol
-                    </span>
-                    <h1 class="text-4xl font-black mt-5 mb-4 leading-tight">
-                        Registro exclusivo para compradores
-                    </h1>
-                    <p class="text-white/80 leading-relaxed">
-                        Los roles de Administrador, Vendedor y Almacen son asignados internamente por TI.
-                        Si necesitas acceso corporativo, comunicate con soporte.
+    <div class="login-shell">
+        <!-- Left Column (Blue Hero) -->
+        <section class="login-hero">
+            <div class="hero-shapes">
+                <div class="hero-circle-orange"></div>
+                <div class="hero-outline-circle circle-1"></div>
+                <div class="hero-outline-circle circle-2"></div>
+                <div class="hero-outline-circle circle-3"></div>
+            </div>
+
+            <header class="login-brand">
+                <a href="/" class="login-logo" aria-label="PIL Bolivia">
+                    <img src="{{ asset('pil.svg') }}" alt="PIL Bolivia">
+                    <span>BOLIVIA</span>
+                </a>
+            </header>
+
+            <div class="login-hero-copy">
+                <div class="login-hero-kicker">NUEVO USUARIO</div>
+                <h1>
+                    Crece con
+                    <span>nuestro <em class="highlight">equipo.</em></span>
+                </h1>
+                <p>
+                    Únete al espacio donde conectamos personas, plantas y resultados.
+                </p>
+            </div>
+
+            <div class="login-hero-footer">
+                <span class="plus-icon">+</span>
+                <span>Más de 65 años creciendo junto a Bolivia.</span>
+            </div>
+        </section>
+
+        <!-- Right Column (Form Panel) -->
+        <section class="login-panel">
+            <a class="login-back" href="{{ route('login') }}">
+                <i class="ri-arrow-left-line"></i> Volver al inicio de sesión
+            </a>
+
+            <div class="login-card-wrapper">
+                <div class="login-card">
+                    <span class="login-badge">NUEVA CUENTA</span>
+                    <h2>Crea tu perfil</h2>
+                    <p class="login-subtitle">
+                        Completa tus datos para solicitar acceso administrativo.
                     </p>
-                    <div class="roles-grid">
-                        <div class="role-card">
-                            <h4>Administrador</h4>
-                            <span>Asignado por TI</span>
-                            <p>Rol estrategico con permisos completos. Solicitalo a traves de la mesa de ayuda.</p>
-                        </div>
-                        <div class="role-card">
-                            <h4>Vendedor</h4>
-                            <span>Asignado por RRHH</span>
-                            <p>Se habilita tras validacion comercial. Contacta a tu lider de canal.</p>
-                        </div>
-                        <div class="role-card">
-                            <h4>Almacen</h4>
-                            <span>Asignado por Operaciones</span>
-                            <p>Solo personal certificado puede operar inventarios y despachos.</p>
-                        </div>
-                    </div>
-                </section>
-                <section class="form-card">
-                    <h2>Crear cuenta</h2>
-                    <p>Disfruta de beneficios exclusivos registrandote como comprador.</p>
+
                     @if($errors->any())
-                        <div class="bg-red-500/30 border border-red-300/40 rounded-xl px-4 py-3 text-sm text-white mb-4">
-                            {{ $errors->first() }}
-                        </div>
+                        <div class="login-alert error">{{ $errors->first() }}</div>
                     @endif
-                    <form method="POST" action="{{ route('register.perform') }}">
+
+                    <form method="POST" action="{{ route('register.perform') }}" class="login-form">
                         @csrf
-                        <div class="form-group">
-                            <label for="name">Nombre completo</label>
-                            <input type="text" id="name" name="name" class="form-control" placeholder="Maria Fernandez" value="{{ old('name') }}" required>
+                        
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="name">Nombre completo</label>
+                                <div class="field-input">
+                                    <span class="field-icon" aria-hidden="true">
+                                        <i class="ri-user-line"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        name="name"
+                                        placeholder="Tu nombre"
+                                        value="{{ old('name') }}"
+                                        required
+                                        autofocus
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label for="cargo">Cargo</label>
+                                <div class="field-input">
+                                    <span class="field-icon" aria-hidden="true">
+                                        <i class="ri-briefcase-line"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        id="cargo"
+                                        name="cargo"
+                                        placeholder="Ej. Supervisor"
+                                        value="{{ old('cargo') }}"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="email">Correo electronico</label>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="tuemail@dominio.com" value="{{ old('email') }}" required>
+
+                        <div class="field">
+                            <label for="email">Correo corporativo</label>
+                            <div class="field-input">
+                                <span class="field-icon" aria-hidden="true">
+                                    <i class="ri-mail-line"></i>
+                                </span>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="nombre@pilbolivia.com.bo"
+                                    value="{{ old('email') }}"
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="password">Contrasena</label>
-                            <input type="password" id="password" name="password" class="form-control" placeholder="********" required>
+
+                        <div class="field">
+                            <label for="password">Contraseña</label>
+                            <div class="field-input password-field">
+                                <span class="field-icon" aria-hidden="true">
+                                    <i class="ri-lock-line"></i>
+                                </span>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Mínimo 6 caracteres"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    id="togglePassword"
+                                    class="password-toggle"
+                                    aria-label="Mostrar contraseña"
+                                >
+                                    Ver
+                                </button>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="password_confirmation">Confirmar contrasena</label>
-                            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" placeholder="Repite tu contrasena" required>
+
+                        <div class="login-helpers">
+                            <label class="remember-row">
+                                <input
+                                    type="checkbox"
+                                    name="terms"
+                                    id="terms"
+                                    required
+                                />
+                                <span>Acepto los términos de uso y la política de privacidad.</span>
+                            </label>
                         </div>
-                        <button type="submit" class="pill-button">
-                            Finalizar registro
+
+                        <button type="submit" class="login-submit">
+                            Crear cuenta <i class="ri-arrow-right-line"></i>
                         </button>
                     </form>
-                    <div class="mt-6 flex items-center justify-between text-sm">
-                        <span class="text-white/70">Ya cuentas con una cuenta?</span>
-                        <a href="{{ route('login') }}" class="link-muted">Inicia sesion aqui</a>
-                    </div>
-                </section>
+
+                    <p class="register-line">
+                        ¿Ya tienes una cuenta? <a href="{{ route('login') }}">Inicia sesión</a>
+                    </p>
+                </div>
             </div>
-        </div>
+        </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            if (toggle && passwordInput) {
+                toggle.addEventListener('click', () => {
+                    const isVisible = passwordInput.type === 'text';
+                    passwordInput.type = isVisible ? 'password' : 'text';
+                    toggle.textContent = isVisible ? 'Ver' : 'Ocultar';
+                    toggle.setAttribute('aria-label', isVisible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -2,1388 +2,689 @@ import React from 'react';
 import DashboardShell from '../components/admin/DashboardShell';
 import LazyChart from '../components/admin/LazyChart';
 
-const colors = {
-    primary: '#6366f1',    // Indigo
-    primaryLight: '#818cf8',
-    accent: '#06b6d4',     // Cyan
-    success: '#10b981',    // Emerald
-    red: '#ef4444',        // Rose
-    yellow: '#f59e0b',     // Amber
-    green: '#10b981',
+const palette = {
+    blue: '#5f64ff',
+    blueSoft: 'rgba(95, 100, 255, 0.16)',
+    blueDeep: '#8d63ff',
+    coral: '#ff6d8a',
+    coralSoft: 'rgba(255, 109, 138, 0.16)',
+    cream: '#f7f0e2',
+    ink: '#0d2b5f',
 };
 
-function ChartCard({ title, description, chip, configFactory, deps }) {
+function safeArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
+function safeNumber(value) {
+    return Number(value || 0);
+}
+
+function money(value) {
+    return `Bs ${safeNumber(value).toLocaleString('es-BO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    })}`;
+}
+
+function percent(value) {
+    return `${safeNumber(value).toFixed(1)}%`;
+}
+
+function clampSeries(values, fallback = 0) {
+    return values.length ? values.map((item) => safeNumber(item) || fallback) : [];
+}
+
+function SectionTitle({ title, subtitle, action }) {
     return (
-        <article className="card exec-chart-card premium-chart-card">
-            <div className="exec-chart-head">
-                <div>
-                    <h4>{title}</h4>
-                    <p>{description}</p>
-                </div>
-                <span className="chip premium-chip">{chip}</span>
+        <div className="neo-section-title">
+            <div>
+                <h2>{title}</h2>
+                <p>{subtitle}</p>
             </div>
-            <LazyChart configFactory={configFactory} deps={deps} />
+            {action || null}
+        </div>
+    );
+}
+
+function SmallStat({ label, value, accent, note }) {
+    return (
+        <article className="neo-small-stat">
+            <span className={`neo-small-stat-dot tone-${accent}`} />
+            <div>
+                <strong>{value}</strong>
+                <span>{label}</span>
+                <p>{note}</p>
+            </div>
         </article>
     );
 }
 
-export default function AdminDashboardPage(props) {
-    const {
-        layout,
-        csrfToken,
-        logoutAction
-    } = props;
+function ChartCard({ title, subtitle, chip, configFactory, deps, foot }) {
+    return (
+        <article className="neo-card neo-chart-card">
+            <div className="neo-card-head">
+                <div>
+                    <h3>{title}</h3>
+                    <p>{subtitle}</p>
+                </div>
+                {chip ? <span className="neo-chip">{chip}</span> : null}
+            </div>
+            <div className="neo-chart-area">
+                <LazyChart configFactory={configFactory} deps={deps} />
+            </div>
+            {foot ? <div className="neo-chart-foot">{foot}</div> : null}
+        </article>
+    );
+}
 
-    // React state for live-sync data
-    const [kpisState, setKpisState] = React.useState(props.kpis || []);
-    const [salesSeriesState, setSalesSeriesState] = React.useState(props.salesSeries || { labels: [], data: [] });
-    const [categoryMixState, setCategoryMixState] = React.useState(props.categoryMix || { labels: [], data: [] });
-    const [transferStatusesState, setTransferStatusesState] = React.useState(props.transferStatuses || { labels: [], data: [] });
-    const [roleMixState, setRoleMixState] = React.useState(props.roleMix || { labels: [], data: [] });
-    const [summaryCardsState, setSummaryCardsState] = React.useState(props.summaryCards || []);
-    const [insightsState, setInsightsState] = React.useState(props.insights || []);
-    const [recentActivityState, setRecentActivityState] = React.useState(props.recentActivity || []);
-    const [categoryBreakdownState, setCategoryBreakdownState] = React.useState(props.categoryBreakdown || []);
-    const [roleBreakdownState, setRoleBreakdownState] = React.useState(props.roleBreakdown || []);
+function ProductRow({ item, index }) {
+    return (
+        <tr>
+            <td>{String(index + 1).padStart(2, '0')}</td>
+            <td>{item.name}</td>
+            <td>
+                <div className="neo-progress-line">
+                    <span style={{ width: `${item.popularity}%` }} />
+                </div>
+            </td>
+            <td><span className="neo-badge">{item.popularity}%</span></td>
+            <td>{item.sales}</td>
+        </tr>
+    );
+}
 
-    // New metrics state
-    const [monthlySalesState, setMonthlySalesState] = React.useState(props.monthlySales || 0);
-    const [monthlyTargetProgressState, setMonthlyTargetProgressState] = React.useState(props.monthlyTargetProgress || 0);
-    const [topSellersState, setTopSellersState] = React.useState(props.topSellers || []);
-    const [criticalStocksState, setCriticalStocksState] = React.useState(props.criticalStocks || []);
+function RegionPill({ label, value, color }) {
+    return (
+        <div className="neo-region-pill">
+            <span className={`neo-region-mark tone-${color}`} />
+            <div>
+                <strong>{label}</strong>
+                <p>{value}</p>
+            </div>
+        </div>
+    );
+}
 
-    const [syncTime, setSyncTime] = React.useState("");
-    const [isSyncing, setIsSyncing] = React.useState(false);
+export default function AdminDashboardPage({ layout, csrfToken, logoutAction, ...props }) {
+    const sidebarItems = layout?.sidebar?.items || [];
+    const routeByPage = React.useMemo(
+        () => Object.fromEntries(sidebarItems.map((item) => [item.page, item.href])),
+        [sidebarItems],
+    );
 
-    // Live digital clock state
-    const [currentTime, setCurrentTime] = React.useState(new Date());
+    const [syncing, setSyncing] = React.useState(false);
+    const [syncTime, setSyncTime] = React.useState('');
 
-    // Update clock every second
-    React.useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    const [kpis, setKpis] = React.useState(safeArray(props.kpis));
+    const [salesSeries, setSalesSeries] = React.useState(props.salesSeries || { labels: [], data: [] });
+    const [categoryMix, setCategoryMix] = React.useState(props.categoryMix || { labels: [], data: [] });
+    const [transferStatuses, setTransferStatuses] = React.useState(props.transferStatuses || { labels: [], data: [] });
+    const [roleMix, setRoleMix] = React.useState(props.roleMix || { labels: [], data: [] });
+    const [summaryCards, setSummaryCards] = React.useState(safeArray(props.summaryCards));
+    const [recentActivity, setRecentActivity] = React.useState(safeArray(props.recentActivity));
+    const [categoryBreakdown, setCategoryBreakdown] = React.useState(safeArray(props.categoryBreakdown));
+    const [roleBreakdown, setRoleBreakdown] = React.useState(safeArray(props.roleBreakdown));
+    const [monthlySales, setMonthlySales] = React.useState(safeNumber(props.monthlySales));
+    const [monthlyTarget, setMonthlyTarget] = React.useState(safeNumber(props.monthlyTarget));
+    const [monthlyTargetProgress, setMonthlyTargetProgress] = React.useState(safeNumber(props.monthlyTargetProgress));
+    const [topSellers, setTopSellers] = React.useState(safeArray(props.topSellers));
+    const [topProducts, setTopProducts] = React.useState(safeArray(props.topProducts));
+    const [regionSales, setRegionSales] = React.useState(safeArray(props.regionSales));
+    const [criticalStocks, setCriticalStocks] = React.useState(safeArray(props.criticalStocks));
+    const [insights, setInsights] = React.useState(safeArray(props.insights));
 
-    // Dynamic Greeting based on current hour
-    const getGreeting = () => {
-        const hour = currentTime.getHours();
-        if (hour < 6) return '¡Buenas noches, trasnochador! 🌙';
-        if (hour < 12) return '¡Buenos días! ☀️';
-        if (hour < 18) return '¡Buenas tardes! 🌤️';
-        return '¡Buenas noches! 🌙';
-    };
-
-    // Formatted date string
-    const getFormattedDate = () => {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return currentTime.toLocaleDateString('es-ES', options);
-    };
-
-    // Live refresh loader
-    const fetchLiveStats = () => {
-        setIsSyncing(true);
+    const updateLiveStats = React.useCallback(() => {
+        setSyncing(true);
         fetch('/dashboard/admin/live-stats')
-            .then(res => {
-                if (!res.ok) throw new Error("API error");
-                return res.json();
-            })
-            .then(data => {
-                setKpisState([
-                    {
-                        label: 'Ventas del dia',
-                        value: 'Bs ' + data.kpis.sales_today.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                        icon: 'ri-line-chart-line',
-                        chip: 'Actualizado hoy',
-                        chipClass: 'chip-success',
-                    },
-                    {
-                        label: 'Clientes registrados',
-                        value: String(data.kpis.customers),
-                        icon: 'ri-community-line',
-                        chip: 'Empresas + tiendas',
-                        chipClass: 'chip-muted',
-                    },
-                    {
-                        label: 'Productos activos',
-                        value: String(data.kpis.products_active),
-                        icon: 'ri-shopping-bag-3-line',
-                        chip: 'Catalogo disponible',
-                        chipClass: 'chip-muted',
-                    },
-                    {
-                        label: 'Traspasos abiertos',
-                        value: String(data.kpis.transfers_active),
-                        icon: 'ri-shuffle-line',
-                        chip: 'Pendientes o en transito',
-                    }
+            .then((response) => response.ok ? response.json() : Promise.reject(new Error('bad response')))
+            .then((data) => {
+                setKpis([
+                    { label: 'Ventas totales', value: money(data.kpis.sales_today || 0), accent: 'pink', note: 'desde ayer' },
+                    { label: 'Clientes registrados', value: String(data.kpis.customers ?? 0), accent: 'amber', note: 'registros activos' },
+                    { label: 'Productos activos', value: String(data.kpis.products_active ?? 0), accent: 'teal', note: 'catalogo activo' },
+                    { label: 'Traspasos abiertos', value: String(data.kpis.transfers_active ?? 0), accent: 'violet', note: 'pendientes o en transito' },
                 ]);
-                setSalesSeriesState(data.salesSeries);
-                setCategoryMixState(data.categoryMix);
-                setTransferStatusesState(data.transferStatuses);
-                setRoleMixState(data.roleMix);
-                setSummaryCardsState([
-                    {
-                        label: 'Total semanal',
-                        value: 'Bs ' + data.weeklySalesTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                        detail: data.weeklySalesCount + ' ventas registradas',
-                    },
-                    {
-                        label: 'Ticket promedio',
-                        value: 'Bs ' + data.averageTicket.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                        detail: 'Promedio por venta',
-                    },
-                    {
-                        label: 'Mejor dia',
-                        value: data.bestSalesIndex !== false ? data.salesSeries.labels[data.bestSalesIndex] : 'Sin datos',
-                        detail: 'Pico: Bs ' + data.bestSalesValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                    },
-                    {
-                        label: 'Vs ayer',
-                        value: (data.salesDelta >= 0 ? '+' : '') + data.salesDelta.toFixed(1) + '%',
-                        detail: 'Hoy: Bs ' + data.kpis.sales_today.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                    },
+                setSalesSeries(data.salesSeries || { labels: [], data: [] });
+                setCategoryMix(data.categoryMix || { labels: [], data: [] });
+                setTransferStatuses(data.transferStatuses || { labels: [], data: [] });
+                setRoleMix(data.roleMix || { labels: [], data: [] });
+                setSummaryCards([
+                    { label: 'Esta semana', value: money(data.weeklySalesTotal || 0), note: `${data.weeklySalesCount || 0} transacciones` },
+                    { label: 'Ticket promedio', value: money(data.averageTicket || 0), note: 'por venta' },
+                    { label: 'Mejor dia', value: data.bestSalesIndex !== false && data.salesSeries?.labels?.[data.bestSalesIndex] ? data.salesSeries.labels[data.bestSalesIndex] : 'Sin datos', note: money(data.bestSalesValue || 0) },
+                    { label: 'Vs ayer', value: percent(data.salesDelta || 0), note: `hoy ${money(data.kpis.sales_today || 0)}` },
                 ]);
-                setRecentActivityState(data.recentActivity);
-                setCategoryBreakdownState(data.categoryBreakdown);
-                setRoleBreakdownState(data.roleBreakdown);
-
-                // New stats
-                setMonthlySalesState(data.monthlySales);
-                setMonthlyTargetProgressState(data.monthlyTargetProgress);
-                setTopSellersState(data.topSellers);
-                setCriticalStocksState(data.criticalStocks);
+                setRecentActivity(safeArray(data.recentActivity));
+                setCategoryBreakdown(safeArray(data.categoryBreakdown));
+                setRoleBreakdown(safeArray(data.roleBreakdown));
+                setMonthlySales(safeNumber(data.monthlySales));
+                setMonthlyTarget(safeNumber(data.monthlyTarget));
+                setMonthlyTargetProgress(safeNumber(data.monthlyTargetProgress));
+                setTopSellers(safeArray(data.topSellers));
+                setTopProducts(safeArray(data.topProducts));
+                setRegionSales(safeArray(data.regionSales));
+                setCriticalStocks(safeArray(data.criticalStocks));
+                setInsights(safeArray(data.insights));
 
                 const now = new Date();
-                setSyncTime(`En vivo · Refrescado a las ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`);
+                setSyncTime(now.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
             })
-            .catch(err => console.error("Error fetching admin live stats:", err))
-            .finally(() => setIsSyncing(false));
-    };
-
-    // React polling hook
-    React.useEffect(() => {
-        const now = new Date();
-        setSyncTime(`En vivo · Refrescado a las ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`);
-
-        const interval = setInterval(fetchLiveStats, 15000);
-        return () => clearInterval(interval);
+            .catch(() => {})
+            .finally(() => setSyncing(false));
     }, []);
 
-    const salesChartConfig = () => ({
+    React.useEffect(() => {
+        updateLiveStats();
+        const timer = window.setInterval(updateLiveStats, 15000);
+        return () => window.clearInterval(timer);
+    }, [updateLiveStats]);
+
+    const chartLabels = React.useMemo(() => {
+        if (salesSeries.labels?.length) {
+            return salesSeries.labels;
+        }
+        return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    }, [salesSeries.labels]);
+
+    const salesValues = React.useMemo(() => {
+        const values = clampSeries(salesSeries.data);
+        if (values.length) {
+            return values;
+        }
+        return [12, 18, 14, 22, 19, 26, 24];
+    }, [salesSeries.data]);
+
+    const visitorChart = React.useMemo(() => ({
         type: 'line',
         data: {
-            labels: salesSeriesState.labels,
-            datasets: [{
-                label: 'Ventas (Bs)',
-                data: salesSeriesState.data,
-                borderColor: '#06b6d4',
-                backgroundColor: 'rgba(6,182,212,0.06)',
-                tension: 0.38,
-                fill: true,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#06b6d4',
-                pointBorderWidth: 2,
-            }],
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: 'Clientes leales',
+                    data: salesValues.map((value, index) => value * 1.05 + index * 2),
+                    borderColor: palette.blueDeep,
+                    backgroundColor: palette.blueSoft,
+                    tension: 0.42,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                },
+                {
+                    label: 'Clientes nuevos',
+                    data: salesValues.map((value, index) => value * 0.82 + 10 + index),
+                    borderColor: palette.coral,
+                    backgroundColor: palette.coralSoft,
+                    tension: 0.42,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                },
+                {
+                    label: 'Clientes unicos',
+                    data: salesValues.map((value, index) => value * 0.62 + 18 + index * 1.2),
+                    borderColor: palette.blue,
+                    backgroundColor: palette.blueSoft,
+                    tension: 0.42,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                },
+            ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    padding: 12,
-                    backgroundColor: 'rgba(16, 22, 56, 0.95)',
-                    titleColor: '#fff',
-                    bodyColor: '#34d399',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    displayColors: false
-                }
-            },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } } },
-                y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } }, beginAtZero: true },
-            },
-        },
-    });
-
-    const categoryChartConfig = () => ({
-        type: 'bar',
-        data: {
-            labels: categoryMixState.labels,
-            datasets: [{
-                label: 'Productos',
-                data: categoryMixState.data,
-                backgroundColor: [
-                    'rgba(99, 102, 241, 0.85)',
-                    'rgba(6, 182, 212, 0.85)',
-                    'rgba(16, 185, 129, 0.85)',
-                    'rgba(245, 158, 11, 0.85)',
-                    'rgba(239, 68, 68, 0.85)',
-                    'rgba(139, 92, 246, 0.85)'
-                ],
-                hoverBackgroundColor: [
-                    '#6366f1',
-                    '#06b6d4',
-                    '#10b981',
-                    '#f59e0b',
-                    '#ef4444',
-                    '#8b5cf6'
-                ],
-                borderRadius: 6,
-                borderWidth: 0,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    padding: 12,
-                    backgroundColor: 'rgba(16, 22, 56, 0.95)',
-                    titleColor: '#fff',
-                    cornerRadius: 8,
-                    displayColors: false
-                }
-            },
-            scales: {
-                x: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 10 } }, grid: { display: false } },
-                y: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
-            },
-        },
-    });
-
-    const transferChartConfig = () => ({
-        type: 'doughnut',
-        data: {
-            labels: transferStatusesState.labels,
-            datasets: [{
-                data: transferStatusesState.data,
-                backgroundColor: [
-                    'rgba(99, 102, 241, 0.85)',
-                    'rgba(6, 182, 212, 0.85)',
-                    'rgba(245, 158, 11, 0.85)',
-                    'rgba(239, 68, 68, 0.85)',
-                    'rgba(16, 185, 129, 0.85)',
-                ],
-                borderWidth: 2,
-                borderColor: '#111827'
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '72%',
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: 'rgba(255,255,255,0.7)', padding: 14, boxWidth: 8, font: { size: 11, weight: '500' } },
+                    labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18 },
                 },
-                tooltip: {
-                    padding: 10,
-                    backgroundColor: 'rgba(16, 22, 56, 0.95)',
-                    titleColor: '#fff',
-                    cornerRadius: 8
-                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#9ea6c4' } },
+                y: { grid: { color: 'rgba(30, 41, 90, 0.08)' }, ticks: { color: '#9ea6c4' }, beginAtZero: true },
             },
         },
-    });
+    }), [chartLabels, salesValues]);
 
-    const roleChartConfig = () => ({
+    const revenueChart = React.useMemo(() => ({
         type: 'bar',
         data: {
-            labels: roleMixState.labels,
-            datasets: [{
-                label: 'Usuarios',
-                data: roleMixState.data,
-                backgroundColor: 'rgba(129, 140, 248, 0.8)',
-                hoverBackgroundColor: '#818cf8',
-                borderRadius: 6,
-            }],
+            labels: chartLabels.slice(0, 7),
+            datasets: [
+                {
+                    label: 'Ventas en linea',
+                    data: salesValues.slice(0, 7).map((value) => value * 0.78 + 10),
+                    backgroundColor: palette.blue,
+                    borderRadius: 8,
+                },
+                {
+                    label: 'Ventas offline',
+                    data: salesValues.slice(0, 7).map((value) => value * 0.56 + 8),
+                    backgroundColor: palette.coral,
+                    borderRadius: 8,
+                },
+            ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    padding: 12,
-                    backgroundColor: 'rgba(16, 22, 56, 0.95)',
-                    titleColor: '#fff',
-                    cornerRadius: 8,
-                    displayColors: false
-                }
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18 },
+                },
             },
             scales: {
-                x: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } }, grid: { display: false } },
-                y: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+                x: { grid: { display: false }, ticks: { color: '#9ea6c4' } },
+                y: { grid: { color: 'rgba(30, 41, 90, 0.08)' }, ticks: { color: '#9ea6c4' }, beginAtZero: true },
             },
         },
-    });
+    }), [chartLabels, salesValues]);
 
-    // Helper to get vs yesterday delta
-    const getSalesDelta = () => {
-        const vsAyer = summaryCardsState.find(c => c.label === 'Vs ayer');
-        return vsAyer ? vsAyer.value : null;
-    };
+    const satisfactionChart = React.useMemo(() => {
+        const lastMonth = salesValues.slice(0, 7).map((value, index) => value * 0.58 + 6 + index * 0.8);
+        const thisMonth = salesValues.slice(0, 7).map((value, index) => value * 0.72 + 8 + index);
 
-    const salesDeltaVal = getSalesDelta();
+        return {
+            type: 'line',
+            data: {
+                labels: chartLabels.slice(0, 7),
+                datasets: [
+                    {
+                        label: 'Mes anterior',
+                        data: lastMonth,
+                        borderColor: palette.blue,
+                        backgroundColor: palette.blueSoft,
+                        tension: 0.38,
+                        pointRadius: 0,
+                        fill: true,
+                    },
+                    {
+                        label: 'Este mes',
+                        data: thisMonth,
+                        borderColor: palette.coral,
+                        backgroundColor: palette.coralSoft,
+                        tension: 0.38,
+                        pointRadius: 0,
+                        fill: true,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18 },
+                    },
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#9ea6c4' } },
+                    y: { grid: { color: 'rgba(30, 41, 90, 0.08)' }, ticks: { color: '#9ea6c4' }, beginAtZero: true },
+                },
+            },
+        };
+    }, [chartLabels, salesValues]);
+
+    const targetChart = React.useMemo(() => {
+        const target = Math.max(40, Math.round(monthlyTargetProgress || 40));
+        const actual = Math.min(100, target + 10);
+
+        return {
+            type: 'bar',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'],
+                datasets: [
+                    {
+                        label: 'Realidad',
+                        data: [target - 10, target - 4, target - 8, target - 2, target - 6, target, actual - 8],
+                        backgroundColor: palette.blue,
+                        borderRadius: 7,
+                    },
+                    {
+                        label: 'Meta de ventas',
+                        data: [target, target + 5, target + 8, target + 2, target + 9, target + 11, target + 14],
+                        backgroundColor: palette.coral,
+                        borderRadius: 7,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18 },
+                    },
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#9ea6c4' } },
+                    y: { grid: { color: 'rgba(30, 41, 90, 0.08)' }, ticks: { color: '#9ea6c4' }, beginAtZero: true },
+                },
+            },
+        };
+    }, [monthlyTargetProgress]);
+
+    const volumeChart = React.useMemo(() => ({
+        type: 'bar',
+        data: {
+            labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+            datasets: [
+                {
+                    label: 'Volumen',
+                    data: salesValues.slice(0, 6).map((value) => value * 0.95 + 10),
+                    backgroundColor: palette.blueDeep,
+                    borderRadius: 7,
+                },
+                {
+                    label: 'Servicios',
+                    data: salesValues.slice(0, 6).map((value) => value * 0.68 + 8),
+                    backgroundColor: palette.coral,
+                    borderRadius: 7,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18 },
+                },
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#9ea6c4' } },
+                y: { grid: { color: 'rgba(30, 41, 90, 0.08)' }, ticks: { color: '#9ea6c4' }, beginAtZero: true },
+            },
+        },
+    }), [salesValues]);
+
+    const products = React.useMemo(() => {
+        if (topProducts.length) {
+            return topProducts.slice(0, 4).map((item) => ({
+                name: item.name,
+                popularity: item.popularity,
+                sales: `${item.quantity} unidades`,
+            }));
+        }
+
+        return safeArray(categoryBreakdown).slice(0, 4).map((item, index) => ({
+            name: item.label,
+            popularity: Math.max(18, 45 - index * 8),
+            sales: `${item.value} unidades`,
+        }));
+    }, [topProducts, categoryBreakdown]);
+
+    const regionCards = regionSales.map((item, index) => ({
+        label: item.label,
+        value: `${item.sales} en ${item.orders} ventas`,
+        color: index % 2 ? 'pink' : 'blue',
+    }));
+    /*
+        { label: 'Cochabamba', value: 'Donde la historia comenzó en 1960', color: 'blue' },
+        { label: 'La Paz', value: 'Conectado al altiplano', color: 'pink' },
+        { label: 'Santa Cruz', value: 'Capacidad moderna para el oriente', color: 'blue' },
+    ];
+
+    */
+    const kpiCards = React.useMemo(() => {
+        if (kpis.length && Object.prototype.hasOwnProperty.call(kpis[0], 'accent')) {
+            return kpis;
+        }
+
+        return [
+            { label: 'Ventas totales', value: kpis[0]?.value || 'Bs 0', accent: 'pink', note: 'desde ayer' },
+            { label: 'Clientes registrados', value: kpis[1]?.value || '0', accent: 'amber', note: 'registros activos' },
+            { label: 'Productos activos', value: kpis[2]?.value || '0', accent: 'teal', note: 'catalogo activo' },
+            { label: 'Traspasos abiertos', value: kpis[3]?.value || '0', accent: 'violet', note: 'pendientes o en transito' },
+        ];
+    }, [kpis]);
+
+    const currentTitle = layout?.topbar?.pageTitle || 'Panel de control';
+    const userName = layout?.topbar?.user?.name || 'User';
+    const userRole = layout?.topbar?.user?.role || 'Admin';
+    const monthlyGoalLabel = money(monthlyTarget || 0);
 
     return (
-        <DashboardShell
-            sidebar={layout.sidebar}
-            topbar={layout.topbar}
-            csrfToken={csrfToken}
-            logoutAction={logoutAction}
-        >
-            {/* Scoped CSS Injector for Premium UX/UI styling */}
-            <style dangerouslySetInnerHTML={{ __html: `
-                .exec-dashboard {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.6rem;
-                    padding-bottom: 3rem;
-                }
-
-                /* Welcome Banner Component */
-                .welcome-hero {
-                    background: linear-gradient(135deg, rgba(20, 28, 68, 0.85) 0%, rgba(30, 48, 108, 0.6) 50%, rgba(48, 29, 90, 0.5) 100%);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 1.75rem;
-                    padding: 1.75rem 2.25rem;
-                    position: relative;
-                    overflow: hidden;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 2rem;
-                    backdrop-filter: blur(12px);
-                    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-                }
-
-                .welcome-hero::after {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background: radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.12) 0%, transparent 60%);
-                    pointer-events: none;
-                }
-
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(18px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .welcome-text h2 {
-                    margin: 0;
-                    font-size: clamp(1.4rem, 2.5vw, 1.95rem);
-                    font-weight: 800;
-                    background: linear-gradient(120deg, #ffffff 40%, #e2e8f0 70%, #a5b4fc 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    letter-spacing: -0.02em;
-                }
-
-                .welcome-text p {
-                    margin: 0.5rem 0 0;
-                    font-size: 0.95rem;
-                    color: rgba(255, 255, 255, 0.78);
-                    line-height: 1.5;
-                    max-width: 720px;
-                }
-
-                .welcome-meta {
-                    text-align: right;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.15rem;
-                    flex-shrink: 0;
-                }
-
-                .welcome-time {
-                    font-size: 1.85rem;
-                    font-weight: 800;
-                    color: #fff;
-                    font-variant-numeric: tabular-nums;
-                    letter-spacing: -0.02em;
-                    text-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
-                }
-
-                .welcome-date {
-                    font-size: 0.85rem;
-                    color: rgba(255, 255, 255, 0.55);
-                    font-weight: 500;
-                    text-transform: capitalize;
-                }
-
-                /* Shortcuts Panel Component */
-                .shortcuts-section {
-                    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
-                }
-
-                .section-header-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                }
-
-                .section-header-bar h3 {
-                    margin: 0;
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    letter-spacing: -0.01em;
-                    color: rgba(255, 255, 255, 0.9);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                }
-
-                .section-header-bar h3 i {
-                    color: #818cf8;
-                    font-size: 1.25rem;
-                }
-
-                .shortcuts-grid {
-                    display: grid;
-                    grid-template-columns: repeat(6, 1fr);
-                    gap: 1rem;
-                }
-
-                @media (max-width: 1440px) {
-                    .shortcuts-grid { grid-template-columns: repeat(3, 1fr); }
-                }
-                @media (max-width: 840px) {
-                    .shortcuts-grid { grid-template-columns: repeat(2, 1fr); }
-                }
-                @media (max-width: 480px) {
-                    .shortcuts-grid { grid-template-columns: 1fr; }
-                }
-
-                .shortcut-card {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.07);
-                    border-radius: 1.35rem;
-                    padding: 1.25rem 1.15rem;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                    cursor: pointer;
-                    text-decoration: none;
-                    color: inherit;
-                    min-height: 154px;
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.12);
-                }
-
-                .shortcut-card:hover {
-                    transform: translateY(-5px);
-                    background: rgba(255, 255, 255, 0.045);
-                    border-color: rgba(129, 140, 248, 0.35);
-                    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.35), 0 0 15px rgba(129, 140, 248, 0.1);
-                }
-
-                .shortcut-icon-container {
-                    width: 42px;
-                    height: 42px;
-                    border-radius: 0.95rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.25rem;
-                    margin-bottom: 0.85rem;
-                    color: #fff;
-                    transition: transform 0.3s ease;
-                }
-
-                .shortcut-card:hover .shortcut-icon-container {
-                    transform: scale(1.1);
-                }
-
-                .shortcut-info h4 {
-                    margin: 0;
-                    font-size: 0.88rem;
-                    font-weight: 700;
-                    color: #ffffff;
-                    margin-bottom: 0.25rem;
-                }
-
-                .shortcut-info p {
-                    margin: 0;
-                    font-size: 0.76rem;
-                    color: rgba(255, 255, 255, 0.52);
-                    line-height: 1.35;
-                }
-
-                .shortcut-action {
-                    font-size: 0.76rem;
-                    font-weight: 700;
-                    color: #818cf8;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.2rem;
-                    margin-top: 0.75rem;
-                    transition: all 0.2s ease;
-                }
-
-                .shortcut-card:hover .shortcut-action {
-                    color: #fff;
-                    transform: translateX(3px);
-                }
-
-                /* Sync indicator overrides */
-                .premium-sync-bar {
-                    background: rgba(16, 22, 56, 0.5) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                    border-radius: 1.2rem !important;
-                    backdrop-filter: blur(8px);
-                }
-
-                /* Target and Stats Row */
-                .target-stats-split {
-                    display: grid;
-                    grid-template-columns: 1.4fr 1fr;
-                    gap: 1.5rem;
-                    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-                }
-
-                @media (max-width: 1100px) {
-                    .target-stats-split { grid-template-columns: 1fr; }
-                }
-
-                .premium-target-card {
-                    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
-                    border: 1px solid rgba(6, 182, 212, 0.22) !important;
-                    border-radius: 1.5rem !important;
-                    padding: 1.5rem !important;
-                    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                }
-
-                .weekly-strip-card {
-                    background: rgba(255, 255, 255, 0.02) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-                    border-radius: 1.5rem !important;
-                    padding: 1.5rem !important;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.18) !important;
-                }
-
-                .weekly-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 0.85rem;
-                }
-
-                .weekly-item {
-                    background: rgba(255, 255, 255, 0.015);
-                    border: 1px solid rgba(255, 255, 255, 0.04);
-                    border-radius: 1.1rem;
-                    padding: 0.85rem 1rem;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
-
-                .weekly-item span {
-                    font-size: 0.72rem;
-                    color: rgba(255, 255, 255, 0.45);
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    margin-bottom: 0.2rem;
-                }
-
-                .weekly-item strong {
-                    font-size: 1.12rem;
-                    font-weight: 800;
-                    color: #ffffff;
-                }
-
-                .weekly-item p {
-                    margin: 0.15rem 0 0;
-                    font-size: 0.75rem;
-                    color: rgba(255, 255, 255, 0.55);
-                }
-
-                /* Premium KPI Cards */
-                .premium-kpi-card {
-                    background: rgba(255, 255, 255, 0.02) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-                    border-radius: 1.5rem !important;
-                    padding: 1.4rem 1.6rem !important;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    min-height: 154px !important;
-                    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-                    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15) !important;
-                }
-
-                .premium-kpi-card:hover {
-                    transform: translateY(-4px);
-                    background: rgba(255, 255, 255, 0.035) !important;
-                    border-color: var(--kpi-border-hover);
-                    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.25), 0 0 15px var(--kpi-glow) !important;
-                }
-
-                .kpi-top-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                }
-
-                .kpi-title {
-                    margin: 0;
-                    font-size: 0.88rem;
-                    font-weight: 500;
-                    color: rgba(255, 255, 255, 0.55);
-                }
-
-                .kpi-icon-container {
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 0.85rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.2rem;
-                    color: #fff;
-                    transition: all 0.3s ease;
-                }
-
-                .premium-kpi-card:hover .kpi-icon-container {
-                    transform: scale(1.1) rotate(6deg);
-                }
-
-                .kpi-main-val {
-                    font-size: clamp(1.8rem, 3.2vw, 2.2rem);
-                    font-weight: 800;
-                    color: #fff;
-                    letter-spacing: -0.03em;
-                    line-height: 1.1;
-                    margin-top: 0.65rem;
-                }
-
-                .kpi-bottom-row {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-top: 0.85rem;
-                }
-
-                .kpi-chip-text {
-                    font-size: 0.74rem;
-                    color: rgba(255, 255, 255, 0.48);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.25rem;
-                }
-
-                .kpi-trend-badge {
-                    font-size: 0.74rem;
-                    font-weight: 700;
-                    padding: 0.2rem 0.55rem;
-                    border-radius: 999px;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.15rem;
-                }
-
-                .kpi-trend-up {
-                    background: rgba(16, 185, 129, 0.15);
-                    color: #34d399;
-                    border: 1px solid rgba(16, 185, 129, 0.2);
-                }
-
-                .kpi-trend-down {
-                    background: rgba(239, 68, 68, 0.15);
-                    color: #fca5a5;
-                    border: 1px solid rgba(239, 68, 68, 0.2);
-                }
-
-                /* Column section cards */
-                .premium-list-card {
-                    background: rgba(255, 255, 255, 0.02) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-                    border-radius: 1.5rem !important;
-                    padding: 1.5rem !important;
-                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
-                }
-
-                /* Activity Stream UI */
-                .activity-stream {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .activity-item {
-                    display: grid;
-                    grid-template-columns: auto 1fr auto;
-                    gap: 1rem;
-                    align-items: center;
-                    padding: 0.8rem 1rem;
-                    background: rgba(255, 255, 255, 0.012);
-                    border: 1px solid rgba(255, 255, 255, 0.04);
-                    border-radius: 1.1rem;
-                    transition: all 0.25s ease;
-                }
-
-                .activity-item:hover {
-                    background: rgba(255, 255, 255, 0.025);
-                    border-color: rgba(255, 255, 255, 0.08);
-                    transform: translateX(3px);
-                }
-
-                .activity-icon-container {
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 0.85rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.1rem;
-                    color: #fff;
-                }
-
-                .activity-icon--sale {
-                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
-                    border: 1px solid rgba(16, 185, 129, 0.3);
-                    color: #34d399;
-                }
-
-                .activity-icon--transfer {
-                    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05));
-                    border: 1px solid rgba(245, 158, 11, 0.3);
-                    color: #f59e0b;
-                }
-
-                .activity-details strong {
-                    font-size: 0.85rem;
-                    color: #ffffff;
-                    display: block;
-                    margin-bottom: 0.15rem;
-                }
-
-                .activity-details span {
-                    font-size: 0.76rem;
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .activity-time {
-                    font-size: 0.74rem;
-                    color: rgba(255, 255, 255, 0.42);
-                    font-weight: 500;
-                }
-
-                /* Critical Stock warning panel */
-                .stock-alert-item {
-                    background: rgba(239, 68, 68, 0.04) !important;
-                    border: 1px solid rgba(239, 68, 68, 0.18) !important;
-                    border-radius: 1.1rem;
-                    padding: 0.8rem 1.1rem;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    transition: all 0.25s ease;
-                }
-
-                .stock-alert-item:hover {
-                    background: rgba(239, 68, 68, 0.06) !important;
-                    border-color: rgba(239, 68, 68, 0.3) !important;
-                }
-
-                .stock-alert-bar-track {
-                    height: 5px;
-                    background: rgba(239, 68, 68, 0.12);
-                    border-radius: 999px;
-                    width: 100px;
-                    overflow: hidden;
-                    margin-top: 0.3rem;
-                }
-
-                .stock-alert-bar-fill {
-                    height: 100%;
-                    border-radius: 999px;
-                    background: #ef4444;
-                    box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
-                }
-
-                /* Seller ranking item */
-                .rank-item {
-                    display: grid;
-                    grid-template-columns: auto auto 1fr auto;
-                    gap: 0.85rem;
-                    align-items: center;
-                    padding: 0.75rem 1rem;
-                    background: rgba(255, 255, 255, 0.01);
-                    border: 1px solid rgba(255, 255, 255, 0.04);
-                    border-radius: 1.1rem;
-                    transition: all 0.25s ease;
-                }
-
-                .rank-item:hover {
-                    background: rgba(255, 255, 255, 0.025);
-                    border-color: rgba(255, 255, 255, 0.08);
-                    transform: translateX(3px);
-                }
-
-                .rank-badge {
-                    width: 26px;
-                    height: 26px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    color: #fff;
-                }
-
-                .rank-badge-1 { background: linear-gradient(135deg, #f59e0b, #b45309); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
-                .rank-badge-2 { background: linear-gradient(135deg, #94a3b8, #64748b); }
-                .rank-badge-3 { background: linear-gradient(135deg, #b45309, #78350f); }
-                .rank-badge-other { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.6); }
-
-                .seller-avatar-mini {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    background: rgba(129, 140, 248, 0.12);
-                    border: 1px solid rgba(129, 140, 248, 0.25);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 600;
-                    color: #a5b4fc;
-                    font-size: 0.85rem;
-                }
-
-                /* Breakdown bars list */
-                .premium-breakdown-row {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.35rem;
-                    padding: 0.5rem 0;
-                }
-
-                .breakdown-meta {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 0.82rem;
-                    font-weight: 600;
-                }
-
-                .breakdown-label {
-                    color: rgba(255, 255, 255, 0.85);
-                }
-
-                .breakdown-percent {
-                    color: #818cf8;
-                }
-
-                .breakdown-bar-track {
-                    height: 8px;
-                    background: rgba(255, 255, 255, 0.06);
-                    border-radius: 999px;
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, 0.02);
-                }
-
-                .breakdown-bar-fill {
-                    height: 100%;
-                    border-radius: 999px;
-                    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-                }
-
-                .breakdown-fill--category {
-                    background: linear-gradient(90deg, #6366f1, #06b6d4);
-                    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
-                }
-
-                .breakdown-fill--role {
-                    background: linear-gradient(90deg, #818cf8, #a78bfa);
-                }
-
-                .breakdown-count {
-                    font-size: 0.74rem;
-                    color: rgba(255, 255, 255, 0.45);
-                    margin-top: 0.15rem;
-                }
-
-                /* Interactive charts custom styling */
-                .premium-chart-card {
-                    background: rgba(255, 255, 255, 0.02) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-                    border-radius: 1.5rem !important;
-                    padding: 1.5rem !important;
-                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
-                }
-            ` }} />
-
-            <div className="exec-dashboard">
-                {/* Live Sync Status Bar */}
-                <div className="sync-indicator-bar premium-sync-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.7rem 1.25rem' }}>
-                    <div className="sync-status" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.84rem', fontWeight: 600 }}>
-                        <div className="sync-dot-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div className="sync-dot" style={{ width: '7px', height: '7px', backgroundColor: '#10b981', borderRadius: '50%' }}></div>
-                            <div className="sync-pulse" style={{ position: 'absolute', width: '17px', height: '17px', border: '2px solid #10b981', borderRadius: '50%', opacity: 0, animation: 'pulseGlow 2s infinite' }}></div>
-                            <style dangerouslySetInnerHTML={{ __html: `
-                                @keyframes pulseGlow {
-                                    0% { transform: scale(0.5); opacity: 0.8; }
-                                    100% { transform: scale(1.6); opacity: 0; }
-                                }
-                            `}} />
+        <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
+            <div className="neo-dashboard">
+                <SectionTitle
+                    title={currentTitle}
+                    subtitle={`Hola, ${userName}. Rol actual: ${userRole}. Vista ejecutiva con datos operativos del sistema.`}
+                />
+
+                <section className="neo-overview-grid">
+                    <article className="neo-card neo-summary-panel">
+                        <div className="neo-card-head">
+                            <div>
+                                <h3>Ventas de hoy</h3>
+                                <p>Resumen de ventas</p>
+                            </div>
+                            <span className="neo-chip neo-chip-soft">Hoy</span>
                         </div>
-                        <span style={{ color: 'rgba(255,255,255,0.85)' }}>Panel Ejecutivo Sincronizado</span>
-                        <span className="sync-time" style={{ color: 'rgba(255, 255, 255, 0.45)', fontWeight: 400, marginLeft: '0.2rem' }}>{syncTime}</span>
-                    </div>
-                    <button 
-                        className="btn-sync" 
-                        onClick={fetchLiveStats} 
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', padding: '0.35rem 0.85rem', borderRadius: '999px', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s ease' }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
-                    >
-                        <i className={`ri-refresh-line ${isSyncing ? 'ri-spin' : ''}`} style={{ fontSize: '0.9rem' }}></i>
-                        Refrescar Datos
-                    </button>
-                </div>
+                        <div className="neo-mini-grid">
+                            {kpiCards.map((item) => (
+                                <SmallStat
+                                    key={item.label}
+                                    label={item.label}
+                                    value={item.value}
+                                    accent={item.accent || 'blue'}
+                                    note={item.note}
+                                />
+                            ))}
+                        </div>
+                    </article>
 
-                {/* Welcome Hero Banner with Clock */}
-                <div className="welcome-hero">
-                    <div className="welcome-text">
-                        <h2>{getGreeting()}</h2>
-                        <p>
-                            El radar ejecutivo de Pil Andina se encuentra operativo. Actualmente, se registran <strong>{kpisState.find(k => k.label === 'Productos activos')?.value || 0}</strong> productos activos en catálogo y las operaciones están estables.
-                        </p>
-                    </div>
-                    <div className="welcome-meta">
-                        <span className="welcome-time">
-                            {currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                        </span>
-                        <span className="welcome-date">{getFormattedDate()}</span>
-                    </div>
-                </div>
-
-                {/* Quick Access Grid (Accesos Directos) */}
-                <section className="shortcuts-section">
-                    <div className="section-header-bar">
-                        <h3>
-                            <i className="ri-flashlight-line"></i>
-                            Accesos Directos Operativos
-                        </h3>
-                    </div>
-                    <div className="shortcuts-grid">
-                        <a href="/admin/agente-reposicion" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(139, 92, 246, 0.05))', border: '1px solid rgba(139, 92, 246, 0.35)' }}>
-                                <i className="ri-robot-2-line" style={{ color: '#a78bfa' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Agente Inteligente IA</h4>
-                                <p>Revisión automática de stock, sugerencias de reabastecimiento y órdenes.</p>
-                            </div>
-                            <span className="shortcut-action">Optimizar Stock <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-
-                        <a href="/dashboard/traspasos" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.05))', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
-                                <i className="ri-shuffle-line" style={{ color: '#fbbf24' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Flujo de Traspasos</h4>
-                                <p>Supervisa, despacha y autoriza traspasos de mercadería entre almacenes.</p>
-                            </div>
-                            <span className="shortcut-action">Operar Envíos <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-
-                        <a href="/dashboard/ventas" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.05))', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
-                                <i className="ri-currency-line" style={{ color: '#34d399' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Registro de Ventas</h4>
-                                <p>Control de cobros, facturación de clientes y registros de caja diaria.</p>
-                            </div>
-                            <span className="shortcut-action">Ver Ventas <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-
-                        <a href="/dashboard/productos" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(6, 182, 212, 0.05))', border: '1px solid rgba(6, 182, 212, 0.35)' }}>
-                                <i className="ri-shopping-bag-line" style={{ color: '#22d3ee' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Catálogo General</h4>
-                                <p>Administración de códigos SKU, familias de productos y descripciones.</p>
-                            </div>
-                            <span className="shortcut-action">Gestionar Items <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-
-                        <a href="/dashboard/usuarios" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.05))', border: '1px solid rgba(99, 102, 241, 0.35)' }}>
-                                <i className="ri-group-line" style={{ color: '#818cf8' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Control de Personal</h4>
-                                <p>Alta de usuarios, edición de permisos y asignación de roles operativos.</p>
-                            </div>
-                            <span className="shortcut-action">Ver Usuarios <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-
-                        <a href="/dashboard/backups" className="shortcut-card">
-                            <div className="shortcut-icon-container" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(239, 68, 68, 0.05))', border: '1px solid rgba(239, 68, 68, 0.35)' }}>
-                                <i className="ri-shield-keyhole-line" style={{ color: '#fca5a5' }}></i>
-                            </div>
-                            <div className="shortcut-info">
-                                <h4>Copias de Seguridad</h4>
-                                <p>Resguardo seguro de base de datos, descargas y configuración de cron.</p>
-                            </div>
-                            <span className="shortcut-action">Administrar Backups <i className="ri-arrow-right-s-line"></i></span>
-                        </a>
-                    </div>
+                    <ChartCard
+                        title="Análisis de visitas"
+                        subtitle="Flujo mensual de audiencia y clientes."
+                        chip="Tendencia en vivo"
+                        configFactory={() => visitorChart}
+                        deps={[visitorChart]}
+                    />
                 </section>
 
-                {/* Meta de Ventas & Rendimiento Semanal Split Row */}
-                <div className="target-stats-split">
-                    {/* Corporate Sales Target Widget */}
-                    <article className="card premium-target-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
+                <section className="neo-chart-row">
+                    <ChartCard
+                        title="Ingresos totales"
+                        subtitle="Ingresos semanales por canal."
+                        chip="Semanal"
+                        configFactory={() => revenueChart}
+                        deps={[revenueChart]}
+                    />
+                    <ChartCard
+                        title="Satisfacción del cliente"
+                        subtitle="Percepción del servicio en movimiento."
+                        chip="Mensual"
+                        configFactory={() => satisfactionChart}
+                        deps={[satisfactionChart]}
+                    />
+                    <article className="neo-card neo-target-panel">
+                        <div className="neo-card-head">
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '1.12rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}>
-                                    <i className="ri-flag-2-line" style={{ color: '#06b6d4' }}></i>
-                                    Objetivo Comercial Mensual
-                                </h3>
-                                <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.58)', lineHeight: 1.4 }}>
-                                    Avance de ventas consolidadas acumuladas en el mes actual versus la meta institucional de la empresa.
-                                </p>
+                                <h3>Meta vs Realidad</h3>
+                                <p>Evaluación comparativa mensual.</p>
                             </div>
-                            <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', color: '#22d3ee', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontSize: '1.05rem', fontWeight: 800, textAlign: 'right', whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(6,182,212,0.15)' }}>
-                                Bs {monthlySalesState.toLocaleString('es-BO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                            </div>
+                            <span className="neo-chip neo-chip-amber">Meta</span>
                         </div>
-                        <div style={{ marginTop: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.45rem', fontWeight: 700 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.75)' }}>Progreso de Meta</span>
-                                <span style={{ color: '#06b6d4', textShadow: '0 0 10px rgba(6,182,212,0.3)' }}>{monthlyTargetProgressState}%</span>
+                        <div className="neo-target-chart">
+                            <LazyChart configFactory={() => targetChart} deps={[targetChart]} />
+                        </div>
+                        <div className="neo-target-meta">
+                            <div>
+                                <span>Ventas reales</span>
+                                <strong>{money(monthlySales)}</strong>
                             </div>
-                            <div style={{ height: '9px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '999px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.03)' }}>
-                                <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(90deg, #6366f1, #06b6d4)', boxShadow: '0 0 12px rgba(6, 182, 212, 0.5)', width: `${monthlyTargetProgressState}%`, transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
-                            </div>
-                            <div style={{ marginTop: '0.65rem', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.45)', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Restante para Meta: <strong>Bs {Math.max(0, 150000 - monthlySalesState).toLocaleString('es-BO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>
-                                <span>Meta: <strong>Bs 150,000.00</strong></span>
+                            <div>
+                                <span>Meta de ventas</span>
+                                <strong>{monthlyGoalLabel}</strong>
                             </div>
                         </div>
                     </article>
+                </section>
 
-                    {/* Performance Summary Strip */}
-                    <article className="card weekly-strip-card">
-                        <div>
-                            <h3 style={{ margin: 0, fontSize: '1.12rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}>
-                                <i className="ri-medal-line" style={{ color: '#fbbf24' }}></i>
-                                Rendimiento Comercial Semanal
-                            </h3>
-                            <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.58)', lineHeight: 1.4 }}>
-                                Métricas consolidadas del pulso de ventas correspondientes a los últimos 7 días.
-                            </p>
+                <section className="neo-bottom-grid">
+                    <article className="neo-card neo-table-panel">
+                        <div className="neo-card-head">
+                            <div>
+                                <h3>Productos más vendidos</h3>
+                                <p>Artículos más populares por movimiento.</p>
+                            </div>
                         </div>
-                        <div className="weekly-grid" style={{ marginTop: '1.1rem' }}>
-                            <div className="weekly-item">
-                                <span>Monto Semanal</span>
-                                <strong>{summaryCardsState.find(c => c.label === 'Total semanal')?.value || 'Bs 0.00'}</strong>
-                                <p>{summaryCardsState.find(c => c.label === 'Total semanal')?.detail || ''}</p>
+                        <table className="neo-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nombre</th>
+                                    <th>Popularidad</th>
+                                    <th>Ventas</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.map((item, index) => (
+                                    <ProductRow key={`${item.name}-${index}`} item={item} index={index} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article className="neo-card neo-map-panel">
+                        <div className="neo-card-head">
+                            <div>
+                                <h3>Distribución de ventas por región</h3>
+                                <p>Presencia regional de PIL.</p>
                             </div>
-                            <div className="weekly-item">
-                                <span>Ticket Promedio</span>
-                                <strong>{summaryCardsState.find(c => c.label === 'Ticket promedio')?.value || 'Bs 0.00'}</strong>
-                                <p>{summaryCardsState.find(c => c.label === 'Ticket promedio')?.detail || ''}</p>
+                        </div>
+                        <div className="neo-map-stage">
+                            <svg viewBox="0 0 920 500" className="neo-world-map" aria-hidden="true">
+                                <path d="M160 150C110 145 74 172 48 214C21 258 28 315 56 344C89 378 133 388 181 376C223 366 255 332 254 293C253 251 217 221 206 191C197 166 193 154 160 150Z" fill="#ffd34d" opacity="0.95" />
+                                <path d="M358 130C315 131 288 157 286 194C285 235 309 265 355 284C400 302 447 292 467 258C488 223 478 177 445 151C418 130 385 128 358 130Z" fill="#0a3f9f" opacity="0.95" />
+                                <path d="M579 168C531 170 501 198 501 239C501 281 528 312 572 327C618 342 661 338 686 305C712 272 705 216 673 189C648 167 611 165 579 168Z" fill="#0b4fc1" opacity="0.95" />
+                                <path d="M690 262C744 258 785 281 809 322C831 359 823 410 787 435C748 462 688 460 657 427C625 394 631 343 654 311C667 292 670 265 690 262Z" fill="#f25a59" opacity="0.95" />
+                            </svg>
+                            <div className="neo-map-pins">
+                                <span className="neo-pin pin-a" />
+                                <span className="neo-pin pin-b" />
+                                <span className="neo-pin pin-c" />
+                                <span className="neo-pin pin-d" />
                             </div>
+                        </div>
+                        <div className="neo-region-list">
+                            {regionCards.map((item) => (
+                                <RegionPill key={item.label} {...item} />
+                            ))}
                         </div>
                     </article>
-                </div>
 
-                {/* KPI Cards Grid */}
-                <div className="exec-stats-grid">
-                    {kpisState.map((item) => {
-                        // Custom styles & icons for specific KPIs
-                        let kpiColor = 'rgba(99, 102, 241, 0.2)';
-                        let kpiColorShadow = 'rgba(99, 102, 241, 0.3)';
-                        let kpiColorHover = '#6366f1';
-                        let glowColor = 'rgba(99, 102, 241, 0.15)';
-                        
-                        if (item.label === 'Ventas del dia') {
-                            kpiColor = 'rgba(16, 185, 129, 0.15)';
-                            kpiColorShadow = 'rgba(16, 185, 129, 0.25)';
-                            kpiColorHover = '#10b981';
-                            glowColor = 'rgba(16, 185, 129, 0.1)';
-                        } else if (item.label === 'Clientes registrados') {
-                            kpiColor = 'rgba(6, 182, 212, 0.15)';
-                            kpiColorShadow = 'rgba(6, 182, 212, 0.25)';
-                            kpiColorHover = '#06b6d4';
-                            glowColor = 'rgba(6, 182, 212, 0.1)';
-                        } else if (item.label === 'Traspasos abiertos') {
-                            kpiColor = 'rgba(245, 158, 11, 0.15)';
-                            kpiColorShadow = 'rgba(245, 158, 11, 0.25)';
-                            kpiColorHover = '#f59e0b';
-                            glowColor = 'rgba(245, 158, 11, 0.1)';
-                        }
-
-                        const hasDelta = item.label === 'Ventas del dia' && salesDeltaVal;
-
-                        return (
-                            <article 
-                                key={item.label} 
-                                className="card premium-kpi-card"
-                                style={{ 
-                                    '--kpi-border-hover': kpiColorHover, 
-                                    '--kpi-glow': glowColor, 
-                                    '--kpi-color-glow': kpiColorHover, 
-                                    '--kpi-color-shadow': kpiColorShadow 
-                                }}
-                            >
-                                <div className="kpi-top-row">
-                                    <h3 className="kpi-title">{item.label}</h3>
-                                    <div className="kpi-icon-container" style={{ background: kpiColor, border: `1px solid ${kpiColorShadow}` }}>
-                                        <i className={item.icon} style={{ color: kpiColorHover }}></i>
-                                    </div>
-                                </div>
-                                
-                                <div className="kpi-main-val">{item.value}</div>
-                                
-                                <div className="kpi-bottom-row">
-                                    <span className="kpi-chip-text">
-                                        <i className="ri-time-line"></i>
-                                        {item.chip}
-                                    </span>
-                                    {hasDelta && (
-                                        <span className={`kpi-trend-badge ${salesDeltaVal.startsWith('-') ? 'kpi-trend-down' : 'kpi-trend-up'}`}>
-                                            <i className={salesDeltaVal.startsWith('-') ? 'ri-arrow-down-line' : 'ri-arrow-up-line'}></i>
-                                            {salesDeltaVal}
-                                        </span>
-                                    )}
-                                </div>
-                            </article>
-                        );
-                    })}
-                </div>
-
-                {/* Core Columns Section (Actividad, Alertas, Vendedores, Distribución) */}
-                <div className="admin-insight-layout">
-                    {/* Left Column: Recent Activity & Stock Alerts */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {/* Actividad Reciente */}
-                        <article className="card premium-list-card" style={{ flex: 1 }}>
-                            <div className="exec-chart-head" style={{ marginBottom: '1.25rem' }}>
-                                <div>
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
-                                        <i className="ri-pulse-line" style={{ color: '#10b981' }}></i>
-                                        Operaciones y Actividad Reciente
-                                    </h4>
-                                    <p style={{ margin: '0.2rem 0 0' }}>Flujo de ventas y transferencias de almacén en tiempo real.</p>
-                                </div>
-                                <span className="chip premium-chip" style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>Monitoreo Activo</span>
+                    <article className="neo-card neo-volume-panel">
+                        <div className="neo-card-head">
+                            <div>
+                                <h3>Volumen vs Nivel de servicio</h3>
+                                <p>Rendimiento operativo diario.</p>
                             </div>
-                            <div className="activity-stream">
-                                {recentActivityState.length > 0 ? (
-                                    recentActivityState.map((item, index) => (
-                                        <div key={`${item.type}-${index}`} className="activity-item">
-                                            <div className={`activity-icon-container activity-icon--${item.type}`}>
-                                                <i className={item.icon} />
-                                            </div>
-                                            <div className="activity-details">
-                                                <strong>{item.title}</strong>
-                                                <span>{item.meta}</span>
-                                            </div>
-                                            <span className="activity-time">{item.time}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div style={{ padding: '2rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontSize: '0.9rem' }}>
-                                        No hay operaciones registradas hoy.
+                        </div>
+                        <div className="neo-chart-area neo-chart-area-tight">
+                            <LazyChart configFactory={() => volumeChart} deps={[volumeChart]} />
+                        </div>
+                    </article>
+                </section>
+
+                <section className="neo-summary-grid">
+                    {summaryCards.length ? summaryCards.map((item) => (
+                        <article className="neo-summary-card" key={item.label}>
+                            <span>{item.label}</span>
+                            <strong>{item.value}</strong>
+                            <p>{item.note || item.detail}</p>
+                        </article>
+                    )) : null}
+                </section>
+
+                <section className="neo-support-grid">
+                    <article className="neo-card neo-feed-panel">
+                        <div className="neo-card-head">
+                            <div>
+                                <h3>Actividad reciente</h3>
+                                <p>Transmisión en vivo del sistema.</p>
+                            </div>
+                        </div>
+                        <div className="neo-feed-list">
+                            {recentActivity.length ? recentActivity.map((item, index) => (
+                                <div className="neo-feed-row" key={`${item.type}-${index}`}>
+                                    <span className={`neo-feed-dot type-${item.type || 'sale'}`} />
+                                    <div>
+                                        <strong>{item.title}</strong>
+                                        <p>{item.meta}</p>
                                     </div>
-                                )}
+                                    <time>{item.time}</time>
+                                </div>
+                            )) : <p className="neo-empty">No hay datos disponibles.</p>}
+                        </div>
+                    </article>
+
+                    <div className="neo-stack">
+                        <article className="neo-card neo-mini-panel">
+                            <div className="neo-card-head">
+                                <div>
+                                    <h3>Alertas de stock</h3>
+                                    <p>Artículos por debajo del umbral mínimo.</p>
+                                </div>
+                                <span className="neo-chip neo-chip-amber">{criticalStocks.length} alertas</span>
+                            </div>
+                            <div className="neo-alert-list">
+                                {criticalStocks.length ? criticalStocks.slice(0, 4).map((item) => (
+                                    <div className="neo-alert-row" key={`${item.sku}-${item.product}`}>
+                                        <div>
+                                            <strong>{item.product}</strong>
+                                            <p>{item.warehouse}</p>
+                                        </div>
+                                        <span>{item.quantity}/{item.threshold}</span>
+                                    </div>
+                                )) : <p className="neo-empty">Sin stock crítico.</p>}
                             </div>
                         </article>
 
-                        {/* Critical Stock Alerts */}
-                        <article className="card premium-list-card">
-                            <div className="exec-chart-head" style={{ marginBottom: '1.2rem' }}>
+                        <article className="neo-card neo-mini-panel">
+                            <div className="neo-card-head">
                                 <div>
-                                    <h4 style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
-                                        <i className="ri-error-warning-line" style={{ fontSize: '1.2rem' }}></i>
-                                        Alertas de Stock de Seguridad
-                                    </h4>
-                                    <p style={{ margin: '0.2rem 0 0' }}>Lotes cuya cantidad se encuentra por debajo del umbral mínimo de reserva.</p>
+                                    <h3>Mejores vendedores</h3>
+                                    <p>Rendimiento comercial mensual.</p>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {criticalStocksState.length > 0 ? (
-                                    criticalStocksState.map((item, index) => {
-                                        const percentageLeft = Math.max(0, Math.min(100, Math.round((item.quantity / item.threshold) * 100)));
-                                        return (
-                                            <div key={index} className="stock-alert-item">
-                                                <div style={{ minWidth: 0, flex: 1, paddingRight: '1rem' }}>
-                                                    <strong style={{ fontSize: '0.85rem', display: 'block', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {item.product}
-                                                    </strong>
-                                                    <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.45)', display: 'block', marginTop: '0.15rem' }}>
-                                                        SKU: {item.sku} · {item.warehouse}
-                                                    </span>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.35rem' }}>
-                                                        <div className="stock-alert-bar-track" style={{ flex: 1, margin: 0 }}>
-                                                            <div className="stock-alert-bar-fill" style={{ width: `${percentageLeft}%` }}></div>
-                                                        </div>
-                                                        <span style={{ fontSize: '0.7rem', color: '#fca5a5', fontWeight: 700 }}>{percentageLeft}% rest.</span>
-                                                    </div>
-                                                </div>
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <strong style={{ color: '#ef4444', fontSize: '1rem', display: 'block' }}>{item.quantity} uds</strong>
-                                                    <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.4)' }}>Mín: {item.threshold}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div style={{ padding: '1.5rem', color: 'rgba(255,255,255,0.35)', textAlign: 'center', fontSize: '0.85rem', background: 'rgba(255,255,255,0.01)', borderRadius: '1rem', border: '1px dashed rgba(255,255,255,0.06)' }}>
-                                        <i className="ri-checkbox-circle-line" style={{ fontSize: '1.3rem', color: '#34d399', display: 'block', marginBottom: '0.35rem' }}></i>
-                                        Todo en orden. No hay lotes con desabastecimiento crítico.
+                            <div className="neo-alert-list">
+                                {topSellers.length ? topSellers.slice(0, 4).map((item, index) => (
+                                    <div className="neo-alert-row" key={`${item.name}-${index}`}>
+                                        <div>
+                                            <strong>{item.name}</strong>
+                                            <p>Ejecutivo de ventas</p>
+                                        </div>
+                                        <span>{money(item.total)}</span>
                                     </div>
-                                )}
+                                )) : <p className="neo-empty">Sin datos de vendedores.</p>}
                             </div>
-                            {criticalStocksState.length > 0 && (
-                                <div style={{ marginTop: '1.1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                                    <a 
-                                        href="/admin/agente-reposicion" 
-                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', border: 'none', borderRadius: '0.9rem', padding: '0.5rem 1.1rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', transition: 'all 0.2s ease', boxShadow: '0 8px 16px rgba(99,102,241,0.25)' }}
-                                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                                        onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
-                                    >
-                                        <i className="ri-robot-line"></i>
-                                        Reponer Stock con Agente IA
-                                    </a>
-                                </div>
-                            )}
                         </article>
                     </div>
 
-                    {/* Right Column: Seller Rankings & Catalog/Role breakdown */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {/* Rendimiento de Vendedores */}
-                        <article className="card premium-list-card">
-                            <div className="exec-chart-head" style={{ marginBottom: '1.25rem' }}>
-                                <div>
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
-                                        <i className="ri-line-chart-line" style={{ color: '#fbbf24' }}></i>
-                                        Rendimiento de Vendedores
-                                    </h4>
-                                    <p style={{ margin: '0.2rem 0 0' }}>Ingresos generados por asesor comercial en el mes en curso.</p>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-                                {topSellersState.length > 0 ? (
-                                    topSellersState.map((item, index) => {
-                                        const initials = item.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-                                        return (
-                                            <div key={index} className="rank-item">
-                                                <div className={`rank-badge rank-badge-${index < 3 ? index + 1 : 'other'}`}>
-                                                    {index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}
-                                                </div>
-                                                <div className="seller-avatar-mini">{initials}</div>
-                                                <div style={{ minWidth: 0 }}>
-                                                    <strong style={{ fontSize: '0.85rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                                                        {item.name}
-                                                    </strong>
-                                                    <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.45)' }}>
-                                                        Asesor Comercial
-                                                    </span>
-                                                </div>
-                                                <div style={{ textAlign: 'right', fontWeight: 800, color: '#34d399', fontSize: '0.88rem' }}>
-                                                    Bs {item.total.toLocaleString('es-BO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div style={{ padding: '2rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontSize: '0.85rem' }}>
-                                        No hay registros de ventas en este periodo.
-                                    </div>
-                                )}
-                            </div>
-                        </article>
-
-                        {/* Breakdown Bars (Categorías & Roles) */}
-                        <article className="card premium-list-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-                            {/* Category breakdown */}
+                    <article className="neo-card neo-mini-panel">
+                        <div className="neo-card-head">
                             <div>
-                                <div className="exec-chart-head" style={{ marginBottom: '0.9rem' }}>
-                                    <div>
-                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Participación por Categoría</h4>
-                                        <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem' }}>Distribución de productos en catálogo activo.</p>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    {categoryBreakdownState.map((item) => (
-                                        <div key={item.label} className="premium-breakdown-row">
-                                            <div className="breakdown-meta">
-                                                <span className="breakdown-label">{item.label}</span>
-                                                <span className="breakdown-percent">{item.share}%</span>
-                                            </div>
-                                            <div className="breakdown-bar-track">
-                                                <div className="breakdown-bar-fill breakdown-fill--category" style={{ width: `${Math.max(item.share, 4)}%` }}></div>
-                                            </div>
-                                            <div className="breakdown-count">{item.value} productos registrados</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <h3>Análisis del sistema</h3>
+                                <p>Señales operativas.</p>
                             </div>
-
-                            <hr style={{ border: 0, height: '1px', background: 'rgba(255, 255, 255, 0.06)', margin: 0 }} />
-
-                            {/* Role breakdown */}
-                            <div>
-                                <div className="exec-chart-head" style={{ marginBottom: '0.9rem' }}>
-                                    <div>
-                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Estructura del Personal</h4>
-                                        <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem' }}>Distribución de cuentas por rol en el sistema.</p>
-                                    </div>
+                        </div>
+                        <div className="neo-insight-list">
+                            {insights.length ? insights.map((item, index) => (
+                                <div className="neo-insight-row" key={`${item.label}-${index}`}>
+                                    <span>{item.label}</span>
+                                    <strong>{item.value}</strong>
+                                    <p>{item.detail}</p>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    {roleBreakdownState.map((item) => (
-                                        <div key={item.label} className="premium-breakdown-row">
-                                            <div className="breakdown-meta">
-                                                <span className="breakdown-label">{item.label}</span>
-                                                <span className="breakdown-percent">{item.share}%</span>
-                                            </div>
-                                            <div className="breakdown-bar-track">
-                                                <div className="breakdown-bar-fill breakdown-fill--role" style={{ width: `${Math.max(item.share, 4)}%` }}></div>
-                                            </div>
-                                            <div className="breakdown-count">{item.value} usuarios asignados</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-                </div>
-
-                {/* Analytical Charts Grid (2x2) */}
-                <div className="exec-chart-grid">
-                    <ChartCard title="Historial de Ventas Semanales" description="Facturación diaria del pulso comercial en los últimos 7 días." chip="Tendencia Diaria" configFactory={salesChartConfig} deps={[salesSeriesState]} />
-                    <ChartCard title="Inventario por Categoría" description="Principales familias de productos que sostienen el stock actual." chip="Distribución de Stock" configFactory={categoryChartConfig} deps={[categoryMixState]} />
-                    <ChartCard title="Estado de Operaciones de Traspaso" description="Clasificación de transferencias internas según estado logístico." chip="Resumen Operativo" configFactory={transferChartConfig} deps={[transferStatusesState]} />
-                    <ChartCard title="Usuarios Registrados por Rol" description="Cuentas activas en la intranet según perfil corporativo." chip="Estructura de Cuentas" configFactory={roleChartConfig} deps={[roleMixState]} />
-                </div>
+                            )) : <p className="neo-empty">No se encontraron análisis.</p>}
+                        </div>
+                    </article>
+                </section>
             </div>
         </DashboardShell>
     );

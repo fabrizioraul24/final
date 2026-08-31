@@ -5,109 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceder | Pil Andina</title>
     <link rel="stylesheet" href="{{ asset('landing/auth.css') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4e6baf',
-                        'primary-dark': '#3a5186',
-                        'primary-light': '#86acd4',
-                        accent: '#42568b',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="glass-panel">
-            <div class="auth-grid">
-                <section class="panel-info">
-                    <span class="badge">
-                        <i class="ri-shield-check-line"></i>
-                        Acceso seguro
-                    </span>
-                    <h1 class="text-4xl font-black mt-5 mb-4 leading-tight">
-                        Bienvenido de nuevo
-                    </h1>
-                    <p class="text-white/80 leading-relaxed mb-6">
-                        Este panel concentra a los 4 roles estrategicos del ecosistema Pil Andina.
-                        Usa tus credenciales corporativas para continuar.
-                    </p>
-                    <div class="roles-grid">
-                        <div class="role-card">
-                            <h4>Administrador</h4>
-                            <span>Supervision total</span>
-                            <p>Gestiona usuarios, reportes generales y configuraciones del sistema.</p>
-                        </div>
-                        <div class="role-card">
-                            <h4>Vendedor</h4>
-                            <span>Front comercial</span>
-                            <p>Atiende pedidos, arma promociones y monitorea metas por campana.</p>
-                        </div>
-                        <div class="role-card">
-                            <h4>Comprador</h4>
-                            <span>Clientes B2C</span>
-                            <p>Puede registrarse por cuenta propia para comprar directo.</p>
-                        </div>
-                        <div class="role-card">
-                            <h4>Almacen</h4>
-                            <span>Operacion</span>
-                            <p>Controla lotes, inventario y confirma entregas desde las plantas.</p>
-                        </div>
-                    </div>
-                </section>
-                <section class="form-card">
-                    <h2>Iniciar sesion</h2>
-                    <p>Ingresa tu correo y contrasena. Te enviaremos automaticamente al panel de tu rol.</p>
-                    @if(session('status'))
-                        <div class="bg-primary/40 border border-white/20 rounded-xl px-4 py-3 text-sm text-white/90 mb-4">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-                    @if($errors->any())
-                        <div class="bg-red-500/30 border border-red-300/40 rounded-xl px-4 py-3 text-sm text-white mb-4">
-                            {{ $errors->first() }}
-                        </div>
-                    @endif
-                    <form method="POST" action="{{ route('login.perform') }}">
-                        @csrf
-                        <div class="form-group">
-                            <label for="email">Correo electronico</label>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="tucorreo@pil.bo" value="{{ old('email') }}" required autofocus>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Contrasena</label>
-                            <div class="password-field">
-                                <input type="password" id="password" name="password" class="form-control password-input" placeholder="********" required>
-                                <button
-                                    type="button"
-                                    class="password-toggle"
-                                    data-password-toggle
-                                    aria-label="Mostrar contrasena"
-                                    aria-pressed="false"
-                                    aria-controls="password"
-                                >
-                                    <i class="ri-eye-line" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit" class="pill-button">
-                            Acceder al panel
-                        </button>
-                    </form>
-                    <div class="mt-6 flex items-center justify-between text-sm">
-                        <a href="#" class="link-muted">Olvidaste tu contrasena?</a>
-                        <a href="{{ route('register') }}" class="link-muted">Comprador nuevo? Registrate</a>
-                    </div>
-                </section>
+    <div class="login-shell">
+        <section class="login-hero">
+            <header class="login-brand">
+                <a href="/" class="login-logo" aria-label="PIL Bolivia">
+                    <img src="{{ asset('pil.svg') }}" alt="PIL Bolivia">
+                    <span>BOLIVIA</span>
+                </a>
+            </header>
+
+            <div class="login-hero-copy">
+                <div class="login-hero-kicker">PORTAL CORPORATIVO</div>
+                <h1>Gestionamos <span>lo que <em>nutre.</em></span></h1>
+                <p>Informacion clara para decisiones que alimentan el futuro de Bolivia.</p>
             </div>
-        </div>
+
+            <div class="login-hero-footer">
+                <span class="login-hero-dot"></span>
+                <span>Calidad, confianza y compromiso en cada proceso.</span>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <a class="login-back" href="/">← Volver al sitio</a>
+
+            <div class="login-card">
+                <span class="login-badge">ACCESO SEGURO</span>
+                <h2>Bienvenido de nuevo</h2>
+                <p class="login-subtitle">Ingresa tus datos para acceder al panel administrativo.</p>
+
+                @if(session('status'))
+                    <div class="login-alert status">{{ session('status') }}</div>
+                @endif
+                @if($errors->any())
+                    <div class="login-alert error">{{ $errors->first() }}</div>
+                @endif
+
+                <form method="POST" action="{{ route('login.perform') }}" class="login-form">
+                    @csrf
+                    <div class="field">
+                        <label for="email">Correo corporativo</label>
+                        <div class="field-input">
+                            <span class="field-icon" aria-hidden="true">✉</span>
+                            <input type="email" id="email" name="email" placeholder="nombre@pilbolivia.com.bo" value="{{ old('email') }}" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Contraseña</label>
+                        <div class="field-input password-field">
+                            <span class="field-icon" aria-hidden="true">•</span>
+                            <input type="password" id="password" name="password" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" data-password-toggle aria-label="Mostrar contraseña" aria-pressed="false" aria-controls="password">Ver</button>
+                        </div>
+                    </div>
+
+                    <div class="login-helpers">
+                        <label class="remember-row">
+                            <input type="checkbox" name="remember">
+                            <span>Recordarme</span>
+                        </label>
+                        <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
+                    </div>
+
+                    <button type="submit" class="login-submit">
+                        Ingresar al dashboard
+                        <span aria-hidden="true">→</span>
+                    </button>
+                </form>
+
+                <div class="login-divider">
+                    <span>o</span>
+                </div>
+
+                <p class="register-line">
+                    ¿Aún no tienes una cuenta? <a href="{{ route('register') }}">Crear cuenta</a>
+                </p>
+
+                <div class="demo-box">
+                    <div class="demo-icon">i</div>
+                    <div>
+                        <strong>Vista demostrativa</strong>
+                        <p>Puedes usar cualquier correo y contraseña de 6 caracteres.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const toggle = document.querySelector('[data-password-toggle]');
@@ -117,18 +104,12 @@
                 return;
             }
 
-            const icon = toggle.querySelector('i');
-
             toggle.addEventListener('click', () => {
                 const isVisible = passwordInput.type === 'text';
-
                 passwordInput.type = isVisible ? 'password' : 'text';
                 toggle.setAttribute('aria-pressed', String(!isVisible));
-                toggle.setAttribute('aria-label', isVisible ? 'Mostrar contrasena' : 'Ocultar contrasena');
-
-                if (icon) {
-                    icon.className = isVisible ? 'ri-eye-line' : 'ri-eye-off-line';
-                }
+                toggle.setAttribute('aria-label', isVisible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+                toggle.textContent = isVisible ? 'Ver' : 'Ocultar';
             });
         });
     </script>

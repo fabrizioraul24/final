@@ -307,11 +307,8 @@
                 <i class="{{ $agentOnline ? 'ri-checkbox-circle-line' : 'ri-close-circle-line' }}"></i>
                 {{ $agentOnline ? 'Agente en linea' : 'Agente sin conexion' }}
             </span>
+            <span class="agent-auto-chip"><i class="ri-refresh-line"></i> Monitoreo automatico</span>
             <span class="chip text-white/70">Ultima ejecucion: {{ optional($lastRunAt)->format('d/m/Y H:i') }}</span>
-            <form method="POST" action="{{ route('admin.agent.replenishment.run') }}">
-                @csrf
-                <button type="submit" class="pill-button"><i class="ri-play-circle-line"></i>Ejecutar analisis ahora</button>
-            </form>
         </div>
     </div>
 

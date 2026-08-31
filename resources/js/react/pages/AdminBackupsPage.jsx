@@ -1,74 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import DashboardShell from '../components/admin/DashboardShell';
-import { FlashMessages, Pagination, StatsGrid, TableEmpty } from '../components/admin/common';
+import { FlashMessages, Modal, Pagination, StatsGrid, TableEmpty } from '../components/admin/common';
 
 export default function AdminBackupsPage({ layout, data, flash, old, csrfToken, logoutAction }) {
+    const [scheduleOpen, setScheduleOpen] = useState(false);
+    const [backupToDelete, setBackupToDelete] = useState(null);
     const stats = [
-        { label: 'Total respaldos', value: data.stats.total, chip: 'Historial', chipClass: 'chip-muted' },
-        { label: 'Completados', value: data.stats.completed, chip: 'OK', chipClass: 'chip-success' },
-        { label: 'Automaticos', value: data.stats.automatic, chip: 'Scheduler' },
-        { label: 'Ultimo backup', value: data.stats.last_label, chip: 'Fecha/hora', chipClass: 'chip-muted' },
+        { label: 'Total respaldos', value: data.stats.total, chip: 'Historial', chipClass: 'chip-muted', cardClass: 'backup-stat-card backup-stat-card--total', icon: 'ri-database-2-line' },
+        { label: 'Completados', value: data.stats.completed, chip: 'Disponibles', chipClass: 'chip-success', cardClass: 'backup-stat-card backup-stat-card--completed', icon: 'ri-checkbox-circle-line' },
+        { label: 'Automaticos', value: data.stats.automatic, chip: 'Programados', cardClass: 'backup-stat-card backup-stat-card--automatic', icon: 'ri-time-line' },
+        { label: 'Ultimo backup', value: data.stats.last_label, chip: 'Fecha y hora', chipClass: 'chip-muted', cardClass: 'backup-stat-card backup-stat-card--last', icon: 'ri-history-line' },
     ];
 
-    return (
-        <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
-            <FlashMessages flash={flash} />
-            <StatsGrid items={stats} />
-
-            <div className="card">
-                <div className="chart-head">
-                    <div><h4>Programacion automatica</h4></div>
-                    <span className={`chip ${data.schedule.is_active ? 'chip-success' : ''}`}>{data.schedule.is_active ? 'Activa' : 'Pausada'}</span>
-                </div>
-                <form method="POST" action={data.routes.schedule} className="form-grid" style={{ marginTop: '1rem' }}>
-                    <input type="hidden" name="_token" value={csrfToken} />
-                    <input type="hidden" name="_method" value="PUT" />
-                    <input type="hidden" name="schedule_id" value={data.schedule.id} />
-                    <div className="form-group"><label>Frecuencia en dias</label><input type="number" name="frequency_days" min="1" max="30" className="input-ghost" defaultValue={old?.frequency_days || data.schedule.frequency_days} required /></div>
-                    <div className="form-group"><label>Hora de ejecucion</label><input type="time" name="run_time" className="input-ghost" defaultValue={old?.run_time || data.schedule.run_time} required /></div>
-                    <div className="form-group"><label>Estado</label><select name="is_active" className="select-light" defaultValue={old?.is_active ?? (data.schedule.is_active ? '1' : '0')}><option value="1">Activo</option><option value="0">Pausado</option></select></div>
-                    <div className="form-group" style={{ alignSelf: 'flex-end' }}><button type="submit" className="pill-button">Guardar programacion</button></div>
-                </form>
-                <StatsGrid items={data.scheduleCards} />
-            </div>
-
-            <div className="card">
-                <div className="chart-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4>Generar nuevo backup</h4>
-                    <form method="POST" action={data.routes.store}>
-                        <input type="hidden" name="_token" value={csrfToken} />
-                        <button type="submit" className="pill-button">Crear backup</button>
-                    </form>
-                </div>
-                <div className="table-wrapper">
-                    <table className="data-table">
-                        <thead><tr><th>Archivo</th><th>Peso</th><th>Origen</th><th>Estado</th><th>Creado por</th><th>Fecha</th><th>Acciones</th></tr></thead>
-                        <tbody>
-                            {data.backups.data.length ? data.backups.data.map((backup) => (
-                                <tr key={backup.id}>
-                                    <td><strong>{backup.file_name}</strong><p style={{ margin: 0, color: 'rgba(255,255,255,0.6)' }}>{backup.disk_label}</p>{backup.message && <small style={{ color: 'rgba(255,255,255,0.7)' }}>{backup.message}</small>}</td>
-                                    <td>{backup.readable_size}</td>
-                                    <td><span className="chip">{backup.triggered_by_label}</span></td>
-                                    <td><span className={`chip ${backup.status_class}`}>{backup.status_label}</span></td>
-                                    <td>{backup.creator?.name || 'Sistema'}</td>
-                                    <td>{backup.created_at_formatted}</td>
-                                    <td>
-                                        <div className="actions">
-                                            <a href={backup.download_url} className="pill-button ghost" style={!backup.can_download ? { pointerEvents: 'none', opacity: 0.4 } : undefined}>Descargar</a>
-                                            <form method="POST" action={backup.destroy_url} onSubmit={(event) => !window.confirm('Eliminar este backup del historial?') && event.preventDefault()}>
-                                                <input type="hidden" name="_token" value={csrfToken} />
-                                                <input type="hidden" name="_method" value="DELETE" />
-                                                <button type="submit" className="btn-danger">Eliminar</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : <TableEmpty colSpan={7} text="Aun no generaste backups." />}
-                        </tbody>
-                    </table>
-                </div>
-                <Pagination pagination={data.backups} />
-            </div>
-        </DashboardShell>
-    );
+    return <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
+        <FlashMessages flash={flash} /><StatsGrid items={stats} />
+        <div className="card user-directory-header"><div><h2>Respaldos</h2></div><div className="backup-header-actions"><button type="button" className="btn-secondary backup-schedule-button" onClick={() => setScheduleOpen(true)}><i className="ri-settings-3-line" /> Programacion</button><form method="POST" action={data.routes.store}><input type="hidden" name="_token" value={csrfToken} /><button type="submit" className="pill-button user-create-open-button"><i className="ri-database-2-line" /> Crear backup</button></form></div></div>
+        <div className="card backup-schedule-summary"><div><span className="section-kicker">Programacion automatica</span><h4>{data.schedule.is_active ? 'Activa' : 'Pausada'}</h4><p>{data.schedule.is_active ? `Cada ${data.schedule.frequency_days} dias a las ${data.schedule.run_time}` : 'La ejecucion automatica esta pausada.'}</p></div><span className={`backup-schedule-status ${data.schedule.is_active ? 'is-active' : ''}`}><i className={data.schedule.is_active ? 'ri-checkbox-circle-line' : 'ri-pause-circle-line'} />{data.schedule.is_active ? 'Activa' : 'Pausada'}</span></div>
+        <div className="card user-table-card backup-table-card"><div className="chart-head"><div><span className="section-kicker">Historial</span><h4>Respaldos generados</h4></div><span className="chip">{data.backups.total} registros</span></div><div className="table-wrapper"><table className="data-table"><thead><tr><th>Archivo</th><th>Peso</th><th>Origen</th><th>Estado</th><th>Creado por</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>{data.backups.data.length ? data.backups.data.map((backup) => <tr key={backup.id}><td><strong>{backup.file_name}</strong><small>{backup.disk_label}</small>{backup.message && <small>{backup.message}</small>}</td><td>{backup.readable_size}</td><td><span className="backup-origin-pill"><i className={backup.triggered_by_label === 'Automatico' ? 'ri-time-line' : 'ri-user-line'} />{backup.triggered_by_label}</span></td><td><span className={`backup-status-pill ${backup.status_class}`}>{backup.status_label}</span></td><td>{backup.creator?.name || 'Sistema'}</td><td>{backup.created_at_formatted}</td><td><div className="actions"><a href={backup.download_url} className={`btn-secondary${backup.can_download ? '' : ' is-disabled'}`} aria-disabled={!backup.can_download}>Descargar</a><button type="button" className="btn-danger" onClick={() => setBackupToDelete(backup)}>Eliminar</button></div></td></tr>) : <TableEmpty colSpan={7} text="Aun no generaste backups." />}</tbody></table></div><Pagination pagination={data.backups} /></div>
+        <Modal open={scheduleOpen} title="Programacion automatica" onClose={() => setScheduleOpen(false)} contentClassName="user-edit-modal backup-schedule-modal"><form method="POST" action={data.routes.schedule} className="user-edit-form"><input type="hidden" name="_token" value={csrfToken} /><input type="hidden" name="_method" value="PUT" /><input type="hidden" name="schedule_id" value={data.schedule.id} /><div className="user-edit-fields"><div className="form-group"><label>Frecuencia en dias</label><input type="number" name="frequency_days" min="1" max="30" className="input-ghost" defaultValue={old?.frequency_days || data.schedule.frequency_days} required /></div><div className="form-group"><label>Hora de ejecucion</label><input type="time" name="run_time" className="input-ghost" defaultValue={old?.run_time || data.schedule.run_time} required /></div><div className="form-group backup-schedule-state"><label>Estado</label><select name="is_active" className="select-light" defaultValue={old?.is_active ?? (data.schedule.is_active ? '1' : '0')}><option value="1">Activo</option><option value="0">Pausado</option></select></div></div><div className="user-edit-actions"><button type="button" className="btn-secondary user-edit-cancel" onClick={() => setScheduleOpen(false)}>Cancelar</button><button type="submit" className="pill-button user-edit-submit"><i className="ri-save-3-line" /> Guardar cambios</button></div></form></Modal>
+        <Modal open={!!backupToDelete} title="Eliminar backup" onClose={() => setBackupToDelete(null)} contentClassName="user-edit-modal company-confirm-modal"><form method="POST" action={backupToDelete?.destroy_url} className="company-confirm-form">{backupToDelete && <><input type="hidden" name="_token" value={csrfToken} /><input type="hidden" name="_method" value="DELETE" /><div className="company-confirm-icon"><i className="ri-delete-bin-line" /></div><h4>Eliminar este backup?</h4><p>{backupToDelete.file_name}</p><div className="company-confirm-actions"><button type="button" className="btn-secondary user-edit-cancel" onClick={() => setBackupToDelete(null)}>Cancelar</button><button type="submit" className="btn-danger company-confirm-submit">Eliminar</button></div></>}</form></Modal>
+    </DashboardShell>;
 }

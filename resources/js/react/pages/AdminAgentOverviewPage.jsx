@@ -76,10 +76,10 @@ function OverviewContent({ pageData, openDetails }) {
     return (
         <>
             <StatsGrid items={[
-                { label: 'Restock sugeridos', value: pageData.stats.restock, chip: 'Ordenes recomendadas', chipClass: 'chip-muted' },
-                { label: 'Alertas de stock', value: pageData.stats.alerts_low, chip: 'Bajo inventario' },
-                { label: 'Lotes por vencer', value: pageData.stats.alerts_expiring, chip: '30 dias' },
-                { label: 'Sugerencias de capacidad', value: pageData.stats.capacity, chip: 'Aumentar limite', chipClass: 'chip-muted' },
+                { label: 'Restock sugeridos', value: pageData.stats.restock, chip: 'Ordenes recomendadas', chipClass: 'chip-muted', cardClass: 'agent-stat-card agent-stat-card--restock', icon: 'ri-lightbulb-flash-line' },
+                { label: 'Alertas de stock', value: pageData.stats.alerts_low, chip: 'Bajo inventario', cardClass: 'agent-stat-card agent-stat-card--stock', icon: 'ri-alarm-warning-line' },
+                { label: 'Lotes por vencer', value: pageData.stats.alerts_expiring, chip: '30 dias', cardClass: 'agent-stat-card agent-stat-card--expiry', icon: 'ri-calendar-close-line' },
+                { label: 'Sugerencias de capacidad', value: pageData.stats.capacity, chip: 'Aumentar limite', chipClass: 'chip-muted', cardClass: 'agent-stat-card agent-stat-card--capacity', icon: 'ri-expand-diagonal-line' },
             ]} />
 
             <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1.5rem' }} id="chartsSection">

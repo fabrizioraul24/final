@@ -14,6 +14,19 @@ use Illuminate\View\View;
 
 class AuditLogController extends Controller
 {
+    private const ENTITY_LABELS = [
+        'User' => 'Usuarios', 'Company' => 'Clientes', 'Product' => 'Productos',
+        'Category' => 'Categorias', 'Transfer' => 'Traspasos', 'Sale' => 'Ventas',
+        'Quotation' => 'Cotizaciones', 'auth' => 'Autenticacion',
+    ];
+
+    private const ACTION_LABELS = [
+        'create' => 'Creacion', 'update' => 'Edicion', 'deactivate' => 'Desactivacion',
+        'activate' => 'Activacion', 'restore' => 'Reactivacion', 'toggle' => 'Cambio de estado',
+        'login' => 'Inicio de sesion', 'login_failed' => 'Inicio de sesion fallido',
+        'logout' => 'Cierre de sesion', 'register' => 'Registro', 'register_failed' => 'Registro fallido',
+    ];
+
     public function index(Request $request): View
     {
         $actorId = $request->input('actor_id');
@@ -63,8 +76,8 @@ class AuditLogController extends Controller
                     'id' => $log->id,
                     'created_at_formatted' => optional($log->created_at)->format('d/m/Y H:i'),
                     'user' => $log->user ? ['name' => $log->user->name] : null,
-                    'entity_label' => class_basename($log->entity_type) . ' #' . $log->entity_id,
-                    'action' => ucfirst($log->action),
+                    'entity_label' => (self::ENTITY_LABELS[class_basename($log->entity_type)] ?? class_basename($log->entity_type)) . ' #' . $log->entity_id,
+                    'action' => self::ACTION_LABELS[strtolower($log->action)] ?? ucfirst($log->action),
                     'description' => $log->description,
                     'old_values' => $log->old_values,
                     'new_values' => $log->new_values,
@@ -72,9 +85,17 @@ class AuditLogController extends Controller
                 ];
             });
 
+        $stats = [
+            'total' => AuditLog::count(),
+            'today' => AuditLog::whereDate('created_at', now()->toDateString())->count(),
+            'users' => AuditLog::where('entity_type', User::class)->count(),
+            'transfers' => AuditLog::where('entity_type', Transfer::class)->count(),
+        ];
+
         return view('react-page', AdminReact::page('logs', 'Logs del sistema | Pil Andina', 'Bitacora de acciones', 'logs', [
             'data' => [
                 'logs' => AdminReact::paginator($logs),
+                'stats' => $stats,
                 'actors' => User::orderBy('name')->get(),
                 'entityTypes' => AuditLog::query()->select('entity_type')->distinct()->pluck('entity_type'),
                 'actions' => AuditLog::query()->select('action')->distinct()->pluck('action'),

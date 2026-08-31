@@ -1,75 +1,27 @@
 import React, { useState } from 'react';
 import DashboardShell from '../components/admin/DashboardShell';
-import { FlashMessages, Modal, Pagination, TableEmpty } from '../components/admin/common';
+import { FlashMessages, Modal, Pagination, StatsGrid, TableEmpty } from '../components/admin/common';
 
-function renderObjectDiff(record = {}) {
-    return Object.entries(record).map(([key, value]) => (
-        <div key={key} style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: '1rem', padding: '0.75rem 1rem' }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>{key}</p>
-            <p style={{ margin: '0.2rem 0 0' }}>{String(value ?? '-')}</p>
-        </div>
-    ));
-}
+const entityLabels = { User: 'Usuarios', Company: 'Clientes', Product: 'Productos', Category: 'Categorias', Transfer: 'Traspasos', Sale: 'Ventas', Quotation: 'Cotizaciones', auth: 'Autenticacion' };
+const actionLabels = { create: 'Creacion', update: 'Edicion', deactivate: 'Desactivacion', activate: 'Activacion', restore: 'Reactivacion', toggle: 'Cambio de estado', login: 'Inicio de sesion', login_failed: 'Inicio de sesion fallido', logout: 'Cierre de sesion', register: 'Registro', register_failed: 'Registro fallido' };
+const entityName = (value = '') => entityLabels[value.split('\\').pop()] || value.split('\\').pop();
+const actionName = (value = '') => actionLabels[value.toLowerCase()] || value;
+const renderObjectDiff = (record = {}) => Object.entries(record).map(([key, value]) => <div className="log-change-item" key={key}><span>{key}</span><strong>{String(value ?? '-')}</strong></div>);
 
 export default function AdminLogsPage({ layout, data, flash, csrfToken, logoutAction }) {
     const [detailLog, setDetailLog] = useState(null);
+    const stats = [
+        { label: 'Registros totales', value: data.stats.total, chip: 'Bitacora completa', chipClass: 'chip-muted', cardClass: 'log-stat-card log-stat-card--total', icon: 'ri-file-list-3-line' },
+        { label: 'Actividad de hoy', value: data.stats.today, chip: 'Ultimas 24 horas', cardClass: 'log-stat-card log-stat-card--today', icon: 'ri-pulse-line' },
+        { label: 'Cambios de usuarios', value: data.stats.users, chip: 'Auditoria', cardClass: 'log-stat-card log-stat-card--users', icon: 'ri-user-settings-line' },
+        { label: 'Movimientos de inventario', value: data.stats.transfers, chip: 'Traspasos', cardClass: 'log-stat-card log-stat-card--transfers', icon: 'ri-arrow-left-right-line' },
+    ];
 
-    return (
-        <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
-            <FlashMessages flash={flash} />
-            <div className="card">
-                <div className="chip" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {data.scopes.map((scope) => (
-                        <a key={scope.key} href={scope.url} className="btn-secondary" style={{ textDecoration: 'none', padding: '0.4rem 0.9rem', borderRadius: '999px', background: scope.active ? 'rgba(255,255,255,0.12)' : undefined }}>{scope.label}</a>
-                    ))}
-                </div>
-                <div className="chart-head"><h4>Filtros</h4></div>
-                <form method="GET" action={data.routes.index} className="form-grid">
-                    <div className="form-group"><label>Usuario (actor)</label><select name="actor_id" className="select-light" defaultValue={data.filters.actor_id || ''}><option value="">Todos</option>{data.actors.map((actor) => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></div>
-                    <div className="form-group"><label>Entidad</label><select name="entity_type" className="select-light" defaultValue={data.filters.entity_type || ''}><option value="">Todas</option>{data.entityTypes.map((type) => <option key={type} value={type}>{type.split('\\').pop()}</option>)}</select></div>
-                    <div className="form-group"><label>Accion</label><select name="action" className="select-light" defaultValue={data.filters.action || ''}><option value="">Todas</option>{data.actions.map((action) => <option key={action} value={action}>{action}</option>)}</select></div>
-                    <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', width: '100%' }}>
-                            <button type="submit" className="pill-button">Aplicar</button>
-                            <a href={data.routes.report} target="_blank" rel="noopener" className="btn-secondary">PDF</a>
-                            <a href={data.routes.index} className="clean-link">Limpiar</a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div className="card">
-                <div className="chart-head"><h4>Listado de logs</h4><span className="chip">{data.logs.total} registros</span></div>
-                <div className="table-wrapper">
-                    <table className="data-table">
-                        <thead><tr><th>Fecha</th><th>Actor</th><th>Entidad</th><th>Accion</th><th>Descripcion</th><th>Detalle</th></tr></thead>
-                        <tbody>
-                            {data.logs.data.length ? data.logs.data.map((log) => (
-                                <tr key={log.id}>
-                                    <td>{log.created_at_formatted}</td>
-                                    <td>{log.user?.name || 'Sistema'}</td>
-                                    <td>{log.entity_label}</td>
-                                    <td><span className="status-pill">{log.action}</span></td>
-                                    <td>{log.description || '-'}</td>
-                                    <td>{log.old_values || log.new_values ? <button type="button" className="btn-secondary" onClick={() => setDetailLog(log)}>Ver</button> : <span style={{ color: 'rgba(255,255,255,0.6)' }}>-</span>}</td>
-                                </tr>
-                            )) : <TableEmpty colSpan={6} text="Sin registros para los filtros." />}
-                        </tbody>
-                    </table>
-                </div>
-                <Pagination pagination={data.logs} />
-            </div>
-            <Modal open={!!detailLog} title="Detalle de cambio" onClose={() => setDetailLog(null)} wide>
-                {detailLog && (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}><strong>Entidad:</strong> {detailLog.entity_label}</p>
-                        {detailLog.pdf_url && <a href={detailLog.pdf_url} target="_blank" rel="noopener" className="pill-button" style={{ display: 'inline-flex', width: 'fit-content' }}>Abrir PDF del traspaso</a>}
-                        <div style={{ display: 'grid', gap: '0.6rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-                            {renderObjectDiff(detailLog.old_values || {}).map((node) => node)}
-                            {Object.keys(detailLog.old_values || {}).length === 0 && Object.keys(detailLog.new_values || {}).length > 0 && renderObjectDiff(detailLog.new_values || {})}
-                        </div>
-                    </div>
-                )}
-            </Modal>
-        </DashboardShell>
-    );
+    return <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
+        <FlashMessages flash={flash} /><StatsGrid items={stats} />
+        <div className="card user-directory-header"><div><h2>Logs del sistema</h2></div></div>
+        <div className="card user-filter-card logs-filter-card"><div className="log-scope-list">{data.scopes.map((scope) => <a key={scope.key} href={scope.url} className={`log-scope-link${scope.active ? ' is-active' : ''}`}>{scope.label}</a>)}</div><div className="chart-head"><div><span className="section-kicker">Auditoria</span><h4>Filtrar actividad</h4></div><a href={data.routes.report} target="_blank" rel="noopener" className="pill-button user-report-button"><i className="ri-file-chart-line" /> Reporte PDF</a></div><form method="GET" action={data.routes.index} className="form-grid user-filter-form"><input type="hidden" name="scope" value={data.filters.scope || 'all'} /><div className="form-group"><label><i className="ri-user-line" /> Usuario actor</label><select name="actor_id" className="select-light" defaultValue={data.filters.actor_id || ''}><option value="">Todos</option>{data.actors.map((actor) => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></div><div className="form-group"><label><i className="ri-database-2-line" /> Entidad</label><select name="entity_type" className="select-light" defaultValue={data.filters.entity_type || ''}><option value="">Todas</option>{data.entityTypes.map((type) => <option key={type} value={type}>{entityName(type)}</option>)}</select></div><div className="form-group"><label><i className="ri-flashlight-line" /> Accion</label><select name="action" className="select-light" defaultValue={data.filters.action || ''}><option value="">Todas</option>{data.actions.map((action) => <option key={action} value={action}>{actionName(action)}</option>)}</select></div><div className="user-filter-actions"><a href={data.routes.index} className="clean-link"><i className="ri-refresh-line" /> Limpiar</a><button type="submit" className="pill-button user-filter-submit"><i className="ri-search-line" /> Buscar</button></div></form></div>
+        <div className="card user-table-card logs-table-card"><div className="chart-head"><div><span className="section-kicker">Registro</span><h4>Actividad reciente</h4></div><span className="chip">{data.logs.total} registros</span></div><div className="table-wrapper"><table className="data-table"><thead><tr><th>Fecha</th><th>Actor</th><th>Entidad</th><th>Accion</th><th>Descripcion</th><th>Detalle</th></tr></thead><tbody>{data.logs.data.length ? data.logs.data.map((log) => <tr key={log.id}><td><span className="log-date"><i className="ri-time-line" />{log.created_at_formatted}</span></td><td><strong>{log.user?.name || 'Sistema'}</strong></td><td>{log.entity_label}</td><td><span className="log-action-pill">{log.action}</span></td><td>{log.description || '-'}</td><td>{log.old_values || log.new_values ? <button type="button" className="btn-secondary" onClick={() => setDetailLog(log)}>Ver detalle</button> : <span className="log-empty-value">-</span>}</td></tr>) : <TableEmpty colSpan={6} text="Sin registros para los filtros." />}</tbody></table></div><Pagination pagination={data.logs} /></div>
+        <Modal open={!!detailLog} title="Detalle de cambio" onClose={() => setDetailLog(null)} wide contentClassName="user-edit-modal log-detail-modal">{detailLog && <div className="log-detail-content"><div className="log-detail-summary"><div><span>Entidad</span><strong>{detailLog.entity_label}</strong></div><div><span>Actor</span><strong>{detailLog.user?.name || 'Sistema'}</strong></div><div><span>Accion</span><strong>{detailLog.action}</strong></div><div><span>Fecha</span><strong>{detailLog.created_at_formatted}</strong></div></div>{detailLog.pdf_url && <a href={detailLog.pdf_url} target="_blank" rel="noopener" className="pill-button log-detail-pdf"><i className="ri-file-download-line" /> Abrir PDF del traspaso</a>}<div className="log-changes-grid">{renderObjectDiff(detailLog.old_values || {})}{Object.keys(detailLog.old_values || {}).length === 0 && renderObjectDiff(detailLog.new_values || {})}</div></div>}</Modal>
+    </DashboardShell>;
 }
