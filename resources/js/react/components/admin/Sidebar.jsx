@@ -1,56 +1,59 @@
 import React from 'react';
 import { preloadPage } from '../../pageRegistry';
 
-function Sidebar({ logoUrl, items, csrfToken, logoutAction, isOpen, onClose }) {
-    const activeItem = items.find((item) => item.active) || items[0] || null;
+function Sidebar({ logoUrl, items, isOpen, onClose }) {
+    const visibleItems = items || [];
 
     return (
-        <aside className={`sidebar neo-sidebar${isOpen ? ' open' : ''}`} id="sidebar">
-            <div className="neo-sidebar-brand">
-                <div className="neo-sidebar-logo">
-                    {logoUrl ? <img src={logoUrl} alt="PIL Bolivia" /> : <span>P</span>}
+        <>
+            {isOpen && (
+                <button type="button" className="fit-sidebar-scrim" onClick={onClose} aria-label="Cerrar menu movil" />
+            )}
+
+            <aside className={`fit-sidebar${isOpen ? ' open' : ''}`} id="sidebar">
+                <div className="fit-sidebar-main">
+                    <div className="fit-sidebar-brand">
+                        <div className="fit-sidebar-logo">
+                            {logoUrl ? <img src={logoUrl} alt="PIL Bolivia" /> : <span>P</span>}
+                        </div>
+                        <div className="fit-sidebar-brand-copy">
+                            <span className="fit-sidebar-title">PIL Bolivia</span>
+                            <span className="fit-sidebar-subtitle">Indigo Console</span>
+                        </div>
+                        <button type="button" className="fit-sidebar-close" onClick={onClose} aria-label="Cerrar menu">
+                            <i className="ri-close-line" />
+                        </button>
+                    </div>
+
+                    <div className="fit-sidebar-nav-block">
+                        <span className="fit-sidebar-section">Menu de Navegacion</span>
+                        <nav className="fit-sidebar-nav">
+                            {visibleItems.map((item) => (
+                                <a
+                                    key={item.label}
+                                    href={item.href}
+                                    className={`fit-sidebar-item${item.active ? ' active' : ''}`}
+                                    onMouseEnter={() => preloadPage(item.page)}
+                                    onFocus={() => preloadPage(item.page)}
+                                    onTouchStart={() => preloadPage(item.page)}
+                                    onClick={onClose}
+                                >
+                                    <span className="fit-sidebar-item-main">
+                                        <span className="fit-sidebar-icon"><i className={item.icon} /></span>
+                                        <span className="fit-sidebar-copy">
+                                            <span>{item.label}</span>
+                                            <small>{item.active ? 'Vista actual' : 'Modulo del sistema'}</small>
+                                        </span>
+                                    </span>
+                                    {item.active && <span className="fit-sidebar-badge">ON</span>}
+                                </a>
+                            ))}
+                        </nav>
+                    </div>
                 </div>
-                <div>
-                    <strong>PIL Bolivia</strong>
-                    <p>Dashboard corporativo</p>
-                </div>
-            </div>
 
-            <div className="neo-sidebar-chip">
-                <span />
-                <div>
-                    <strong>{activeItem?.label || 'Dashboard'}</strong>
-                    <p>{items.length} accesos activos</p>
-                </div>
-            </div>
-
-            <nav className="neo-sidebar-nav" id="sidebarNav">
-                {items.map((item) => (
-                    <a
-                        key={item.label}
-                        href={item.href}
-                        className={`neo-sidebar-item${item.active ? ' active' : ''}`}
-                        onMouseEnter={() => preloadPage(item.page)}
-                        onFocus={() => preloadPage(item.page)}
-                        onTouchStart={() => preloadPage(item.page)}
-                        onClick={onClose}
-                    >
-                        <span className="neo-sidebar-icon"><i className={item.icon} /></span>
-                        <span className="neo-sidebar-label">{item.label}</span>
-                    </a>
-                ))}
-            </nav>
-
-            <form method="POST" action={logoutAction} className="neo-sidebar-logout-form">
-                <input type="hidden" name="_token" value={csrfToken} />
-                <button type="submit" className="neo-sidebar-logout" title="Cerrar sesion">
-                    <span className="neo-sidebar-icon"><i className="ri-logout-box-r-line" /></span>
-                    <span className="neo-sidebar-label">Cerrar sesion</span>
-                    <i className="ri-arrow-right-line neo-sidebar-logout-arrow" />
-                </button>
-            </form>
-
-        </aside>
+            </aside>
+        </>
     );
 }
 

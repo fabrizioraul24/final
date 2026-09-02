@@ -43,30 +43,40 @@ class QuotationController extends Controller
         }
 
         $quotations = $quotationsQuery->paginate(10)->withQueryString()
-            ->through(function (Quotation $quotation) {
+            ->through(function (Quotation $quotation) use ($request) {
                 return [
                     'id' => $quotation->id,
                     'company' => $quotation->company ? ['name' => $quotation->company->name, 'city' => $quotation->company->city] : null,
                     'customer' => $quotation->customer ? ['name' => $quotation->customer->user->name ?? 'Cliente', 'city' => $quotation->customer->city] : null,
+                    'seller' => $quotation->seller ? ['name' => $quotation->seller->name] : null,
                     'sale_type' => $quotation->sale_type,
                     'status' => $quotation->status,
                     'total_amount' => (float) $quotation->total_amount,
+                    'notes' => $quotation->notes,
                     'valid_until_formatted' => optional($quotation->valid_until)->format('d/m/Y'),
-                    'pdf_url' => route(request()->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.quotations.pdf' : 'dashboard.quotations.pdf', $quotation),
+                    'items' => $quotation->items->map(fn (QuotationItem $item) => [
+                        'product' => $item->product->name ?? 'Producto',
+                        'sku' => $item->product->sku ?? '',
+                        'qty' => (int) $item->quantity,
+                        'price' => (float) $item->unit_price,
+                        'subtotal' => (float) $item->subtotal,
+                    ])->values(),
+                    'pdf_url' => route($request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.quotations.pdf' : 'dashboard.quotations.pdf', $quotation),
                 ];
             });
 
+        $statsBase = Quotation::query();
         $stats = [
-            'total' => Quotation::count(),
-            'sent' => Quotation::where('status', 'enviada')->count(),
-            'accepted' => Quotation::where('status', 'aceptada')->count(),
+            'total' => (clone $statsBase)->count(),
+            'draft' => (clone $statsBase)->where('status', 'borrador')->count(),
+            'sent' => (clone $statsBase)->where('status', 'enviada')->count(),
+            'accepted' => (clone $statsBase)->where('status', 'aceptada')->count(),
+            'rejected' => (clone $statsBase)->where('status', 'rechazada')->count(),
         ];
         $isVendor = $request->routeIs('dashboard.vendedor.*');
         $listRoute = $isVendor ? 'dashboard.vendedor.quotations' : 'dashboard.quotations';
         $storeRoute = $isVendor ? 'dashboard.vendedor.quotations.store' : 'dashboard.quotations.store';
         $lookupRoute = $isVendor ? 'dashboard.vendedor.quotations.lookup' : 'dashboard.quotations.lookup';
-        $pdfRoute = $isVendor ? 'dashboard.vendedor.quotations.pdf' : 'dashboard.quotations.pdf';
-
         return view('react-page', AdminReact::page('quotations', 'Cotizaciones | Pil Andina', 'Cotizaciones corporativas', 'quotations', [
             'data' => [
                 'quotations' => AdminReact::paginator($quotations),

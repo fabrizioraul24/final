@@ -77,12 +77,18 @@ class SaleController extends Controller
                     'payment_label' => $paymentLabels[$sale->payment_method] ?? 'Sin metodo',
                     'total_amount' => (float) $sale->total_amount,
                     'warehouse' => $sale->warehouse ? ['name' => $sale->warehouse->name] : null,
+                    'seller' => $sale->seller ? ['name' => $sale->seller->name] : null,
+                    'delivery_address' => $sale->delivery_address,
+                    'delivery_city' => $sale->delivery_city,
+                    'amount_received' => $sale->amount_received ? (float) $sale->amount_received : null,
+                    'change_amount' => $sale->change_amount ? (float) $sale->change_amount : null,
                     'created_at_formatted' => optional($sale->created_at)->format('d/m/Y H:i'),
                     'items' => $sale->items->map(fn (SaleItem $item) => [
                         'product' => $item->product->name ?? 'Producto',
                         'sku' => $item->product->sku ?? '',
                         'qty' => (int) $item->quantity,
                         'price' => (float) $item->unit_price,
+                        'subtotal' => (float) $item->subtotal,
                     ])->values(),
                     'update_url' => route($request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.sales.update' : 'dashboard.sales.update', $sale),
                 ];
@@ -95,7 +101,8 @@ class SaleController extends Controller
         $stats = [
             'count' => (clone $statsBase)->count(),
             'total_amount' => (clone $statsBase)->sum('total_amount'),
-            'delivered' => (clone $statsBase)->where('status', 'entregada')->count(),
+            'pending' => (clone $statsBase)->where('status', 'sin_entregar')->count(),
+            'delivered' => (clone $statsBase)->where('status', 'entregado')->count(),
         ];
         $isVendor = $request->routeIs('dashboard.vendedor.*');
         $storeRoute = $isVendor ? 'dashboard.vendedor.sales.store' : 'dashboard.sales.store';

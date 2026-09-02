@@ -1,0 +1,74 @@
+﻿.fit-sale-filter-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 250px) minmax(170px, 220px) auto auto;
+}
+
+.fit-metric-card:disabled {
+    cursor: default;
+}
+
+.fit-sale-id {
+    font-size: 0.82rem;
+}
+
+.fit-sale-client-icon {
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--fit-indigo);
+    font-size: 1.1rem;
+    flex: 0 0 auto;
+}
+
+.fit-sale-payment {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(79, 70, 229, 0.18);
+    border-radius: 999px;
+    padding: 0.3rem 0.62rem;
+    background: rgba(79, 70, 229, 0.08);
+    color: #4338ca;
+    font-size: 0.72rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.fit-sale-amount {
+    color: #047857;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.fit-sale-items .fit-form-grid {
+    grid-template-columns: minmax(120px, 0.8fr) minmax(190px, 1.3fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr);
+}
+
+.fit-sale-total {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    border-top: 1px solid #e0e7ff;
+    padding-top: 1rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-sale-total strong {
+    color: #047857;
+    font-size: 1.25rem;
+}
+
+.fit-sale-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fit-sale-status-modal {
+    width: min(520px, 92vw);
+}
+

@@ -26,6 +26,9 @@ class UserController extends Controller
         $roles = Role::orderBy('name')->get();
         $search = $request->input('search');
         $roleFilter = $request->input('role_id');
+        $adminRoleIds = $roles
+            ->filter(fn (Role $role) => str_contains(strtolower($role->name), 'admin'))
+            ->pluck('id');
 
         $activeUsersQuery = User::with('role')->latest();
         $inactiveUsersQuery = User::onlyTrashed()->with('role')->latest();
@@ -81,6 +84,9 @@ class UserController extends Controller
                 'filters' => [
                     'search' => $search,
                     'role_id' => $roleFilter,
+                ],
+                'stats' => [
+                    'staff' => User::withTrashed()->whereIn('role_id', $adminRoleIds)->count(),
                 ],
                 'routes' => [
                     'index' => route('dashboard.users'),

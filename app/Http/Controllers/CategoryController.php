@@ -18,12 +18,17 @@ class CategoryController extends Controller
     public function index(Request $request): View
     {
         $search = $request->input('search');
+        $scope = $request->input('scope');
 
         $baseQuery = Category::withTrashed()->withCount('products')->orderByDesc('created_at');
 
-        $applyFilters = function ($query) use ($search) {
+        $applyFilters = function ($query) use ($search, $scope) {
             if ($search) {
                 $query->whereAnyLikeInsensitive(['name'], $search);
+            }
+
+            if ($scope === 'with_products') {
+                $query->has('products');
             }
         };
 
@@ -46,16 +51,18 @@ class CategoryController extends Controller
                 'inactiveCategories' => AdminReact::paginator($inactiveCategories),
                 'filters' => [
                     'search' => $search,
+                    'scope' => $scope,
                 ],
                 'summary' => [
                     'total' => Category::withTrashed()->count(),
+                    'active' => Category::count(),
                     'with_products' => Category::has('products')->count(),
                     'inactive' => Category::onlyTrashed()->count(),
                 ],
                 'routes' => [
                     'index' => route('dashboard.categories'),
                     'store' => route('dashboard.categories.store'),
-                    'report' => route('dashboard.categories.report', ['search' => $search]),
+                    'report' => route('dashboard.categories.report', ['search' => $search, 'scope' => $scope]),
                 ],
             ],
         ], 'adminCategories'));

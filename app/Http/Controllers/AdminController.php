@@ -23,7 +23,7 @@ class AdminController extends Controller
         return view('react-page', [
             'page' => 'adminDashboard',
             'title' => 'Panel de control Administrador | Pil Andina',
-            'stylesheets' => [asset('landing/dashboard.css')],
+            'stylesheets' => [asset('dash/assets/index-Dllbp2XJ.css'), asset('landing/dashboard.css'), asset('dash/final-dashboard.css')],
             'props' => [
                 'layout' => $layout,
                 'kpis' => [
@@ -112,13 +112,19 @@ class AdminController extends Controller
         $weekStart = $today->copy()->subDays(6);
 
         $salesToday = (float) Sale::whereDate('created_at', $today)->sum('total_amount');
+        $salesTodayCount = Sale::whereDate('created_at', $today)->count();
         $salesYesterday = (float) Sale::whereDate('created_at', $yesterday)->sum('total_amount');
+        $activeUsersTotal = User::count();
+        $inactiveUsersTotal = User::onlyTrashed()->count();
 
         $kpis = [
             'sales_today' => $salesToday,
+            'sales_today_count' => $salesTodayCount,
             'customers' => Company::count(),
             'products_active' => Product::where('is_active', true)->count(),
             'transfers_active' => Transfer::where('status', '!=', Transfer::STATUS_RECEIVED)->count(),
+            'users_active' => $activeUsersTotal,
+            'users_inactive' => $inactiveUsersTotal,
         ];
 
         $dates = collect(range(6, 0))->map(fn ($i) => $today->copy()->subDays($i));

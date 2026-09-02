@@ -104,17 +104,22 @@ export function Modal({ open, title, children, onClose, wide = false, contentCla
 
 export function StatsGrid({ items }) {
     return (
-        <div className="stats-grid">
-            {items.map((item) => (
-                <div className={`card stats-card ${item.cardClass || ''}`} key={item.label}>
-                    <div className="stats-card-head">
-                        <h3>{item.label}</h3>
-                        {item.icon && <span className="stats-card-icon"><i className={item.icon} /></span>}
+        <div className="fit-metric-grid admin-fit-stats-grid">
+            {items.map((item, index) => {
+                const tones = ['indigo', 'green', 'rose', 'amber'];
+                const tone = item.tone || tones[index % tones.length];
+
+                return (
+                    <div className={`fit-metric-card ${tone} ${item.cardClass || ''}`} key={item.label}>
+                        <span>
+                            <small>{item.label}</small>
+                            <strong>{item.value}</strong>
+                            <em className={item.chipClass || ''}>{item.chip}</em>
+                        </span>
+                        {item.icon && <span className="fit-metric-icon"><i className={item.icon} /></span>}
                     </div>
-                    <div className="value">{item.value}</div>
-                    <span className={`chip ${item.chipClass || ''}`}>{item.chip}</span>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

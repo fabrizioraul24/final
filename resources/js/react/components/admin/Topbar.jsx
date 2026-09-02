@@ -1,50 +1,100 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
+import { preloadPage } from '../../pageRegistry';
 
 function Topbar({ pageTitle, user, csrfToken, logoutAction, onSidebarToggle }) {
-    const [now, setNow] = useState(() => new Date());
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [theme, setTheme] = useState(() => localStorage.getItem('fitonist_theme') || 'dark');
+    const isDark = theme === 'dark';
 
-    useEffect(() => {
-        const timer = window.setInterval(() => setNow(new Date()), 60_000);
-        return () => window.clearInterval(timer);
-    }, []);
+    useLayoutEffect(() => {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        localStorage.setItem('fitonist_theme', theme);
+    }, [theme, isDark]);
 
-    const timeLabel = useMemo(() => now.toLocaleTimeString('es-BO', {
-        hour: '2-digit',
-        minute: '2-digit',
-    }), [now]);
+    const initials = user.name
+        ?.split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase() || 'US';
 
     return (
-        <header className="topbar neo-topbar">
-            <div className="neo-topbar-left">
-                <button className="icon-button neo-sidebar-toggle" id="sidebarToggle" type="button" onClick={onSidebarToggle}>
-                    <i className="ri-menu-line" />
+        <header className="fit-navbar">
+            <div className="fit-navbar-left">
+                <button className="fit-icon-button fit-mobile-menu" type="button" onClick={onSidebarToggle} aria-label="Abrir menu">
+                    <i className="ri-menu-2-line" />
                 </button>
-                <h1>{pageTitle}</h1>
-            </div>
 
-            <div className="neo-topbar-search" role="search">
-                <i className="ri-search-line" />
-                <input type="search" placeholder="Buscar aqui..." aria-label="Buscar en el sistema" />
-            </div>
-
-            <div className="neo-topbar-right">
-                <button className="icon-button neo-bell-button" title="Notificaciones" type="button">
-                    <i className="ri-notification-3-line" />
-                </button>
-                <div className="neo-user-chip">
-                    <div className="neo-user-avatar">{user.name?.slice(0, 2).toUpperCase() || 'US'}</div>
-                    <div className="neo-user-copy">
-                        <strong>{user.name}</strong>
-                        <span>{user.role}</span>
-                    </div>
-                    <span className="neo-user-time">{timeLabel}</span>
+                <div className="fit-navbar-pills">
+                    <a className="fit-navbar-pill active" href="#">
+                        <i className="ri-layout-grid-line" />
+                        <span>{pageTitle}</span>
+                    </a>
+                    <a
+                        className="fit-navbar-pill"
+                        href="/dashboard/usuarios"
+                        onMouseEnter={() => preloadPage('adminUsers')}
+                        onFocus={() => preloadPage('adminUsers')}
+                        onTouchStart={() => preloadPage('adminUsers')}
+                    >
+                        <i className="ri-group-line" />
+                        <span>Directorio de Usuarios</span>
+                    </a>
                 </div>
-                <form method="POST" action={logoutAction}>
-                    <input type="hidden" name="_token" value={csrfToken} />
-                    <button className="neo-signout" type="submit" title="Cerrar sesion">
-                        <i className="ri-logout-box-r-line" />
+            </div>
+
+            <div className="fit-navbar-right">
+                <div className="fit-navbar-search" role="search">
+                    <i className="ri-search-line" />
+                    <input type="search" placeholder="Buscar..." aria-label="Buscar en el sistema" />
+                </div>
+
+                <button
+                    className="fit-icon-button"
+                    type="button"
+                    title={isDark ? 'Modo Claro' : 'Modo Oscuro'}
+                    onClick={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
+                >
+                    <i className={isDark ? 'ri-sun-line' : 'ri-moon-line'} />
+                </button>
+
+                <button className="fit-icon-button fit-bell" type="button" title="Notificaciones">
+                    <i className="ri-notification-3-line" />
+                    <span />
+                </button>
+
+                <div className="fit-profile">
+                    <button
+                        type="button"
+                        className="fit-profile-button"
+                        onClick={() => setShowProfileMenu((value) => !value)}
+                    >
+                        <span className="fit-profile-avatar">{initials}</span>
+                        <span className="fit-profile-name">{user.name}</span>
+                        <i className="ri-arrow-down-s-line" />
                     </button>
-                </form>
+
+                    {showProfileMenu && (
+                        <div className="fit-profile-menu">
+                            <div className="fit-profile-menu-head">
+                                <strong>{user.name}</strong>
+                                <span>{user.role}</span>
+                            </div>
+                            <form method="POST" action={logoutAction}>
+                                <input type="hidden" name="_token" value={csrfToken} />
+                                <button type="submit">
+                                    <i className="ri-logout-circle-r-line" /> Cerrar sesion
+                                </button>
+                            </form>
+                            <button type="button" onClick={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}>
+                                <i className={isDark ? 'ri-sun-line' : 'ri-moon-line'} /> {isDark ? 'Modo Claro' : 'Modo Oscuro'}
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
     );

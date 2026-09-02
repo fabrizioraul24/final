@@ -1,0 +1,622 @@
+﻿
+html.dark body {
+    background: #0e0f14;
+    color: #f1f5f9;
+}
+
+html.dark .dashboard-shell {
+    background: #0e0f14;
+    color: #f1f5f9;
+}
+
+html.dark .fit-sidebar {
+    background: #151722;
+    border-right-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.24);
+}
+
+html.dark .fit-sidebar-primary,
+html.dark .fit-sidebar-item.active {
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+html.dark .fit-sidebar-item {
+    color: #94a3b8;
+}
+
+html.dark .fit-sidebar-item:hover {
+    background: rgba(30, 41, 59, 0.7);
+    color: #ffffff;
+}
+
+html.dark .fit-sidebar-section,
+html.dark .fit-sidebar-copy small {
+    color: #64748b;
+}
+
+html.dark .fit-navbar-pills {
+    background: rgba(21, 23, 32, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-navbar-pill {
+    color: #94a3b8;
+}
+
+html.dark .fit-navbar-pill:hover {
+    color: #e2e8f0;
+}
+
+html.dark .fit-navbar-pill.active,
+html.dark .fit-navbar-create,
+html.dark .fit-primary-button {
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+html.dark .fit-navbar-search input,
+html.dark .fit-icon-button,
+html.dark .fit-profile-button,
+html.dark .fit-profile-menu {
+    background: #151722;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+
+html.dark .fit-profile-menu-head {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-profile-menu button {
+    color: #cbd5e1;
+}
+
+html.dark .fit-users-header,
+html.dark .fit-filter-card,
+html.dark .fit-section,
+html.dark .fit-table-card,
+html.dark .fit-metric-card,
+html.dark .neo-card,
+html.dark .card,
+html.dark .resource-shell,
+html.dark .resource-card,
+html.dark .modal-content {
+    background: #161820;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .fit-users-header {
+    background: linear-gradient(90deg, rgba(49, 46, 129, 0.35), #161820 52%, rgba(88, 28, 135, 0.24));
+}
+
+html.dark .fit-users-header h1,
+html.dark .fit-section-head h2,
+html.dark .neo-card h2,
+html.dark .card h3,
+html.dark .modal-header h3 {
+    color: #f8fafc;
+}
+
+html.dark .fit-users-header p,
+html.dark .fit-section-head p,
+html.dark .fit-user-cell small,
+html.dark .fit-company-contact small,
+html.dark .neo-card p,
+html.dark .card p {
+    color: #94a3b8;
+}
+
+html.dark .fit-muted-text {
+    color: #cbd5e1;
+}
+
+html.dark .fit-search-control input,
+html.dark .fit-select-control select,
+html.dark .fit-form-field input,
+html.dark .fit-form-field select,
+html.dark .fit-form-field textarea,
+html.dark .input-ghost,
+html.dark .select-light,
+html.dark textarea.input-ghost {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+html.dark .fit-users-table th,
+html.dark .data-table th {
+    background: rgba(15, 23, 42, 0.42);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+html.dark .fit-users-table td,
+html.dark .data-table td {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+}
+
+html.dark .fit-users-table tbody tr:hover,
+html.dark .data-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+html.dark .fit-action-button {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+html.dark .fit-action-button.warning {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fbbf24;
+}
+
+html.dark .fit-action-button.success {
+    background: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+}
+
+html.dark .fit-action-button.danger {
+    background: rgba(244, 63, 94, 0.16);
+    border-color: rgba(244, 63, 94, 0.3);
+    color: #fb7185;
+}
+
+html.dark .fit-action-button.warning:hover {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #ffffff;
+}
+
+html.dark .fit-action-button.success:hover {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+}
+
+html.dark .fit-action-button.danger:hover {
+    background: #f43f5e;
+    border-color: #f43f5e;
+    color: #ffffff;
+}
+
+html.dark .fit-code {
+    background: rgba(99, 102, 241, 0.16);
+    border-color: rgba(99, 102, 241, 0.24);
+    color: #a5b4fc;
+}
+
+html.dark .fit-product-sku {
+    background: #111827;
+    border-color: rgba(148, 163, 184, 0.22);
+    border-left-color: #818cf8;
+    color: #e2e8f0;
+    box-shadow: none;
+}
+
+html.dark .fit-company-contact strong,
+html.dark .fit-company-detail-head strong,
+html.dark .fit-company-detail-grid strong,
+html.dark .fit-product-detail-head strong,
+html.dark .fit-money,
+html.dark .fit-lot-product-head h3,
+html.dark .fit-lot-stat-grid strong,
+html.dark .fit-lot-panel h4,
+html.dark .fit-lot-movement-item strong,
+html.dark .fit-category-count strong,
+html.dark .fit-category-count small,
+html.dark .fit-transfer-items-head h4,
+html.dark .fit-transfer-summary strong,
+html.dark .fit-transfer-panel h4,
+html.dark .fit-sale-total strong,
+html.dark .fit-confirm-form h4 {
+    color: #f8fafc;
+}
+
+html.dark .fit-company-detail-head,
+html.dark .fit-company-detail-grid > div,
+html.dark .fit-product-detail-head,
+html.dark .fit-product-image,
+html.dark .fit-product-detail-media img,
+html.dark .fit-lot-card,
+html.dark .fit-lot-stat-grid > div,
+html.dark .fit-lot-panel,
+html.dark .fit-lot-movement-item,
+html.dark .fit-category-icon,
+html.dark .fit-transfer-items,
+html.dark .fit-transfer-item-row,
+html.dark .fit-transfer-summary > div,
+html.dark .fit-transfer-panel {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-category-count {
+    background: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+}
+
+html.dark .fit-lot-card-actions {
+    background: #161820;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-company-detail-head span,
+html.dark .fit-company-detail-grid span,
+html.dark .fit-product-detail-head span,
+html.dark .fit-lot-stat-grid span,
+html.dark .fit-lot-panel p,
+html.dark .fit-lot-movement-item span,
+html.dark .fit-lot-movement-item p,
+html.dark .fit-lot-movement-item time,
+html.dark .fit-lot-empty,
+html.dark .fit-empty-card p,
+html.dark .fit-transfer-items-head span,
+html.dark .fit-transfer-summary span,
+html.dark .fit-transfer-panel p,
+html.dark .fit-transfer-source-detail p,
+html.dark .fit-sale-total,
+html.dark .fit-confirm-form p {
+    color: #94a3b8;
+}
+
+html.dark .fit-sale-client-icon {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+}
+
+html.dark .fit-sale-payment {
+    border-color: rgba(129, 140, 248, 0.28);
+    background: rgba(99, 102, 241, 0.16);
+    color: #c4b5fd;
+}
+
+html.dark .fit-sale-amount {
+    color: #34d399;
+}
+
+html.dark .fit-log-scope-list,
+html.dark .fit-sale-total {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-log-scope-link {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+html.dark .fit-log-scope-link:hover,
+html.dark .fit-log-scope-link.is-active {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #ffffff;
+}
+
+html.dark .fit-log-date {
+    color: #cbd5e1;
+}
+
+html.dark .fit-log-action.default {
+    background: rgba(99, 102, 241, 0.16);
+    color: #c4b5fd;
+}
+
+html.dark .fit-log-action.success {
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+}
+
+html.dark .fit-log-action.warning {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
+html.dark .fit-log-action.danger {
+    background: rgba(244, 63, 94, 0.16);
+    color: #fb7185;
+}
+
+html.dark .fit-log-diff-panel,
+html.dark .fit-log-change-item {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-log-diff-panel h4,
+html.dark .fit-log-change-item strong {
+    color: #f8fafc;
+}
+
+html.dark .fit-log-change-list p,
+html.dark .fit-log-change-item span {
+    color: #94a3b8;
+}
+
+html.dark .fit-backup-schedule-button {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
+html.dark .fit-backup-schedule-card,
+html.dark .fit-backup-info-card {
+    background: #161820;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .fit-backup-schedule-card {
+    border-left-color: #f59e0b;
+}
+
+html.dark .fit-backup-schedule-main h2,
+html.dark .fit-backup-info-card strong {
+    color: #f8fafc;
+}
+
+html.dark .fit-backup-schedule-main span,
+html.dark .fit-backup-schedule-main p,
+html.dark .fit-backup-info-card span,
+html.dark .fit-backup-info-card small {
+    color: #94a3b8;
+}
+
+html.dark .fit-backup-file-icon {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+}
+
+html.dark .fit-backup-origin {
+    border-color: rgba(129, 140, 248, 0.28);
+    background: rgba(99, 102, 241, 0.16);
+    color: #c4b5fd;
+}
+
+html.dark .fit-section-badge.indigo {
+    background: rgba(99, 102, 241, 0.16);
+    color: #a5b4fc;
+}
+
+html.dark .fit-agent-page .fit-users-header {
+    border-color: rgba(129, 140, 248, 0.18);
+    background:
+        linear-gradient(135deg, rgba(99, 102, 241, 0.16), transparent 38%),
+        linear-gradient(90deg, #161820 0%, #181b25 58%, rgba(20, 184, 166, 0.12) 100%);
+}
+
+html.dark .fit-agent-page .fit-users-header::after {
+    background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.11));
+}
+
+html.dark .fit-agent-table td strong,
+html.dark .fit-agent-capacity-card strong,
+html.dark .fit-agent-spark-card strong,
+html.dark .fit-agent-detail-title strong {
+    color: #f8fafc;
+}
+
+html.dark .fit-agent-capacity-badge {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
+html.dark .fit-agent-capacity-card,
+html.dark .fit-agent-spark-card {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-agent-capacity-card:hover,
+html.dark .fit-agent-spark-card:hover {
+    border-color: rgba(45, 212, 191, 0.22);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+}
+
+html.dark .fit-agent-capacity-card span,
+html.dark .fit-agent-capacity-card p,
+html.dark .fit-agent-spark-card p,
+html.dark .fit-agent-note span,
+html.dark .fit-agent-note p,
+html.dark .fit-agent-note li {
+    color: #94a3b8;
+}
+
+html.dark .fit-agent-detail-badges span {
+    background: rgba(99, 102, 241, 0.16);
+    color: #c4b5fd;
+}
+
+html.dark .fit-agent-note {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-quotation-status.draft {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+}
+
+html.dark .fit-quotation-status.sent {
+    background: rgba(139, 92, 246, 0.18);
+    color: #c4b5fd;
+}
+
+html.dark .fit-quotation-status.active {
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+}
+
+html.dark .fit-quotation-status.rejected {
+    background: rgba(244, 63, 94, 0.16);
+    color: #fb7185;
+}
+
+html.dark .fit-lot-alert span {
+    color: #fecdd3;
+}
+
+html.dark .fit-modal-content {
+    background: #161820 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f8fafc !important;
+}
+
+html.dark .fit-modal-content .modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-modal-content .modal-header h3 {
+    color: #f8fafc;
+}
+
+html.dark .admin-fit-stats-grid .fit-metric-card,
+html.dark .user-directory-header,
+html.dark .product-directory-header,
+html.dark .lot-directory-header,
+html.dark .user-filter-card,
+html.dark .lot-filter-card,
+html.dark .user-table-card,
+html.dark .agent-section,
+html.dark .resource-card,
+html.dark .table-wrapper,
+html.dark .summary-card,
+html.dark .company-view-item,
+html.dark .product-detail-field,
+html.dark .lot-stat-box,
+html.dark .sale-detail-summary > div,
+html.dark .user-create-modal,
+html.dark .user-edit-modal,
+html.dark .product-create-modal,
+html.dark .product-edit-modal,
+html.dark .lot-create-modal,
+html.dark .lot-edit-modal,
+html.dark .sale-create-modal,
+html.dark .sale-detail-modal,
+html.dark .transfer-create-modal,
+html.dark .transfer-detail-modal,
+html.dark .quotation-detail-modal,
+html.dark .company-view-modal {
+    background: #161820 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .user-directory-header {
+    background: linear-gradient(90deg, rgba(49, 46, 129, 0.35), #161820 52%, rgba(88, 28, 135, 0.24));
+}
+
+html.dark .user-directory-header h2,
+html.dark .user-filter-card .chart-head h4,
+html.dark .lot-filter-card .chart-head h4,
+html.dark .user-table-card .chart-head h4,
+html.dark .agent-section .chart-head h4,
+html.dark table.data-table td strong {
+    color: #f8fafc !important;
+}
+
+html.dark .user-directory-header p,
+html.dark table.data-table td small,
+html.dark table.data-table td p {
+    color: #94a3b8 !important;
+}
+
+html.dark .user-filter-card .input-ghost,
+html.dark .user-filter-card .select-light,
+html.dark .lot-filter-card .input-ghost,
+html.dark .lot-filter-card .select-light,
+html.dark .user-create-form .input-ghost,
+html.dark .user-create-form .select-light,
+html.dark .user-edit-form .input-ghost,
+html.dark .user-edit-form .select-light,
+html.dark .product-form-shell .input-ghost,
+html.dark .product-form-shell .select-light,
+html.dark .product-form-shell textarea {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+html.dark table.data-table thead {
+    background: rgba(15, 23, 42, 0.42);
+}
+
+html.dark table.data-table th {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+html.dark table.data-table td {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+}
+
+.user-table-card .actions .btn-secondary,
+.user-table-card .actions .btn-danger,
+.agent-section .btn-secondary,
+.backup-table-card .actions .btn-secondary,
+.backup-table-card .actions .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 34px;
+    border-radius: 999px;
+    padding: 0.58rem 0.9rem;
+    font-size: 0.76rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.user-table-card .actions .btn-secondary,
+.agent-section .btn-secondary,
+.backup-table-card .actions .btn-secondary {
+    border: 1px solid #c7d2fe;
+    background: #ffffff;
+    color: var(--fit-indigo);
+}
+
+.user-table-card .actions .btn-danger,
+.backup-table-card .actions .btn-danger {
+    border: 1px solid rgba(244, 63, 94, 0.28);
+    background: rgba(244, 63, 94, 0.08);
+    color: #f43f5e;
+}
+
+html.dark .fit-metric-card strong,
+html.dark .admin-fit-stats-grid .fit-metric-card strong,
+html.dark .lot-stat-box strong,
+html.dark .summary-card span,
+html.dark .summary-card strong,
+html.dark .company-view-item strong,
+html.dark .product-detail-field strong,
+html.dark .sale-detail-summary strong {
+    color: #f8fafc !important;
+}
+
+html.dark .user-table-card .actions .btn-secondary,
+html.dark .agent-section .btn-secondary,
+html.dark .backup-table-card .actions .btn-secondary {
+    border-color: rgba(148, 163, 184, 0.22);
+    background: #334155;
+    color: #f8fafc;
+}
+
+html.dark .user-table-card .actions .btn-danger,
+html.dark .backup-table-card .actions .btn-danger {
+    border-color: rgba(244, 63, 94, 0.28);
+    background: rgba(244, 63, 94, 0.12);
+    color: #fb7185;
+}
+

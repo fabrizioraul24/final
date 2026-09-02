@@ -26,6 +26,7 @@ class TransferController extends Controller
     {
         $this->ensureApprovedAgentRequestsHaveTransfer();
         $targetWarehouse = $this->targetWarehouse();
+        $statusFilter = $request->input('status');
 
         $transfers = Transfer::with([
             'fromWarehouse',
@@ -34,7 +35,11 @@ class TransferController extends Controller
             'approvedByUser',
             'items.product',
             'agentTransferRequest.product',
-        ])->orderByDesc('id')->paginate(10);
+        ])
+            ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
 
         $stats = [
             'total' => Transfer::count(),
@@ -50,10 +55,14 @@ class TransferController extends Controller
                 'transfers' => AdminReact::paginator($transfers->through(fn (Transfer $transfer) => $this->transferPayload($transfer))),
                 'stats' => $stats,
                 'statuses' => Transfer::STATUSES,
+                'filters' => [
+                    'status' => $statusFilter,
+                ],
                 'routes' => [
+                    'index' => route('dashboard.transfers'),
                     'store' => route('dashboard.transfers.store'),
                     'lookup' => route('dashboard.transfers.lookup'),
-                    'report' => route('dashboard.transfers.report'),
+                    'report' => route('dashboard.transfers.report', ['status' => $statusFilter]),
                 ],
             ],
         ], 'adminTransfers'));
@@ -121,9 +130,10 @@ class TransferController extends Controller
             ->with('status', 'Traspaso registrado correctamente.');
     }
 
-    public function report()
+    public function report(Request $request)
     {
         $this->ensureApprovedAgentRequestsHaveTransfer();
+        $statusFilter = $request->input('status');
 
         $transfers = Transfer::with([
             'fromWarehouse',
@@ -132,7 +142,10 @@ class TransferController extends Controller
             'approvedByUser',
             'items.product',
             'agentTransferRequest.product',
-        ])->orderByDesc('id')->get();
+        ])
+            ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
+            ->orderByDesc('id')
+            ->get();
 
         return ReportService::download('reports.transfers', [
             'title' => 'Reporte de traspasos internos',

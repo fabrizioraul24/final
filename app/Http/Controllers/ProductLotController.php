@@ -26,8 +26,9 @@ class ProductLotController extends Controller
         $productId = $request->input('product_id');
         $warehouseId = $request->input('warehouse_id');
         $expires = $request->input('expires_at');
+        $scope = $request->input('scope');
 
-        $productsWithLots = $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires)
+        $productsWithLots = $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires, $scope)
             ->paginate(8)
             ->withQueryString();
 
@@ -54,6 +55,7 @@ class ProductLotController extends Controller
                     'product_id' => $productId,
                     'warehouse_id' => $this->resolvedWarehouseId($warehouseId),
                     'expires_at' => $expires,
+                    'scope' => $scope,
                 ],
                 'stats' => $stats,
                 'routes' => [
@@ -64,6 +66,7 @@ class ProductLotController extends Controller
                         'product_id' => $productId,
                         'warehouse_id' => $this->resolvedWarehouseId($warehouseId),
                         'expires_at' => $expires,
+                        'scope' => $scope,
                     ]),
                 ],
                 'modalError' => session('modal_error'),
@@ -77,9 +80,10 @@ class ProductLotController extends Controller
         $productId = $request->input('product_id');
         $warehouseId = $request->input('warehouse_id');
         $expires = $request->input('expires_at');
+        $scope = $request->input('scope');
 
         $products = $this->decorateLotProducts(
-            $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires)->get()
+            $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires, $scope)->get()
         );
         $expiringTimeline = collect(range(0, 3))->map(function (int $offset) use ($products) {
             $month = Carbon::now()->startOfMonth()->addMonths($offset);
@@ -225,13 +229,17 @@ class ProductLotController extends Controller
         return $laPaz ? collect([$laPaz]) : Warehouse::orderBy('name')->get();
     }
 
-    private function buildLotProductsQuery(?string $search, ?string $productId, ?string $warehouseId, ?string $expires)
+    private function buildLotProductsQuery(?string $search, ?string $productId, ?string $warehouseId, ?string $expires, ?string $scope = null)
     {
         $resolvedWarehouseId = $this->resolvedWarehouseId($warehouseId);
-        $lotScope = function ($query) use ($resolvedWarehouseId, $expires) {
+        $today = Carbon::today();
+        $lotScope = function ($query) use ($resolvedWarehouseId, $expires, $scope, $today) {
             $query
                 ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId))
                 ->when($expires, fn ($builder) => $builder->whereDate('expires_at', $expires))
+                ->when($scope === 'expiring', fn ($builder) => $builder
+                    ->where('quantity', '>', 0)
+                    ->whereBetween('expires_at', [$today, $today->copy()->addDays(30)]))
                 ->orderBy('expires_at')
                 ->orderBy('id');
         };

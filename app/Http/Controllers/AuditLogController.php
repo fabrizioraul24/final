@@ -32,11 +32,13 @@ class AuditLogController extends Controller
         $actorId = $request->input('actor_id');
         $entityType = $request->input('entity_type');
         $action = $request->input('action');
-        $scope = $request->input('scope', 'all'); // all, login, register, users
+        $scope = $request->input('scope', 'all');
 
         $logsQuery = AuditLog::with('user')->latest('created_at');
 
-        if ($scope === 'login') {
+        if ($scope === 'today') {
+            $logsQuery->whereDate('created_at', now()->toDateString());
+        } elseif ($scope === 'login') {
             $logsQuery->where('entity_type', 'auth')
                 ->whereIn('action', ['login', 'login_failed', 'logout']);
         } elseif ($scope === 'register') {
@@ -107,6 +109,7 @@ class AuditLogController extends Controller
                 ],
                 'scopes' => collect([
                     ['key' => 'all', 'label' => 'Todos'],
+                    ['key' => 'today', 'label' => 'Hoy'],
                     ['key' => 'login', 'label' => 'Login/Logout'],
                     ['key' => 'register', 'label' => 'Registro'],
                     ['key' => 'users', 'label' => 'Usuarios'],
@@ -135,7 +138,9 @@ class AuditLogController extends Controller
 
         $logsQuery = AuditLog::with('user')->latest('created_at');
 
-        if ($scope === 'login') {
+        if ($scope === 'today') {
+            $logsQuery->whereDate('created_at', now()->toDateString());
+        } elseif ($scope === 'login') {
             $logsQuery->where('entity_type', 'auth')
                 ->whereIn('action', ['login', 'login_failed', 'logout']);
         } elseif ($scope === 'register') {
@@ -166,6 +171,7 @@ class AuditLogController extends Controller
         }
 
         $title = match ($scope) {
+            'today' => 'Reporte de Actividad de Hoy',
             'login' => 'Reporte de Sesiones',
             'register' => 'Reporte de Registros',
             'users' => 'Reporte de Auditoria: Usuarios',
