@@ -115,11 +115,11 @@ function AdminSpaApp({ initialPageKey, initialProps }) {
             }
 
             document.title = nextPage.title;
-            setPageState({
+            setPageState((current) => ({
                 pageKey: nextPage.pageKey,
                 props: nextPage.props,
-                PageComponent: null,
-            });
+                PageComponent: current.pageKey === nextPage.pageKey ? current.PageComponent : null,
+            }));
 
             if (replace) {
                 window.history.replaceState({ adminSpa: true }, '', url.href);

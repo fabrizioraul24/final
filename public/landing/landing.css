@@ -85,6 +85,7 @@ a {
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.34em;
+  color: var(--white);
 }
 
 .menu {
@@ -95,6 +96,11 @@ a {
   margin-right: 1rem;
   font-size: 0.98rem;
   font-weight: 700;
+  color: var(--white);
+}
+
+.menu a {
+  color: var(--white);
 }
 
 .topbar-actions {
@@ -124,14 +130,15 @@ a {
 }
 
 .pill-white {
-  background: var(--white);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.34);
   font-size: 1.02rem;
 }
 
 .pill-coral {
   background: var(--coral);
-  color: var(--ink);
+  color: var(--white);
   min-width: 360px;
   justify-content: space-between;
   padding-inline: 2rem;
@@ -178,6 +185,7 @@ a {
   line-height: 0.92;
   font-weight: 900;
   letter-spacing: -0.06em;
+  color: var(--white);
 }
 
 .headline span {
@@ -230,6 +238,7 @@ a {
 
 .microcopy strong {
   font-weight: 800;
+  color: var(--white);
 }
 
 .microcopy span {
@@ -258,8 +267,8 @@ a {
   width: 128px;
   height: 128px;
   border-radius: 50%;
-  background: var(--white);
-  color: var(--blue);
+  background: var(--coral);
+  color: var(--white);
   display: grid;
   place-items: center;
   text-align: center;
@@ -352,7 +361,7 @@ a {
   position: relative;
   z-index: 2;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--white);
   overflow: hidden;
 }
 
@@ -454,7 +463,7 @@ a {
   min-width: 110px;
   padding: 1.25rem 1.6rem;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--white);
   font-size: 1.05rem;
   font-weight: 800;
 }
@@ -767,7 +776,7 @@ a {
   bottom: 1.1rem;
   display: grid;
   gap: 0.4rem;
-  color: var(--blue);
+  color: var(--white);
 }
 
 .card-copy h3 {
@@ -790,9 +799,9 @@ a {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 1px solid rgba(11, 79, 193, 0.24);
-  background: transparent;
-  color: var(--blue);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: rgba(11, 79, 193, 0.28);
+  color: var(--white);
   font-size: 1.1rem;
   display: grid;
   place-items: center;
@@ -835,7 +844,7 @@ a {
   place-content: center;
   text-align: center;
   background: var(--coral);
-  color: var(--blue);
+  color: var(--white);
   transform: rotate(5deg);
 }
 
@@ -932,7 +941,7 @@ a {
 
 .find-title {
   margin: 0.9rem 0 0;
-  color: var(--blue);
+  color: var(--white);
   font-size: 5rem;
   line-height: 0.95;
   font-weight: 900;
@@ -950,7 +959,7 @@ a {
 
 .find-action p {
   margin: 0;
-  color: var(--blue);
+  color: var(--white);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.5;

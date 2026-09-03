@@ -5,6 +5,16 @@
     $user = Auth::user();
     $availableCount = $products->where('available_qty', '>', 0)->count();
     $totalProducts = $products->count();
+    $productCatalogForJs = $products->map(function ($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'price' => (float) $product->price_for_buyer,
+            'cat' => $product->category->id ?? 0,
+            'stock' => (int) ($product->available_qty ?? 0),
+            'img' => $product->getImageUrl(),
+        ];
+    })->values();
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -145,14 +155,15 @@
         }
 
         .btn-pill-white {
-            background: var(--white);
-            color: var(--blue);
+            background: rgba(255, 255, 255, 0.14);
+            color: var(--white);
+            border: 1px solid rgba(255, 255, 255, 0.34);
             box-shadow: 0 4px 14px rgba(0,0,0,0.1);
         }
 
         .btn-pill-white:hover {
             transform: translateY(-2px);
-            background: var(--soft-sky);
+            background: rgba(255, 255, 255, 0.24);
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
 
@@ -257,6 +268,7 @@
             line-height: 0.95;
             letter-spacing: -0.05em;
             margin-bottom: 24px;
+            color: var(--white);
         }
 
         .hero-title span {
@@ -325,8 +337,8 @@
             top: 40px;
             width: 120px;
             height: 120px;
-            background: var(--white);
-            color: var(--blue);
+            background: var(--coral);
+            color: var(--white);
             border-radius: 50%;
             display: flex;
             flex-direction: column;
@@ -367,7 +379,7 @@
         /* --- Ticker Banner --- */
         .ticker-banner {
             background: var(--coral);
-            color: var(--ink);
+            color: var(--white);
             overflow: hidden;
             padding: 14px 0;
             font-weight: 900;
@@ -485,75 +497,81 @@
             box-shadow: 0 4px 12px rgba(11, 79, 193, 0.25);
         }
 
-        /* --- Organic Product Cards Grid --- */
+        /* --- Product Catalog Grid --- */
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 32px;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+            gap: 22px;
         }
 
         .product-card {
             background: var(--white);
-            padding: 24px;
             display: flex;
             flex-direction: column;
             position: relative;
-            transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            min-height: 100%;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
             box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(11, 79, 193, 0.06);
+            border: 1px solid rgba(11, 79, 193, 0.1);
+            border-radius: 22px;
         }
 
-        /* Organic border shapes alternating */
-        .product-card:nth-child(4n+1) { border-radius: 8px 120px 8px 8px; }
-        .product-card:nth-child(4n+2) { border-radius: 120px 8px 8px 8px; }
-        .product-card:nth-child(4n+3) { border-radius: 8px 8px 120px 8px; }
-        .product-card:nth-child(4n+4) { border-radius: 36px 36px 8px 36px; }
-
         .product-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
             border-color: var(--blue);
         }
 
         .product-image-box {
-            height: 210px;
-            background: radial-gradient(circle at center, var(--soft-sky) 0%, #f4f8ff 100%);
-            border-radius: 20px;
+            height: 190px;
+            background: linear-gradient(180deg, #eef6ff 0%, #ffffff 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
-            margin-bottom: 20px;
+            padding: 22px 18px 12px;
             position: relative;
             overflow: hidden;
+            border-bottom: 1px solid rgba(11, 79, 193, 0.08);
         }
 
         .product-image-box img {
-            max-width: 90%;
-            max-height: 90%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             transition: transform 0.4s ease;
         }
 
         .product-card:hover .product-image-box img {
-            transform: scale(1.1) rotate(3deg);
+            transform: scale(1.05);
         }
 
         .stock-badge {
             position: absolute;
-            top: 12px;
-            left: 12px;
-            padding: 6px 12px;
+            top: 14px;
+            left: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
             border-radius: 999px;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
+            box-shadow: 0 8px 18px rgba(13, 43, 95, 0.12);
+            z-index: 2;
         }
 
-        .stock-available { background: var(--soft-sky); color: var(--blue); }
-        .stock-low { background: var(--soft-gold); color: #854d0e; }
-        .stock-out { background: var(--soft-pink); color: var(--coral); }
+        .stock-available { background: #dcfce7; color: #166534; }
+        .stock-out { background: #fee2e2; color: #b91c1c; }
+
+        .product-card-body {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            padding: 20px;
+        }
 
         .product-cat-name {
             font-size: 0.78rem;
@@ -568,14 +586,14 @@
             font-size: 1.2rem;
             font-weight: 800;
             color: var(--ink);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             line-height: 1.3;
         }
 
         .product-desc {
             font-size: 0.88rem;
             color: var(--text-muted);
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             line-height: 1.4;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -588,13 +606,16 @@
             margin-top: auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }
 
         .price-row {
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: space-between;
+            gap: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--gray-border);
         }
 
         .price-label {
@@ -605,7 +626,7 @@
         }
 
         .price-value {
-            font-size: 1.6rem;
+            font-size: 1.45rem;
             font-weight: 900;
             color: var(--blue);
         }
@@ -615,7 +636,7 @@
             align-items: center;
             justify-content: space-between;
             background: var(--gray-light);
-            border-radius: 999px;
+            border-radius: 14px;
             padding: 4px;
             border: 1px solid var(--gray-border);
         }
@@ -674,11 +695,12 @@
             top: 0;
             right: 0;
             width: 100%;
-            max-width: 480px;
+            left: 0;
+            max-width: none;
             height: 100%;
             background: var(--white);
             z-index: 1001;
-            box-shadow: -10px 0 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 70px rgba(0,0,0,0.22);
             transform: translateX(100%);
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
@@ -690,12 +712,13 @@
         }
 
         .drawer-header {
-            padding: 24px 32px;
+            padding: 22px clamp(18px, 4vw, 56px);
             background: var(--blue);
             color: var(--white);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 20px;
         }
 
         .drawer-header h3 {
@@ -724,10 +747,136 @@
         .drawer-body {
             flex: 1;
             overflow-y: auto;
-            padding: 24px 32px;
+            padding: 28px clamp(18px, 4vw, 56px);
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            background: #f7fbff;
+        }
+
+        .checkout-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .checkout-step-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            color: rgba(255,255,255,0.75);
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .checkout-step-pill.active {
+            background: var(--white);
+            color: var(--blue);
+        }
+
+        .checkout-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .checkout-main,
+        .checkout-summary,
+        .checkout-suggestions {
+            background: var(--white);
+            border: 1px solid var(--gray-border);
+            border-radius: 22px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .checkout-main {
+            padding: 24px;
+        }
+
+        .checkout-summary {
+            position: sticky;
+            top: 24px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+
+        .checkout-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .checkout-section-title h4 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--ink);
+        }
+
+        .checkout-suggestions {
+            padding: 22px;
+        }
+
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 14px;
+        }
+
+        .suggestion-card {
+            border: 1px solid var(--gray-border);
+            border-radius: 16px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 58px 1fr;
+            gap: 12px;
+            align-items: center;
+            background: #fbfdff;
+        }
+
+        .suggestion-card img {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: var(--white);
+        }
+
+        .suggestion-card strong {
+            display: block;
+            font-size: 0.86rem;
+            line-height: 1.25;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .suggestion-card span {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: var(--blue);
+            margin-bottom: 8px;
+        }
+
+        .suggestion-card button {
+            border: none;
+            background: var(--blue);
+            color: var(--white);
+            border-radius: 999px;
+            padding: 7px 10px;
+            font-size: 0.76rem;
+            font-weight: 900;
+            cursor: pointer;
         }
 
         .cart-item {
@@ -776,7 +925,7 @@
         }
 
         .drawer-footer {
-            padding: 24px 32px;
+            padding: 24px clamp(18px, 4vw, 56px);
             border-top: 2px dashed var(--gray-border);
             background: #fafcff;
             display: flex;
@@ -835,6 +984,18 @@
             display: flex;
             flex-direction: column;
             animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #paymentModal .modal-card,
+        #successReceiptModal .modal-card {
+            max-width: min(1120px, calc(100vw - 36px));
+            width: 100%;
+            border-radius: 24px;
+        }
+
+        #paymentModal .modal-body,
+        #successReceiptModal .modal-body {
+            background: #f7fbff;
         }
 
         @keyframes popIn {
@@ -1022,6 +1183,21 @@
             .hero-title { font-size: 3.4rem; }
             .page-header { padding: 14px 20px; }
             .catalog-container { padding: 24px 16px 60px; }
+            .drawer-header,
+            .modal-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .checkout-layout {
+                grid-template-columns: 1fr;
+            }
+            .checkout-summary {
+                position: static;
+            }
+            .receipt-qr-section {
+                align-items: flex-start;
+                flex-direction: column;
+            }
         }
 
         @media (max-width: 600px) {
@@ -1031,6 +1207,23 @@
             .topbar-actions { gap: 8px; }
             .buyer-logout-form .btn-pill { padding-inline: 14px; }
             .buyer-logout-form .btn-pill span { display: none; }
+            .checkout-main,
+            .checkout-summary,
+            .checkout-suggestions,
+            .modal-body {
+                padding: 18px;
+            }
+            .cart-item {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .checkout-progress {
+                gap: 6px;
+            }
+            .checkout-step-pill {
+                font-size: 0.68rem;
+                padding: 7px 9px;
+            }
         }
     </style>
 </head>
@@ -1146,13 +1339,14 @@
             </div>
         </div>
 
-        <!-- Organic Product Cards Grid -->
+        <!-- Product Cards Grid -->
         <div class="products-grid" id="productsGrid">
             @forelse($products as $product)
                 @php
                     $inStock = ($product->available_qty ?? 0) > 0;
-                    $stockClass = $product->available_qty > 10 ? 'stock-available' : ($product->available_qty > 0 ? 'stock-low' : 'stock-out');
-                    $stockText = $product->available_qty > 10 ? $product->available_qty . ' disponibles' : ($product->available_qty > 0 ? 'Solo ' . $product->available_qty . ' en stock' : 'Agotado');
+                    $stockClass = $inStock ? 'stock-available' : 'stock-out';
+                    $stockText = $inStock ? 'Stock disponible' : 'Stock no disponible';
+                    $stockIcon = $inStock ? 'ri-checkbox-circle-fill' : 'ri-close-circle-fill';
                 @endphp
                 <div class="product-card" 
                      data-id="{{ $product->id }}" 
@@ -1163,10 +1357,11 @@
                      data-img="{{ $product->getImageUrl() }}">
                     
                     <div class="product-image-box">
-                        <span class="stock-badge {{ $stockClass }}">{{ $stockText }}</span>
+                        <span class="stock-badge {{ $stockClass }}"><i class="{{ $stockIcon }}"></i>{{ $stockText }}</span>
                         <img src="{{ $product->getImageUrl() }}" alt="{{ $product->name }}" loading="lazy">
                     </div>
 
+                    <div class="product-card-body">
                     <span class="product-cat-name">{{ $product->category->name ?? 'PIL' }}</span>
                     <h3 class="product-name">{{ $product->name }}</h3>
                     <p class="product-desc">{{ $product->description ?: 'Producto PIL de alta calidad y nutrición para la familia.' }}</p>
@@ -1201,6 +1396,7 @@
                             </button>
                         @endif
                     </div>
+                    </div>
                 </div>
             @empty
                 <div style="grid-column: 1/-1; text-align: center; padding: 60px; background: var(--white); border-radius: 30px;">
@@ -1212,49 +1408,75 @@
         </div>
     </main>
 
-    <!-- Slide-Over Shopping Cart Drawer -->
+    <!-- Full-Screen Checkout Step 1 -->
     <div class="cart-backdrop" id="cartBackdrop" onclick="toggleCartDrawer()"></div>
     <div class="cart-drawer" id="cartDrawer">
         <div class="drawer-header">
-            <h3><i class="ri-shopping-cart-2-line"></i> Tu Carrito PIL</h3>
+            <div>
+                <h3><i class="ri-shopping-cart-2-line"></i> Checkout PIL</h3>
+                <div class="checkout-progress">
+                    <span class="checkout-step-pill active"><i class="ri-shopping-basket-2-fill"></i> Paso 1 Carrito</span>
+                    <span class="checkout-step-pill"><i class="ri-secure-payment-fill"></i> Paso 2 Pago</span>
+                    <span class="checkout-step-pill"><i class="ri-receipt-fill"></i> Paso 3 Recibo</span>
+                </div>
+            </div>
             <button class="drawer-close" onclick="toggleCartDrawer()"><i class="ri-close-line"></i></button>
         </div>
 
         <div class="drawer-body" id="cartItemsList">
-            <!-- Dynamic Cart Items Rendered Here -->
-        </div>
+            <div class="checkout-layout">
+                <div style="display:flex; flex-direction:column; gap:22px;">
+                    <section class="checkout-main">
+                        <div class="checkout-section-title">
+                            <h4>Productos seleccionados</h4>
+                            <button type="button" class="btn-pill btn-pill-outline" style="color: var(--ink); border-color: var(--gray-border); padding: 9px 16px;" onclick="clearCart()">Vaciar</button>
+                        </div>
+                        <div id="cartItemsPanel"></div>
+                    </section>
 
-        <div class="drawer-footer">
-            <div class="cart-summary-row">
-                <span>Subtotal productos:</span>
-                <span id="cartSubtotalText">Bs 0.00</span>
-            </div>
-            <div class="cart-summary-row">
-                <span>Costo de envío / recojo:</span>
-                <span style="color: var(--blue); font-weight: 800;">Bs 0.00 (Recojo Gratis)</span>
-            </div>
-            <div class="cart-summary-row total">
-                <span>Total a Pagar:</span>
-                <strong id="cartTotalText">Bs 0.00</strong>
-            </div>
+                    <section class="checkout-suggestions">
+                        <div class="checkout-section-title">
+                            <h4>Sugerencias para completar tu compra</h4>
+                            <span style="font-size:0.82rem; font-weight:800; color:var(--text-muted);">Basado en lo que llevas</span>
+                        </div>
+                        <div class="suggestions-grid" id="cartSuggestionsList"></div>
+                    </section>
+                </div>
 
-            <div style="display: flex; gap: 12px;">
-                <button type="button" class="btn-pill btn-pill-outline" style="color: var(--ink); border-color: var(--gray-border);" onclick="clearCart()">
-                    Vaciar
-                </button>
-                <button type="button" class="btn-pill btn-pill-coral" style="flex: 1;" onclick="openPaymentModal()">
-                    <span>Proceder al Pago</span>
-                    <i class="ri-arrow-right-line"></i>
-                </button>
+                <aside class="checkout-summary">
+                    <div class="cart-summary-row">
+                        <span>Subtotal productos:</span>
+                        <span id="cartSubtotalText">Bs 0.00</span>
+                    </div>
+                    <div class="cart-summary-row">
+                        <span>Costo de envio / recojo:</span>
+                        <span style="color: var(--blue); font-weight: 800;">Bs 0.00 (Recojo Gratis)</span>
+                    </div>
+                    <div class="cart-summary-row total">
+                        <span>Total a Pagar:</span>
+                        <strong id="cartTotalText">Bs 0.00</strong>
+                    </div>
+
+                    <button type="button" class="btn-pill btn-pill-coral" style="width: 100%;" onclick="openPaymentModal()">
+                        <span>Continuar al paso 2</span>
+                        <i class="ri-arrow-right-line"></i>
+                    </button>
+                </aside>
             </div>
         </div>
     </div>
-
     <!-- Modal Pasarela de Pago (Payment Gateway) -->
     <div class="modal-overlay" id="paymentModal">
         <div class="modal-card">
             <div class="modal-header">
-                <h3><i class="ri-secure-payment-line"></i> Pasarela de Pago PIL</h3>
+                <div>
+                    <h3><i class="ri-secure-payment-line"></i> Checkout PIL</h3>
+                    <div class="checkout-progress">
+                        <span class="checkout-step-pill"><i class="ri-shopping-basket-2-fill"></i> Paso 1 Carrito</span>
+                        <span class="checkout-step-pill active"><i class="ri-secure-payment-fill"></i> Paso 2 Pago</span>
+                        <span class="checkout-step-pill"><i class="ri-receipt-fill"></i> Paso 3 Recibo</span>
+                    </div>
+                </div>
                 <button class="drawer-close" onclick="closePaymentModal()"><i class="ri-close-line"></i></button>
             </div>
 
@@ -1353,7 +1575,7 @@
                     </div>
 
                     <div style="margin-top: 28px; display: flex; gap: 16px;">
-                        <button type="button" class="btn-pill btn-pill-outline" style="color: var(--ink); border-color: var(--gray-border);" onclick="closePaymentModal()">Cancelar</button>
+                        <button type="button" class="btn-pill btn-pill-outline" style="color: var(--ink); border-color: var(--gray-border);" onclick="closePaymentModal()">Volver al carrito</button>
                         <button type="submit" class="btn-pill btn-pill-coral" style="flex: 1;" id="submitPayBtn">
                             <i class="ri-checkbox-circle-fill"></i>
                             <span>Confirmar Pago y Generar Recibo</span>
@@ -1415,44 +1637,99 @@
 
     <!-- Printable Receipt Modal (Triggered after successful checkout) -->
     @if(session('payment_success') && session('receipt_number'))
+        @php
+            $successOrder = \App\Models\BuyerOrder::with('items')->where('receipt_number', session('receipt_number'))->first();
+        @endphp
         <div class="modal-overlay active" id="successReceiptModal">
-            <div class="modal-card" style="max-width: 580px;">
-                <div class="receipt-card">
-                    <div class="receipt-header">
-                        <i class="ri-checkbox-circle-fill" style="font-size: 3.5rem; color: var(--coral);"></i>
-                        <h2 style="font-weight: 900; margin-top: 8px;">¡Pedido Realizado con Éxito!</h2>
-                        <p style="font-size: 0.9rem; opacity: 0.9;">Conserva este recibo para recoger tu pedido en almacén</p>
-                    </div>
-                    <div class="receipt-body">
-                        <div class="receipt-qr-section">
-                            <div>
-                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--blue); text-transform: uppercase;">N° de Recibo:</span>
-                                <div style="font-size: 1.3rem; font-weight: 900; color: var(--ink);">{{ session('receipt_number') }}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Punto de recojo: Planta PIL Bolivia</div>
-                            </div>
-                            <div>
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data={{ session('receipt_number') }}" alt="QR Validation" style="border-radius: 8px; border: 2px solid var(--blue);">
-                            </div>
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div>
+                        <h3><i class="ri-checkbox-circle-fill"></i> Checkout PIL</h3>
+                        <div class="checkout-progress">
+                            <span class="checkout-step-pill"><i class="ri-shopping-basket-2-fill"></i> Paso 1 Carrito</span>
+                            <span class="checkout-step-pill"><i class="ri-secure-payment-fill"></i> Paso 2 Pago</span>
+                            <span class="checkout-step-pill active"><i class="ri-receipt-fill"></i> Paso 3 Recibo</span>
                         </div>
+                    </div>
+                    <a href="{{ route('dashboard.comprador') }}" class="drawer-close" style="text-decoration:none;"><i class="ri-close-line"></i></a>
+                </div>
+                <div class="modal-body">
+                    <div class="receipt-card">
+                        <div class="receipt-header">
+                            <i class="ri-checkbox-circle-fill" style="font-size: 3.5rem; color: var(--coral);"></i>
+                            <h2 style="font-weight: 900; margin-top: 8px;">Pedido finalizado</h2>
+                            <p style="font-size: 0.9rem; opacity: 0.9;">Conserva este recibo para recoger tu pedido en almacen</p>
+                        </div>
+                        <div class="receipt-body">
+                            <div class="receipt-qr-section">
+                                <div>
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--blue); text-transform: uppercase;">Nro. de recibo</span>
+                                    <div style="font-size: 1.3rem; font-weight: 900; color: var(--ink);">{{ session('receipt_number') }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Emitido: {{ optional($successOrder?->issued_at)->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}</div>
+                                </div>
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=96x96&data={{ session('receipt_number') }}" alt="QR Validation" style="border-radius: 10px; border: 2px solid var(--blue);">
+                            </div>
 
-                        <div style="display: flex; justify-content: space-between; gap: 12px;">
-                            <a href="{{ route('dashboard.payment.receipt', session('receipt_number')) }}" target="_blank" class="btn-pill btn-pill-white" style="flex: 1; border: 1px solid var(--blue);">
-                                <i class="ri-printer-line"></i> Ver Recibo Completo
-                            </a>
-                            <a href="{{ route('dashboard.payment.receipt.download', session('receipt_number')) }}" class="btn-pill btn-pill-coral" style="flex: 1;">
-                                <i class="ri-download-2-line"></i> Descargar PDF
-                            </a>
+                            @if($successOrder)
+                                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
+                                    <div style="background:var(--gray-light); border-radius:16px; padding:14px;">
+                                        <span style="font-size:0.72rem; font-weight:900; color:var(--text-muted); text-transform:uppercase;">Metodo</span>
+                                        <strong style="display:block; color:var(--ink);">{{ ucfirst($successOrder->payment_method) }}</strong>
+                                    </div>
+                                    <div style="background:var(--gray-light); border-radius:16px; padding:14px;">
+                                        <span style="font-size:0.72rem; font-weight:900; color:var(--text-muted); text-transform:uppercase;">Estado</span>
+                                        <strong style="display:block; color:var(--blue);">{{ $successOrder->payment_status === 'completado' ? 'Pagado' : 'Pendiente en caja' }}</strong>
+                                    </div>
+                                    <div style="background:var(--gray-light); border-radius:16px; padding:14px;">
+                                        <span style="font-size:0.72rem; font-weight:900; color:var(--text-muted); text-transform:uppercase;">Total</span>
+                                        <strong style="display:block; color:var(--blue);">Bs {{ number_format($successOrder->total, 2) }}</strong>
+                                    </div>
+                                </div>
+
+                                <table class="receipt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($successOrder->items as $item)
+                                            <tr>
+                                                <td>{{ $item->product_name }}</td>
+                                                <td>{{ $item->quantity }}</td>
+                                                <td>Bs {{ number_format($item->unit_price, 2) }}</td>
+                                                <td>Bs {{ number_format($item->quantity * $item->unit_price, 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @endif
+
+                            <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                                <a href="{{ route('dashboard.payment.receipt', session('receipt_number')) }}" target="_blank" class="btn-pill btn-pill-white" style="flex: 1; border: 1px solid var(--blue);">
+                                    <i class="ri-printer-line"></i> Ver Recibo Completo
+                                </a>
+                                <a href="{{ route('dashboard.payment.receipt.download', session('receipt_number')) }}" class="btn-pill btn-pill-coral" style="flex: 1;">
+                                    <i class="ri-download-2-line"></i> Descargar PDF
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     @endif
-
     <!-- JavaScript Logic -->
     <script>
         // Shopping Cart state saved in localStorage for seamless experience
+        @if(session('payment_success') && session('receipt_number'))
+            localStorage.removeItem('pil_cart');
+        @endif
         let cart = JSON.parse(localStorage.getItem('pil_cart') || '[]');
+        const productCatalog = @json($productCatalogForJs);
 
         document.addEventListener('DOMContentLoaded', () => {
             renderCart();
@@ -1485,8 +1762,9 @@
 
             let existing = cart.find(item => item.id === productId);
             if (existing) {
+                existing.stock = stock;
                 if (existing.qty + qtyToAdd > stock) {
-                    alert(`No puedes agregar más de ${stock} unidades (stock disponible).`);
+                    alert('No puedes agregar mas unidades de este producto por disponibilidad de stock.');
                     existing.qty = stock;
                 } else {
                     existing.qty += qtyToAdd;
@@ -1497,7 +1775,8 @@
                     name: name,
                     price: price,
                     qty: Math.min(qtyToAdd, stock),
-                    img: img
+                    img: img,
+                    stock: stock
                 });
             }
 
@@ -1513,7 +1792,7 @@
 
         // Render Cart items in drawer
         function renderCart() {
-            const listContainer = document.getElementById('cartItemsList');
+            const listContainer = document.getElementById('cartItemsPanel');
             const badgeCount = document.getElementById('cartBadgeCount');
             const subtotalText = document.getElementById('cartSubtotalText');
             const totalText = document.getElementById('cartTotalText');
@@ -1571,13 +1850,84 @@
             if (qrImageCode) {
                 qrImageCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PIL-BOLIVIA-PAGO-BS-${subtotal.toFixed(2)}`;
             }
+
+            renderCartSuggestions();
+        }
+
+        function renderCartSuggestions() {
+            const container = document.getElementById('cartSuggestionsList');
+            if (!container) return;
+
+            const cartIds = new Set(cart.map(item => Number(item.id)));
+            const cartCats = new Set(cart.map(item => {
+                const product = productCatalog.find(p => Number(p.id) === Number(item.id));
+                return product ? Number(product.cat) : null;
+            }).filter(Boolean));
+
+            const suggested = productCatalog
+                .filter(product => product.stock > 0 && !cartIds.has(Number(product.id)))
+                .sort((a, b) => {
+                    const aMatch = cartCats.has(Number(a.cat)) ? 0 : 1;
+                    const bMatch = cartCats.has(Number(b.cat)) ? 0 : 1;
+                    return aMatch - bMatch || a.name.localeCompare(b.name);
+                })
+                .slice(0, 6);
+
+            if (!suggested.length) {
+                container.innerHTML = '<p style="grid-column:1/-1; color:var(--text-muted); font-weight:700; margin:0;">No hay sugerencias disponibles por ahora.</p>';
+                return;
+            }
+
+            container.innerHTML = suggested.map(product => `
+                <article class="suggestion-card">
+                    <img src="${product.img}" alt="${product.name}">
+                    <div>
+                        <strong>${product.name}</strong>
+                        <span>Bs ${Number(product.price).toFixed(2)}</span>
+                        <button type="button" onclick="addSuggestionToCart(${product.id})"><i class="ri-add-line"></i> Agregar</button>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function addSuggestionToCart(productId) {
+            const product = productCatalog.find(item => Number(item.id) === Number(productId));
+            if (!product || product.stock <= 0) return;
+
+            const existing = cart.find(item => Number(item.id) === Number(productId));
+            if (existing) {
+                existing.stock = product.stock;
+                if (existing.qty >= product.stock) {
+                    alert('No puedes agregar mas unidades de este producto por disponibilidad de stock.');
+                    return;
+                }
+                existing.qty += 1;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: Number(product.price),
+                    qty: 1,
+                    img: product.img,
+                    stock: product.stock
+                });
+            }
+
+            saveCart();
+            renderCart();
         }
 
         function updateCartQty(index, delta) {
             if (cart[index]) {
+                const card = document.querySelector(`.product-card[data-id="${cart[index].id}"]`);
+                const stock = parseInt(cart[index].stock || (card ? card.getAttribute('data-stock') : 0)) || 0;
                 cart[index].qty += delta;
                 if (cart[index].qty <= 0) {
                     cart.splice(index, 1);
+                } else if (stock > 0 && cart[index].qty > stock) {
+                    cart[index].qty = stock;
+                    cart[index].stock = stock;
+                    alert('No puedes agregar mas unidades de este producto por disponibilidad de stock.');
                 }
                 saveCart();
                 renderCart();
@@ -1623,6 +1973,7 @@
 
         function closePaymentModal() {
             document.getElementById('paymentModal').classList.remove('active');
+            toggleCartDrawer(true);
         }
 
         function switchPayTab(method, btn) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\VendorVisit;
 use Illuminate\Http\RedirectResponse;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class VendorVisitController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $userId = $request->user()->id;
@@ -73,13 +76,15 @@ class VendorVisitController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        VendorVisit::create([
+        $visit = VendorVisit::create([
             'user_id' => $userId,
             'company_id' => $data['company_id'],
             'visit_date' => $data['visit_date'],
             'status' => 'pendiente',
             'note' => $data['note'] ?? null,
         ]);
+
+        $this->logAudit($visit, 'create', [], $visit->only(['user_id','company_id','visit_date','status','note']), $visit->note ?: 'Visita agendada por vendedor');
 
         return back()->with('status', 'Visita agendada.');
     }
@@ -99,7 +104,10 @@ class VendorVisitController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $old = $visit->only(['company_id','visit_date','status','note']);
         $visit->update($data);
+
+        $this->logAudit($visit, 'update', $old, $visit->only(['company_id','visit_date','status','note']), $visit->note ?: 'Visita actualizada por vendedor');
 
         return back()->with('status', 'Visita actualizada.');
     }
@@ -107,7 +115,10 @@ class VendorVisitController extends Controller
     public function destroy(Request $request, VendorVisit $visit): RedirectResponse
     {
         $this->authorizeVisit($request, $visit);
+        $old = $visit->only(['user_id','company_id','visit_date','status','note']);
         $visit->delete();
+
+        $this->logAudit($visit, 'delete', $old, [], 'Visita eliminada por vendedor');
 
         return back()->with('status', 'Visita eliminada.');
     }

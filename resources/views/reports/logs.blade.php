@@ -34,7 +34,7 @@
         <p class="chart-title">Distribución por acciones</p>
         @foreach($byAction->take(6) as $action => $count)
             <div class="bar-row">
-                <span class="bar-label">{{ ucfirst($action) }}</span>
+                <span class="bar-label">{{ ucfirst(str_replace('_', ' ', $action)) }}</span>
                 <div class="bar-track"><div class="bar-fill" style="width: {{ ($count / max($maxAction,1))*100 }}%;"></div></div>
                 <span class="bar-value">{{ $count }}</span>
             </div>
@@ -56,8 +56,8 @@
                 <tr>
                     <td>{{ optional($log->created_at)->format('d/m/Y H:i') }}</td>
                     <td>{{ $log->user->name ?? 'Sistema' }}</td>
-                    <td>{{ class_basename($log->entity_type) }} #{{ $log->entity_id }}</td>
-                    <td>{{ ucfirst($log->action) }}</td>
+                    <td>{{ $log->entity_label ?? (class_basename($log->entity_type) . ' #' . $log->entity_id) }}</td>
+                    <td>{{ $log->action_label ?? ucfirst(str_replace('_', ' ', $log->action)) }}</td>
                     <td>{{ $log->description ?? '-' }}</td>
                 </tr>
             @endforeach

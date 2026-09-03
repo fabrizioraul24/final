@@ -160,6 +160,12 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
             </div>
 
             <div className="fit-form-field span-2">
+                <label htmlFor={product ? 'edit_audit_reason' : 'audit_reason'}>Motivo para bitacora</label>
+                <textarea id={product ? 'edit_audit_reason' : 'audit_reason'} name="audit_reason" rows="3" placeholder="Ej. Descuento temporal autorizado para un cliente o actualizacion de lista de precios" defaultValue={old?.audit_reason ?? ''} />
+                <FieldError errors={errors} name="audit_reason" />
+            </div>
+
+            <div className="fit-form-field span-2">
                 <label htmlFor={product ? 'edit_is_active' : 'is_active'}>Estado *</label>
                 <select id={product ? 'edit_is_active' : 'is_active'} name="is_active" defaultValue={String(product ? (product.is_active ? 1 : 0) : (old?.is_active ?? 1))} required>
                     <option value="1">Activo</option>

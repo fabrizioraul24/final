@@ -8,8 +8,17 @@ const entityLabels = {
     Product: 'Productos',
     Category: 'Categorias',
     Transfer: 'Traspasos',
+    TransferItem: 'Items de traspaso',
     Sale: 'Ventas',
     Quotation: 'Cotizaciones',
+    ProductLot: 'Lotes',
+    ProductLotMovement: 'Movimientos de lote',
+    DamageReport: 'Danos',
+    BuyerOrder: 'Pedidos comprador',
+    VendorVisit: 'Visitas vendedor',
+    Backup: 'Backups',
+    BackupSchedule: 'Programacion de backups',
+    TransferRequest: 'Solicitudes IA',
     auth: 'Autenticacion',
 };
 
@@ -25,23 +34,127 @@ const actionLabels = {
     logout: 'Cierre de sesion',
     register: 'Registro',
     register_failed: 'Registro fallido',
+    delete: 'Eliminacion',
+    status_update: 'Cambio de estado',
+    payment: 'Pago',
+    stock_in: 'Ingreso de stock',
+    stock_adjustment: 'Ajuste de stock',
+    receive_item: 'Recepcion de item',
+    damage: 'Registro de dano',
+    backup_create: 'Backup generado',
+    schedule_update: 'Programacion actualizada',
+    approve: 'Aprobacion',
+    reject: 'Rechazo',
 };
 
 const entityName = (value = '') => entityLabels[value.split('\\').pop()] || value.split('\\').pop();
 const actionName = (value = '') => actionLabels[value.toLowerCase()] || value;
+
+const fieldLabels = {
+    id: 'ID',
+    sku: 'Codigo SKU',
+    name: 'Nombre',
+    description: 'Descripcion',
+    category_id: 'Categoria',
+    is_active: 'Estado',
+    min_quantity: 'Stock minimo',
+    max_quantity: 'Stock maximo',
+    total_stock: 'Stock total',
+    suggested_price_public: 'Precio publico',
+    price_institutional: 'Precio institucional',
+    sale_type: 'Tipo de venta',
+    status: 'Estado',
+    payment_method: 'Metodo de pago',
+    payment_status: 'Estado de pago',
+    total_amount: 'Total',
+    subtotal: 'Subtotal',
+    shipping: 'Envio',
+    unit_price: 'Precio unitario',
+    catalog_public_price: 'Precio publico de catalogo',
+    catalog_institutional_price: 'Precio institucional de catalogo',
+    quantity: 'Cantidad',
+    items: 'Productos',
+    product_id: 'Producto ID',
+    product: 'Producto',
+    buyer: 'Comprador',
+    customer: 'Cliente',
+    seller: 'Vendedor',
+    warehouse: 'Almacen',
+    warehouse_id: 'Almacen ID',
+    receipt_number: 'Numero de recibo',
+    lote_code: 'Codigo de lote',
+    expires_at: 'Fecha de vencimiento',
+    damaged_qty: 'Cantidad danada',
+    remaining_quantity: 'Cantidad restante',
+    comment: 'Comentario',
+    notes: 'Notas',
+    valid_until: 'Valido hasta',
+    requested_qty: 'Cantidad solicitada',
+    received_qty: 'Cantidad recibida',
+    received_by: 'Recibido por',
+    received_date: 'Fecha de recepcion',
+    from_warehouse: 'Almacen origen',
+    to_warehouse: 'Almacen destino',
+    from_warehouse_id: 'Almacen origen ID',
+    to_warehouse_id: 'Almacen destino ID',
+    file_name: 'Archivo',
+    disk: 'Disco',
+    size: 'Tamano',
+    triggered_by: 'Ejecucion',
+    created_by: 'Creado por',
+    frequency_days: 'Frecuencia en dias',
+    run_time: 'Hora de ejecucion',
+    next_run_at: 'Proxima ejecucion',
+    last_run_at: 'Ultima ejecucion',
+};
+
+const fieldName = (key = '') => fieldLabels[key] || key.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const formatValue = (value) => {
     if (value === null || value === undefined || value === '') return '-';
-    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === 'boolean') return value ? 'Activo / Si' : 'Inactivo / No';
     return String(value);
 };
 
+function NestedValue({ value }) {
+    if (Array.isArray(value)) {
+        return (
+            <div className="fit-log-nested-list">
+                {value.length ? value.map((item, index) => (
+                    <div className="fit-log-nested-card" key={index}>
+                        {typeof item === 'object' && item !== null
+                            ? Object.entries(item).map(([key, nestedValue]) => (
+                                <span key={key}><em>{fieldName(key)}:</em> {formatValue(nestedValue)}</span>
+                            ))
+                            : <span>{formatValue(item)}</span>}
+                    </div>
+                )) : <span>-</span>}
+            </div>
+        );
+    }
+
+    if (typeof value === 'object' && value !== null) {
+        return (
+            <div className="fit-log-nested-list">
+                <div className="fit-log-nested-card">
+                    {Object.entries(value).map(([key, nestedValue]) => (
+                        <span key={key}><em>{fieldName(key)}:</em> {formatValue(nestedValue)}</span>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return <>{formatValue(value)}</>;
+}
+
 function ActionBadge({ action }) {
     const normalized = String(action || '').toLowerCase();
-    const tone = normalized.includes('fallido') || normalized.includes('desactivacion')
+    const tone = normalized.includes('fallido') || normalized.includes('desactivacion') || normalized.includes('rechazo') || normalized.includes('eliminacion')
         ? 'danger'
-        : normalized.includes('creacion') || normalized.includes('registro') || normalized.includes('activacion')
+        : normalized.includes('creacion') || normalized.includes('registro') || normalized.includes('activacion') || normalized.includes('pago') || normalized.includes('ingreso')
             ? 'success'
-            : normalized.includes('sesion')
+            : normalized.includes('sesion') || normalized.includes('ajuste') || normalized.includes('cambio')
                 ? 'warning'
                 : 'default';
 
@@ -57,8 +170,8 @@ function LogDiffColumn({ title, values, emptyText }) {
             <div className="fit-log-change-list">
                 {entries.length ? entries.map(([key, value]) => (
                     <div className="fit-log-change-item" key={key}>
-                        <span>{key}</span>
-                        <strong>{formatValue(value)}</strong>
+                        <span>{fieldName(key)}</span>
+                        <strong><NestedValue value={value} /></strong>
                     </div>
                 )) : <p>{emptyText}</p>}
             </div>
@@ -108,9 +221,9 @@ export default function AdminLogsPage({ layout, data, flash, csrfToken, logoutAc
 
     const metricCards = [
         { key: 'all', label: 'Bitacora total', value: data.stats.total, hint: 'Bitacora completa', icon: 'ri-file-list-3-line', tone: 'indigo' },
-        { key: 'today', label: 'Actividad Hoy', value: data.stats.today, hint: 'Ultimas acciones', icon: 'ri-pulse-line', tone: 'amber' },
-        { key: 'users', label: 'Usuarios', value: data.stats.users, hint: 'Auditoria', icon: 'ri-user-settings-line', tone: 'rose' },
-        { key: 'transfers', label: 'Traspasos', value: data.stats.transfers, hint: 'Movimientos', icon: 'ri-arrow-left-right-line', tone: 'green' },
+        { key: 'created', label: 'Creados', value: data.stats.created, hint: 'Registros nuevos', icon: 'ri-add-circle-line', tone: 'green' },
+        { key: 'updated', label: 'Editados', value: data.stats.updated, hint: 'Cambios realizados', icon: 'ri-edit-2-line', tone: 'amber' },
+        { key: 'deleted', label: 'Borrados o desactivados', value: data.stats.deleted, hint: 'Bajas y danos', icon: 'ri-delete-bin-6-line', tone: 'rose' },
     ];
 
     return (
@@ -249,7 +362,7 @@ export default function AdminLogsPage({ layout, data, flash, csrfToken, logoutAc
                     <Pagination pagination={data.logs} />
                 </section>
 
-                <Modal open={!!detailLog} title="Detalle de Cambio" onClose={() => setDetailLog(null)} wide contentClassName="fit-modal-content">
+                <Modal open={!!detailLog} title="Detalle de Cambio" onClose={() => setDetailLog(null)} wide contentClassName="fit-modal-content fit-log-modal">
                     {detailLog && (
                         <div className="fit-transfer-detail fit-log-detail">
                             <div className="fit-transfer-summary fit-log-summary">

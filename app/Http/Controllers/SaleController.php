@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\City;
 use App\Models\Company;
 use App\Models\Customer;
@@ -23,6 +24,8 @@ use Illuminate\View\View;
 
 class SaleController extends Controller
 {
+    use LogsAudit;
+
     private const PAYMENT_METHODS = ['efectivo', 'qr', 'tarjeta_debito'];
     private const STATUS_LABELS = [
         'sin_entregar' => 'Sin entregar',
@@ -210,6 +213,7 @@ class SaleController extends Controller
             'payment_method' => ['required', Rule::in(self::PAYMENT_METHODS)],
             'amount_received' => ['nullable', 'numeric', 'min:0'],
             'change_amount' => ['nullable', 'numeric', 'min:0'],
+            'audit_reason' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
@@ -247,7 +251,9 @@ class SaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($data, $request) {
+        $sale = null;
+
+        DB::transaction(function () use ($data, $request, &$sale) {
 
             $total = collect($data['items'])->reduce(function ($carry, $item) {
                 return $carry + ($item['quantity'] * $item['unit_price']);
@@ -297,6 +303,12 @@ class SaleController extends Controller
                 );
             }
         });
+
+        if ($sale) {
+            $sale->load(['items.product', 'company', 'customer.user', 'warehouse', 'seller']);
+            $reason = trim((string) ($data['audit_reason'] ?? ''));
+            $this->logAudit($sale, 'create', [], $this->saleAuditPayload($sale), $reason ?: 'Venta registrada. La bitacora conserva los precios unitarios usados en la venta.');
+        }
 
         $route = $request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.sales' : 'dashboard.sales';
         return redirect()->route($route)->with('status', 'Venta registrada correctamente.');
@@ -356,7 +368,10 @@ class SaleController extends Controller
             'status' => ['required', Rule::in(Sale::STATUSES)],
         ]);
 
+        $old = $sale->only(['status']);
         $sale->update(['status' => $data['status']]);
+
+        $this->logAudit($sale, 'status_update', $old, $sale->only(['status']), 'Cambio de estado de venta');
 
         return back()->with('status', 'Venta actualizada correctamente.');
     }
@@ -547,6 +562,29 @@ class SaleController extends Controller
             'labels' => $labels,
             'totals' => $totals,
             'counts' => $counts,
+        ];
+    }
+
+    private function saleAuditPayload(Sale $sale): array
+    {
+        return [
+            'sale_type' => $sale->sale_type,
+            'status' => $sale->status,
+            'payment_method' => $sale->payment_method,
+            'total_amount' => (float) $sale->total_amount,
+            'warehouse' => $sale->warehouse?->name,
+            'seller' => $sale->seller?->name,
+            'customer' => $sale->company?->name ?? $sale->customer?->user?->name,
+            'items' => $sale->items->map(fn (SaleItem $item) => [
+                'product_id' => $item->product_id,
+                'product' => $item->product?->name,
+                'sku' => $item->product?->sku,
+                'quantity' => (int) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'catalog_public_price' => $item->product ? (float) $item->product->suggested_price_public : null,
+                'catalog_institutional_price' => $item->product ? (float) $item->product->price_institutional : null,
+                'subtotal' => (float) $item->subtotal,
+            ])->values()->all(),
         ];
     }
 }

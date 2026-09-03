@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\ProductLot;
 use App\Models\Sale;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +13,8 @@ use Illuminate\View\View;
 
 class AlmacenSaleController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $status = $request->query('status');
@@ -56,9 +59,13 @@ class AlmacenSaleController extends Controller
             'status' => ['required', Rule::in(Sale::STATUSES)],
         ]);
 
+        $old = $sale->only(['status']);
+
         $sale->update([
             'status' => $data['status'],
         ]);
+
+        $this->logAudit($sale, 'status_update', $old, $sale->only(['status']), 'Cambio de estado de pedido por bodega');
 
         return back()->with('status', 'Estado de pedido actualizado.');
     }

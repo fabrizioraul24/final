@@ -68,9 +68,11 @@ class ProductController extends Controller
         $data['image_path'] = $this->handleImageUpload($request);
         $product = Product::create($data);
 
+        $reason = trim((string) $request->input('audit_reason', ''));
+
         $this->logAudit($product, 'create', [], $product->only([
             'name','sku','category_id','suggested_price_public','price_institutional','is_active','min_quantity','max_quantity'
-        ]) + ['total_stock' => $this->totalStock($product)], 'Creacion de producto');
+        ]) + ['total_stock' => $this->totalStock($product)], $reason ?: 'Creacion de producto');
 
         return redirect()
             ->route('dashboard.products')
@@ -90,7 +92,12 @@ class ProductController extends Controller
         $new = $product->only(['name','sku','category_id','suggested_price_public','price_institutional','is_active','min_quantity','max_quantity']);
         $new['total_stock'] = $this->totalStock($product);
 
-        $this->logAudit($product, 'update', $old, $new, 'Actualizacion de producto');
+        $reason = trim((string) $request->input('audit_reason', ''));
+        $priceChanged = (float) $old['suggested_price_public'] !== (float) $new['suggested_price_public']
+            || (float) $old['price_institutional'] !== (float) $new['price_institutional'];
+        $description = $reason ?: ($priceChanged ? 'Cambio de precio de producto' : 'Actualizacion de producto');
+
+        $this->logAudit($product, 'update', $old, $new, $description);
 
         return redirect()
             ->route('dashboard.products')
@@ -181,10 +188,12 @@ class ProductController extends Controller
             'max_quantity' => ['required', 'integer', 'min:0', 'gte:min_quantity'],
             'is_active' => ['required', 'boolean'],
             'image' => [$imageRequired ? 'required' : 'nullable', 'image', 'max:5120'],
+            'audit_reason' => ['nullable', 'string', 'max:500'],
         ]);
 
         $validated['is_active'] = (bool) $validated['is_active'];
         unset($validated['image']);
+        unset($validated['audit_reason']);
 
         return $validated;
     }

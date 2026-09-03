@@ -20,8 +20,8 @@
 
             <header class="login-brand">
                 <a href="/" class="login-logo" aria-label="PIL Bolivia">
-                    <img src="{{ asset('pil.svg') }}" alt="PIL Bolivia">
-                    <span>BOLIVIA</span>
+                    <span class="login-logo-mark">PIL</span>
+                    <span class="login-logo-country">BOLIVIA</span>
                 </a>
             </header>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\ProductLot;
 use App\Models\Transfer;
 use App\Models\TransferItem;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class AlmacenTransferController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $status = $request->query('status');
@@ -84,6 +87,8 @@ class AlmacenTransferController extends Controller
 
         $transfer = $item->transfer()->first();
         $this->ensureTargetTransfer($transfer);
+        $item->loadMissing('product');
+        $old = $item->only(['received_qty', 'damaged_qty', 'lot_code', 'receiving_expires_at', 'receiving_note']);
 
         try {
             DB::transaction(function () use ($item, $data, $transfer, $request) {
@@ -134,6 +139,19 @@ class AlmacenTransferController extends Controller
                 ->withInput();
         }
 
+        $item->refresh()->loadMissing('product');
+        $this->logAudit($item, 'receive_item', $old, [
+            'transfer_id' => $item->transfer_id,
+            'product_id' => $item->product_id,
+            'product' => $item->product?->name,
+            'requested_qty' => (int) $item->requested_qty,
+            'received_qty' => (int) ($item->received_qty ?? 0),
+            'damaged_qty' => (int) ($item->damaged_qty ?? 0),
+            'lot_code' => $item->lot_code,
+            'receiving_expires_at' => optional($item->receiving_expires_at)->format('Y-m-d'),
+            'receiving_note' => $item->receiving_note,
+        ], $item->receiving_note ?: 'Detalle de traspaso recibido/ajustado por bodega');
+
         return back()->with('status', 'Detalle de traspaso actualizado.');
     }
 
@@ -145,6 +163,7 @@ class AlmacenTransferController extends Controller
             'status' => ['required', Rule::in(Transfer::STATUSES)],
             'notes' => ['nullable', 'string'],
         ]);
+        $old = $transfer->only(['status', 'notes', 'received_by', 'received_date']);
 
         try {
             DB::transaction(function () use ($transfer, $data, $request) {
@@ -165,6 +184,9 @@ class AlmacenTransferController extends Controller
                 ->with('modal_error', $e->getMessage())
                 ->withInput();
         }
+
+        $transfer->refresh();
+        $this->logAudit($transfer, 'status_update', $old, $transfer->only(['status', 'notes', 'received_by', 'received_date']), $data['notes'] ?? 'Cambio de estado de traspaso por bodega');
 
         return back()->with('status', 'Estado del traspaso actualizado.');
     }

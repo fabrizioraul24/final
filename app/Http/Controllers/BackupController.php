@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\Backup;
 use App\Models\BackupSchedule;
 use App\Services\BackupService;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class BackupController extends Controller
 {
+    use LogsAudit;
+
     public function index(BackupService $service): View
     {
         $schedule = $service->ensureDefaultSchedule();
@@ -78,7 +81,13 @@ class BackupController extends Controller
     public function store(Request $request, BackupService $service): RedirectResponse
     {
         try {
-            $service->create($request->user()?->id);
+            $backup = $service->create($request->user()?->id);
+
+            if ($backup instanceof Backup) {
+                $this->logAudit($backup, 'backup_create', [], $backup->only([
+                    'file_name','disk','size','status','message','created_by','triggered_by'
+                ]), 'Backup manual generado');
+            }
 
             return redirect()
                 ->route('dashboard.backups')
@@ -105,9 +114,12 @@ class BackupController extends Controller
 
     public function destroy(Backup $backup): RedirectResponse
     {
+        $old = $backup->only(['file_name','disk','size','status','message','created_by','triggered_by']);
         $path = 'backups/' . $backup->file_name;
         Storage::disk($backup->disk)->delete($path);
         $backup->delete();
+
+        $this->logAudit(Backup::class, 'delete', $old, [], 'Backup eliminado del historial');
 
         return redirect()
             ->route('dashboard.backups')
@@ -124,6 +136,7 @@ class BackupController extends Controller
         ]);
 
         $schedule = BackupSchedule::query()->findOrFail($data['schedule_id']);
+        $old = $schedule->only(['name','frequency_days','run_time','is_active','next_run_at','last_run_at']);
         $schedule->fill([
             'frequency_days' => $data['frequency_days'],
             'run_time' => $data['run_time'],
@@ -135,6 +148,8 @@ class BackupController extends Controller
             : null;
 
         $schedule->save();
+
+        $this->logAudit($schedule, 'schedule_update', $old, $schedule->only(['name','frequency_days','run_time','is_active','next_run_at','last_run_at']), 'Programacion de backups actualizada');
 
         return redirect()
             ->route('dashboard.backups')

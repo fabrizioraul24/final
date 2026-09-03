@@ -70,7 +70,6 @@
 
     $vendorShellProps = [
         'sidebar' => [
-            'logoUrl' => asset('storage/images/logo.png'),
             'title' => 'PIL Bolivia',
             'subtitle' => 'Panel Vendedor',
             'items' => $vendorNavItems,

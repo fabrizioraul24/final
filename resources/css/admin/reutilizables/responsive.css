@@ -112,6 +112,7 @@
     }
 
     .fit-profile-name,
+    .fit-profile-meta,
     .fit-icon-button:not(.fit-mobile-menu):not(.fit-bell) {
         display: none;
     }

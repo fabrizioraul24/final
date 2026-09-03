@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\DamageReport;
 use App\Models\Product;
 use App\Models\ProductLot;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 
 class AlmacenDamageController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -129,11 +132,21 @@ class AlmacenDamageController extends Controller
             return back()->withErrors(['damaged_qty' => 'El lote solo tiene ' . $lot->quantity . ' unidades disponibles.'])->withInput();
         }
 
-        DB::transaction(function () use ($data, $lot, $request) {
+        $oldLot = [
+            'product_id' => $lot->product_id,
+            'product' => $lot->product?->name,
+            'warehouse_id' => $lot->warehouse_id,
+            'warehouse' => $lot->warehouse?->name,
+            'lote_code' => $lot->lote_code,
+            'quantity' => (int) $lot->quantity,
+        ];
+        $report = null;
+
+        DB::transaction(function () use ($data, $lot, $request, &$report) {
             $lot->quantity -= $data['damaged_qty'];
             $lot->save();
 
-            DamageReport::create([
+            $report = DamageReport::create([
                 'product_lot_id' => $lot->id,
                 'product_id' => $lot->product_id,
                 'warehouse_id' => $lot->warehouse_id,
@@ -150,6 +163,21 @@ class AlmacenDamageController extends Controller
                 'note' => $data['comment'] ?? 'Ajuste por daño',
             ]);
         });
+
+        if ($report) {
+            $lot->refresh()->load(['product', 'warehouse']);
+            $this->logAudit($report, 'damage', $oldLot, [
+                'product_lot_id' => $lot->id,
+                'product_id' => $lot->product_id,
+                'product' => $lot->product?->name,
+                'warehouse_id' => $lot->warehouse_id,
+                'warehouse' => $lot->warehouse?->name,
+                'lote_code' => $lot->lote_code,
+                'damaged_qty' => (int) $data['damaged_qty'],
+                'remaining_quantity' => (int) $lot->quantity,
+                'comment' => $data['comment'] ?? null,
+            ], $data['comment'] ?? 'Registro de producto danado y ajuste de stock');
+        }
 
         return redirect()
             ->route('dashboard.almacen.damages.create')

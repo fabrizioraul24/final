@@ -28,7 +28,7 @@
             <div class="fit-sidebar-main">
                 <div class="fit-sidebar-brand">
                     <div class="fit-sidebar-logo">
-                        <img src="{{ asset('storage/images/logo.png') }}" alt="Pil Andina">
+                        <span>PIL</span>
                     </div>
                     <div class="fit-sidebar-brand-copy">
                         <span class="fit-sidebar-title">PIL Bolivia</span>
@@ -120,9 +120,12 @@
                         <i class="ri-sun-line" id="themeToggleIcon"></i>
                     </button>
                     <div class="fit-profile">
-                        <button type="button" class="fit-profile-button" id="profileToggle">
-                            <span class="fit-profile-avatar">{{ $adminInitials ?: 'AP' }}</span>
-                            <span class="fit-profile-name">{{ Auth::user()->name ?? 'Admin Pil' }}</span>
+                        <button type="button" class="fit-profile-button admin-profile-button" id="profileToggle">
+                            <span class="fit-profile-avatar admin-profile-avatar">{{ $adminInitials ?: 'AP' }}</span>
+                            <span class="fit-profile-meta">
+                                <span class="fit-profile-name">{{ Auth::user()->name ?? 'Admin Pil' }}</span>
+                                <small>{{ optional(Auth::user()->role)->name ?? 'Administrador' }}</small>
+                            </span>
                             <i class="ri-arrow-down-s-line"></i>
                         </button>
                         <div class="fit-profile-menu" id="profileMenu" hidden>

@@ -398,6 +398,11 @@ export default function AdminSalesPage({ layout, data, flash, errors, old, csrfT
                                 ))}
                             </div>
                             <FieldError errors={errors} name="items" />
+                            <div className="fit-form-field span-2">
+                                <label htmlFor="audit_reason">Motivo para bitacora</label>
+                                <textarea id="audit_reason" name="audit_reason" rows="3" placeholder="Ej. Precio especial autorizado para este cliente" defaultValue={old?.audit_reason || ''} />
+                                <FieldError errors={errors} name="audit_reason" />
+                            </div>
                             <div className="fit-sale-total">
                                 <span>Total estimado</span>
                                 <strong>Bs {total.toFixed(2)}</strong>

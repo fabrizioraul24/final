@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\City;
 use App\Services\ReportService;
@@ -12,6 +13,8 @@ use Illuminate\View\View;
 
 class VendorCompanyController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $search = $request->input('search');
@@ -54,7 +57,11 @@ class VendorCompanyController extends Controller
         $data = $this->validatePayload($request);
         $data['created_by'] = $request->user()?->id ?? auth()->id();
 
-        Company::create($data);
+        $company = Company::create($data);
+
+        $this->logAudit($company, 'create', [], $company->only([
+            'name','nit','company_type','email','phone','city','created_by'
+        ]), 'Cliente registrado por vendedor');
 
         return redirect()
             ->route('dashboard.vendedor.companies')
@@ -64,7 +71,10 @@ class VendorCompanyController extends Controller
     public function update(Request $request, Company $company): RedirectResponse
     {
         $data = $this->validatePayload($request, $company->id);
+        $old = $company->only(['name','nit','company_type','email','phone','city','address','owner_first_name','owner_last_name_paterno','owner_last_name_materno']);
         $company->update($data);
+
+        $this->logAudit($company, 'update', $old, $company->only(['name','nit','company_type','email','phone','city','address','owner_first_name','owner_last_name_paterno','owner_last_name_materno']), 'Cliente actualizado por vendedor');
 
         return redirect()
             ->route('dashboard.vendedor.companies')
@@ -73,7 +83,10 @@ class VendorCompanyController extends Controller
 
     public function destroy(Company $company): RedirectResponse
     {
+        $old = $company->only(['name','nit','company_type','email','phone','city']);
         $company->delete();
+
+        $this->logAudit($company, 'deactivate', $old, [], 'Cliente desactivado por vendedor');
 
         return redirect()
             ->route('dashboard.vendedor.companies')
@@ -84,6 +97,8 @@ class VendorCompanyController extends Controller
     {
         $company = Company::withTrashed()->findOrFail($companyId);
         $company->restore();
+
+        $this->logAudit($company, 'restore', [], $company->only(['name','nit','company_type','email','phone','city']), 'Cliente reactivado por vendedor');
 
         return redirect()
             ->route('dashboard.vendedor.companies')

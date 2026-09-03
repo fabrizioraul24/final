@@ -117,13 +117,8 @@ class TransferController extends Controller
             return $transfer;
         });
 
-        $this->logAudit($transfer, 'create', [], [
-            'from_warehouse_id' => $transfer->from_warehouse_id,
-            'to_warehouse_id' => $transfer->to_warehouse_id,
-            'status' => $transfer->status,
-            'expected_date' => $transfer->expected_date,
-            'items_count' => $transfer->items()->count(),
-        ], 'Creacion de traspaso');
+        $transfer->load(['fromWarehouse', 'toWarehouse', 'items.product']);
+        $this->logAudit($transfer, 'create', [], $this->transferAuditPayload($transfer), $transfer->notes ?: 'Creacion de traspaso');
 
         return redirect()
             ->route('dashboard.transfers')
@@ -248,6 +243,9 @@ class TransferController extends Controller
                     ]);
 
                     $request->update(['transfer_id' => $transfer->id]);
+
+                    $transfer->load(['fromWarehouse', 'toWarehouse', 'items.product']);
+                    $this->logAudit($transfer, 'create', [], $this->transferAuditPayload($transfer), 'Traspaso creado automaticamente desde solicitud aprobada del agente');
                 });
             });
     }
@@ -332,6 +330,30 @@ class TransferController extends Controller
                 'reason' => $agentRequest->reason,
             ] : null,
             'report_url' => route('dashboard.transfers.report.single', $transfer),
+        ];
+    }
+
+    private function transferAuditPayload(Transfer $transfer): array
+    {
+        return [
+            'from_warehouse_id' => $transfer->from_warehouse_id,
+            'from_warehouse' => $transfer->fromWarehouse?->name,
+            'to_warehouse_id' => $transfer->to_warehouse_id,
+            'to_warehouse' => $transfer->toWarehouse?->name,
+            'requested_by' => $transfer->requested_by,
+            'approved_by' => $transfer->approved_by,
+            'status' => $transfer->status,
+            'expected_date' => optional($transfer->expected_date)->format('Y-m-d'),
+            'notes' => $transfer->notes,
+            'items' => $transfer->items->map(fn (TransferItem $item) => [
+                'product_id' => $item->product_id,
+                'product' => $item->product?->name,
+                'sku' => $item->product?->sku,
+                'requested_qty' => (int) $item->requested_qty,
+                'received_qty' => (int) ($item->received_qty ?? 0),
+                'damaged_qty' => (int) ($item->damaged_qty ?? 0),
+                'notes' => $item->notes,
+            ])->values()->all(),
         ];
     }
 }

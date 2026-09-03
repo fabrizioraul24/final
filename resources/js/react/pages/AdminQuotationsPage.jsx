@@ -364,6 +364,11 @@ export default function AdminQuotationsPage({ layout, data, flash, errors, old, 
                                 ))}
                             </div>
                             <FieldError errors={errors} name="items" />
+                            <div className="fit-form-field span-2">
+                                <label htmlFor="audit_reason">Motivo para bitacora</label>
+                                <textarea id="audit_reason" name="audit_reason" rows="3" placeholder="Ej. Precio negociado o promocion temporal autorizada" defaultValue={old?.audit_reason || ''} />
+                                <FieldError errors={errors} name="audit_reason" />
+                            </div>
                             <div className="fit-sale-total">
                                 <span>Total estimado</span>
                                 <strong>Bs {totalAmount.toFixed(2)}</strong>

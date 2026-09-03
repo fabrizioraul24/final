@@ -182,6 +182,11 @@
                 <span>Almacen</span>
                 <strong>{{ $laPazWarehouse?->code ?? 'N/D' }}</strong>
             </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="audit_reason">Motivo para bitacora</label>
+                <textarea id="audit_reason" name="audit_reason" rows="3" placeholder="Ej. Precio especial autorizado para este cliente">{{ old('audit_reason') }}</textarea>
+                @error('audit_reason')<small style="color:#f87171">{{ $message }}</small>@enderror
+            </div>
             <div class="vendor-sale-summary-actions">
                 <button type="submit" class="fit-primary-button">
                     <i class="ri-save-line"></i>

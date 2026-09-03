@@ -14,7 +14,7 @@ function Sidebar({ logoUrl, title = 'PIL Bolivia', subtitle = 'Panel Admin', ite
                 <div className="fit-sidebar-main">
                     <div className="fit-sidebar-brand">
                         <div className="fit-sidebar-logo">
-                            {logoUrl ? <img src={logoUrl} alt="PIL Bolivia" /> : <span>P</span>}
+                            <span>PIL</span>
                         </div>
                         <div className="fit-sidebar-brand-copy">
                             <span className="fit-sidebar-title">{title}</span>

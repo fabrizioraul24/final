@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Product;
@@ -18,6 +19,8 @@ use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
+    use LogsAudit;
+
     public function index(Request $request): View
     {
         $saleType = $request->input('sale_type');
@@ -154,6 +157,7 @@ class QuotationController extends Controller
             'valid_until' => ['required', 'date'],
             'status' => ['required', Rule::in(Quotation::STATUSES)],
             'notes' => ['nullable', 'string'],
+            'audit_reason' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
@@ -211,6 +215,12 @@ class QuotationController extends Controller
             }
         });
 
+        if ($quotation) {
+            $quotation->load(['items.product', 'company', 'customer.user', 'seller']);
+            $reason = trim((string) ($data['audit_reason'] ?? ''));
+            $this->logAudit($quotation, 'create', [], $this->quotationAuditPayload($quotation), $reason ?: 'Cotizacion registrada con precios unitarios auditados.');
+        }
+
         $route = $request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.quotations' : 'dashboard.quotations';
 
         return redirect()
@@ -260,5 +270,28 @@ class QuotationController extends Controller
             'generatedAt' => now(),
             'quotation' => $quotation->load(['items.product', 'company', 'customer.user', 'seller']),
         ], 'cotizacion-' . $quotation->id . '.pdf');
+    }
+
+    private function quotationAuditPayload(Quotation $quotation): array
+    {
+        return [
+            'sale_type' => $quotation->sale_type,
+            'status' => $quotation->status,
+            'valid_until' => optional($quotation->valid_until)->format('Y-m-d'),
+            'total_amount' => (float) $quotation->total_amount,
+            'seller' => $quotation->seller?->name,
+            'customer' => $quotation->company?->name ?? $quotation->customer?->user?->name,
+            'notes' => $quotation->notes,
+            'items' => $quotation->items->map(fn (QuotationItem $item) => [
+                'product_id' => $item->product_id,
+                'product' => $item->product?->name,
+                'sku' => $item->product?->sku,
+                'quantity' => (int) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'catalog_public_price' => $item->product ? (float) $item->product->suggested_price_public : null,
+                'catalog_institutional_price' => $item->product ? (float) $item->product->price_institutional : null,
+                'subtotal' => (float) $item->subtotal,
+            ])->values()->all(),
+        ];
     }
 }

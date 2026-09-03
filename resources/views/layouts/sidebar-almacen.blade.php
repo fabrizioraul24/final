@@ -28,11 +28,10 @@
             <div class="fit-sidebar-main">
                 <div class="fit-sidebar-brand">
                     <div class="fit-sidebar-logo">
-                        <img src="{{ asset('storage/images/logo.png') }}" alt="Pil Andina">
+                        <span>PIL</span>
                     </div>
                     <div class="fit-sidebar-brand-copy">
-                        <span class="fit-sidebar-title">PIL Bolivia</span>
-                        <span class="fit-sidebar-subtitle">Panel Almacen</span>
+                        <span class="fit-sidebar-title">Almacen Rio Seco</span>
                     </div>
                     <button type="button" class="fit-sidebar-close" id="sidebarClose" aria-label="Cerrar menu">
                         <i class="ri-close-line"></i>

@@ -56,11 +56,14 @@ function Topbar({ pageTitle, user, csrfToken, logoutAction, onSidebarToggle }) {
                 <div className="fit-profile">
                     <button
                         type="button"
-                        className="fit-profile-button"
+                        className="fit-profile-button admin-profile-button"
                         onClick={() => setShowProfileMenu((value) => !value)}
                     >
-                        <span className="fit-profile-avatar">{initials}</span>
-                        <span className="fit-profile-name">{user.name}</span>
+                        <span className="fit-profile-avatar admin-profile-avatar">{initials}</span>
+                        <span className="fit-profile-meta">
+                            <span className="fit-profile-name">{user.name}</span>
+                            <small>{user.role}</small>
+                        </span>
                         <i className="ri-arrow-down-s-line" />
                     </button>
 

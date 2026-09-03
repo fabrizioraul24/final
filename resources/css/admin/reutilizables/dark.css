@@ -59,11 +59,22 @@ html.dark .fit-primary-button {
 
 html.dark .fit-navbar-search input,
 html.dark .fit-icon-button,
-html.dark .fit-profile-button,
 html.dark .fit-profile-menu {
     background: #151722;
     border-color: rgba(255, 255, 255, 0.08);
     color: #e2e8f0;
+}
+
+html.dark .fit-profile-button {
+    background: #151722;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+
+html.dark .admin-profile-button {
+    background: #0b4fc1;
+    border-color: rgba(126, 166, 255, 0.46);
+    color: #ffffff;
 }
 
 html.dark .fit-profile-menu-head {
@@ -327,18 +338,21 @@ html.dark .fit-log-action.danger {
 }
 
 html.dark .fit-log-diff-panel,
-html.dark .fit-log-change-item {
+html.dark .fit-log-change-item,
+html.dark .fit-log-nested-card {
     background: #1e212b;
     border-color: rgba(255, 255, 255, 0.08);
 }
 
 html.dark .fit-log-diff-panel h4,
-html.dark .fit-log-change-item strong {
+html.dark .fit-log-change-item strong,
+html.dark .fit-log-nested-card em {
     color: #f8fafc;
 }
 
 html.dark .fit-log-change-list p,
-html.dark .fit-log-change-item span {
+html.dark .fit-log-change-item span,
+html.dark .fit-log-nested-card span {
     color: #94a3b8;
 }
 

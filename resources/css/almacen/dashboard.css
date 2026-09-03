@@ -1,7 +1,11 @@
-﻿.warehouse-shell .fit-sidebar-logo,
 .warehouse-shell .fit-profile-avatar,
 .warehouse-shell .fit-header-icon {
     background: linear-gradient(135deg, #7187AD, #0b4fc1);
+}
+
+.warehouse-shell .fit-sidebar-logo {
+    background: #ffffff;
+    color: #0b4fc1;
 }
 
 .warehouse-dashboard-page {

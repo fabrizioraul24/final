@@ -253,6 +253,11 @@
                     </div>
                     <div id="quotationItems" class="vendor-quotation-items-list"></div>
                     @error('items')<small style="color:#f87171">{{ $message }}</small>@enderror
+                    <div class="fit-form-field span-2">
+                        <label for="quotation_audit_reason">Motivo para bitacora</label>
+                        <textarea id="quotation_audit_reason" name="audit_reason" rows="3" placeholder="Ej. Precio negociado o promocion temporal autorizada">{{ old('audit_reason') }}</textarea>
+                        @error('audit_reason')<small style="color:#f87171">{{ $message }}</small>@enderror
+                    </div>
                     <div class="fit-sale-total">
                         <span>Total estimado</span>
                         <strong id="quotationTotal">Bs 0.00</strong>

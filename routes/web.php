@@ -121,6 +121,7 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/lotes/{lot}', [\App\Http\Controllers\ProductLotController::class, 'update'])->name('dashboard.lots.update');
     Route::post('/lotes/{lot}/adjust', [\App\Http\Controllers\ProductLotController::class, 'adjust'])->name('dashboard.lots.adjust');
     Route::get('/lotes/reporte/pdf', [\App\Http\Controllers\ProductLotController::class, 'report'])->name('dashboard.lots.report');
+    Route::get('/lotes/{product}', [\App\Http\Controllers\ProductLotController::class, 'show'])->whereNumber('product')->name('dashboard.lots.show');
 
     Route::get('/categorias', [CategoryController::class, 'index'])->name('dashboard.categories');
     Route::post('/categorias', [CategoryController::class, 'store'])->name('dashboard.categories.store');

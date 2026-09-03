@@ -23,8 +23,8 @@ export default function LoginPage({
 
                 <header className="login-brand">
                     <a href="/" className="login-logo" aria-label="PIL Bolivia">
-                        <img src="/pil.svg" alt="PIL Bolivia" />
-                        <span>BOLIVIA</span>
+                        <span className="login-logo-mark">PIL</span>
+                        <span className="login-logo-country">BOLIVIA</span>
                     </a>
                 </header>
 

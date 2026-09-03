@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsAudit;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+    use LogsAudit;
+
     protected function getLaPazWarehouse(): ?\App\Models\Warehouse
     {
         return \App\Models\Warehouse::where('name', 'like', '%La Paz%')->first();
@@ -82,7 +85,9 @@ class PaymentController extends Controller
         $receipt = 'RC-' . now()->format('YmdHis') . '-' . rand(100, 999);
 
         try {
-            \DB::transaction(function () use ($items, $warehouse, $paymentMethod, $paymentStatus, $subtotal, $shipping, $total, $userId, $receipt) {
+            $order = null;
+
+            \DB::transaction(function () use ($items, $warehouse, $paymentMethod, $paymentStatus, $subtotal, $shipping, $total, $userId, $receipt, &$order) {
                 $order = \App\Models\BuyerOrder::create([
                     'user_id' => $userId,
                     'receipt_number' => $receipt,
@@ -119,6 +124,26 @@ class PaymentController extends Controller
                     ]);
                 }
             });
+
+            if ($order) {
+                $order->load(['items.product', 'user']);
+                $this->logAudit($order, 'payment', [], [
+                    'receipt_number' => $order->receipt_number,
+                    'buyer' => $order->user?->name,
+                    'payment_method' => $order->payment_method,
+                    'payment_status' => $order->payment_status,
+                    'status' => $order->status,
+                    'subtotal' => (float) $order->subtotal,
+                    'shipping' => (float) $order->shipping,
+                    'total' => (float) $order->total,
+                    'items' => $order->items->map(fn ($item) => [
+                        'product_id' => $item->product_id,
+                        'product' => $item->product_name,
+                        'quantity' => (int) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                    ])->values()->all(),
+                ], 'Pago de comprador procesado. Recibo: ' . $order->receipt_number);
+            }
         } catch (\Throwable $e) {
             return back()->withErrors(['cart' => $e->getMessage()]);
         }

@@ -112,15 +112,21 @@ html, body {
     text-decoration: none;
 }
 
-.login-logo img {
-    height: 46px;
-    width: auto;
+.login-logo-mark {
+    width: 86px;
+    height: 48px;
+    border-radius: 999px;
     background: #ffffff;
-    padding: 4px 8px;
-    border-radius: 20px;
+    color: var(--pil-blue);
+    display: grid;
+    place-items: center;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
 }
 
-.login-logo span {
+.login-logo-country {
     font-size: 0.85rem;
     font-weight: 800;
     letter-spacing: 0.35em;
