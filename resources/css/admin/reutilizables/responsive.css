@@ -1,0 +1,221 @@
+﻿
+.pagination-summary,
+.page-link {
+    color: #64748b;
+}
+
+.page-item.active .page-link {
+    background: var(--fit-indigo);
+    border-color: var(--fit-indigo);
+    color: #ffffff;
+}
+
+.text-right {
+    text-align: right;
+}
+
+@media (max-width: 1180px) {
+    .fit-navbar-search,
+    .fit-navbar-create {
+        display: none;
+    }
+
+    .fit-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fit-filter-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .fit-lot-filter-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fit-transfer-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fit-lot-card,
+    .fit-lot-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-lot-card-actions {
+        border-left: 0;
+        border-top: 1px solid #e0e7ff;
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fit-sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+    }
+
+    .fit-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .fit-sidebar-close,
+    .fit-mobile-menu {
+        display: grid;
+        place-items: center;
+    }
+
+    .fit-sidebar-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 35;
+        border: 0;
+        background: rgba(15, 23, 42, 0.42);
+    }
+
+    .fit-navbar {
+        padding-inline: 1rem;
+    }
+
+    .content-scroll {
+        padding-inline: 1rem;
+    }
+
+    .fit-users-header,
+    .fit-section-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 680px) {
+    .pagination {
+        justify-content: center;
+    }
+
+    .pagination-meta,
+    .pagination-list {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .page-link-nav {
+        min-width: calc(50% - 0.25rem);
+    }
+
+    .fit-navbar-pills {
+        display: none;
+    }
+
+    .fit-profile-name,
+    .fit-icon-button:not(.fit-mobile-menu):not(.fit-bell) {
+        display: none;
+    }
+
+    .fit-metric-grid,
+    .fit-backup-info-grid,
+    .fit-agent-chart-grid,
+    .fit-agent-modal-grid,
+    .fit-filter-form,
+    .fit-lot-filter-form,
+    .fit-category-filter-form,
+    .fit-transfer-filter-form,
+    .fit-sale-filter-form,
+    .fit-quotation-filter-form,
+    .fit-log-filter-form,
+    .fit-quotation-metric-grid,
+    .fit-transfer-summary,
+    .fit-sale-summary,
+    .fit-quotation-summary,
+    .fit-log-summary,
+    .fit-log-diff-grid,
+    .fit-form-grid,
+    .fit-product-detail,
+    .fit-company-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-lot-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fit-users-header-left {
+        align-items: flex-start;
+    }
+
+    .fit-company-detail-grid > div.span-2 {
+        grid-column: auto;
+    }
+
+    .fit-transfer-item-row {
+        padding-right: 1rem;
+    }
+
+    .fit-sale-items .fit-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-quotation-items .fit-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-sale-total {
+        justify-content: space-between;
+    }
+
+    .fit-log-scope-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.75rem;
+    }
+
+    .fit-log-scope-link {
+        flex: 0 0 auto;
+    }
+
+    .fit-backup-schedule-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .fit-backup-schedule-side,
+    .fit-inline-form,
+    .fit-inline-form .fit-primary-button {
+        width: 100%;
+    }
+
+    .fit-backup-schedule-side {
+        justify-content: space-between;
+    }
+
+    .fit-agent-spark-card {
+        grid-template-columns: 1fr;
+    }
+
+    .agent-decision-actions,
+    .agent-lot-row {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-agent-tabs {
+        border-radius: 1.15rem;
+    }
+
+    .fit-agent-header-actions {
+        justify-content: flex-start;
+    }
+
+    .fit-agent-detail-title {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .fit-transfer-remove {
+        position: static;
+        margin-top: 0.8rem;
+    }
+}

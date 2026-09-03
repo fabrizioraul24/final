@@ -1,0 +1,23 @@
+﻿@media print {
+    .fit-sidebar,
+    .fit-navbar,
+    .warehouse-order-print-hide {
+        display: none !important;
+    }
+
+    .dashboard-shell,
+    .main-area,
+    .content-scroll {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    .warehouse-panel,
+    .warehouse-inventory-stats div,
+    .warehouse-lot-panel {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+}

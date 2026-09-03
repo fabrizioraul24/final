@@ -1,0 +1,84 @@
+﻿@media (max-width: 1180px) {
+    .warehouse-inventory-card,
+    .warehouse-inventory-filter,
+    .warehouse-lot-detail-layout,
+    .warehouse-order-detail-layout,
+    .warehouse-transfer-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .warehouse-inventory-actions {
+        justify-content: stretch;
+    }
+
+    .warehouse-lot-detail-hero {
+        flex-direction: column;
+    }
+
+    .warehouse-lot-detail-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .warehouse-orders-filter {
+        grid-template-columns: 1fr;
+    }
+
+    .warehouse-transfer-item-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .warehouse-damages-filter {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .warehouse-inventory-branch {
+        width: 100%;
+        text-align: left;
+    }
+
+    .warehouse-inventory-product,
+    .warehouse-lot-detail-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .warehouse-inventory-stats,
+    .warehouse-lot-detail-main .warehouse-inventory-stats,
+    .warehouse-lot-detail-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .warehouse-panel-head,
+    .warehouse-orders-status-form,
+    .warehouse-order-detail-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .warehouse-orders-status-form .fit-select-control,
+    .warehouse-orders-status-form .fit-action-button,
+    .warehouse-order-detail-actions .fit-outline-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .warehouse-transfer-item-head,
+    .warehouse-order-map-head {
+        flex-direction: column;
+    }
+
+    .warehouse-transfer-item-form,
+    .warehouse-transfer-item-form label.wide,
+    .warehouse-damage-inline-form {
+        grid-template-columns: 1fr;
+        grid-column: auto;
+    }
+
+    .warehouse-damage-inline-form .fit-primary-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

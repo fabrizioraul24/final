@@ -1,0 +1,152 @@
+﻿.fit-transfer-filter-form {
+    grid-template-columns: minmax(190px, 280px) auto auto;
+}
+
+.fit-transfer-id {
+    font-size: 0.82rem;
+}
+
+.fit-transfer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.fit-transfer-status span {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+}
+
+.fit-transfer-status.pending {
+    color: var(--fit-coral);
+    background: rgba(242, 90, 89, 0.14);
+}
+
+.fit-transfer-status.pending span {
+    background: var(--fit-coral);
+}
+
+.fit-transfer-status.transit {
+    color: var(--fit-indigo);
+    background: rgba(11, 79, 193, 0.14);
+}
+
+.fit-transfer-status.transit span {
+    background: var(--fit-indigo);
+}
+
+.fit-transfer-status.active {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.14);
+}
+
+.fit-transfer-status.active span {
+    background: #10b981;
+}
+
+.fit-transfer-items {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 1.1rem;
+    background: #f8fafc;
+}
+
+.fit-transfer-items-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.fit-transfer-items-head span {
+    color: #94a3b8;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-transfer-items-head h4 {
+    margin: 0.16rem 0 0;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.fit-transfer-items-list {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.fit-transfer-item-row {
+    position: relative;
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    padding: 1rem 3.7rem 1rem 1rem;
+    background: #ffffff;
+}
+
+.fit-transfer-remove {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.fit-transfer-detail {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1.25rem;
+}
+
+.fit-transfer-summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.fit-transfer-summary > div,
+.fit-transfer-panel {
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    background: #f8fafc;
+    padding: 0.9rem;
+}
+
+.fit-transfer-summary span,
+.fit-transfer-panel h4 {
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-transfer-summary strong {
+    display: block;
+    margin-top: 0.35rem;
+    color: #0f172a;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.fit-transfer-panel h4 {
+    margin: 0 0 0.75rem;
+    color: #0f172a;
+    font-size: 0.92rem;
+}
+
+.fit-transfer-panel p,
+.fit-transfer-source-detail p {
+    margin: 0.3rem 0 0;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.45;
+}

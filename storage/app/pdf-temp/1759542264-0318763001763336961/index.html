@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@600&display=swap');
+
+        :root {
+            --primary: #4e6baf;
+            --primary-dark: #3a5186;
+            --accent: #f5a524;
+            --bg: #0f1635;
+            --card: rgba(255,255,255,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #0f1635, #1d2859, #0f1635);
+            color: #f7f9ff;
+        }
+
+        .report-wrapper {
+            background: rgba(15, 22, 56, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-block img {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 0.5rem;
+        }
+
+        .brand-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            letter-spacing: 0.04em;
+        }
+
+        .meta {
+            text-align: right;
+            font-size: 0.9rem;
+            color: rgba(247, 249, 255, 0.8);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            color: #ffffff;
+        }
+
+        .summary {
+            display: flex;
+            gap: 1rem;
+            margin: 1.2rem 0 1.5rem;
+        }
+
+        .summary-card {
+            flex: 1;
+            padding: 1rem 1.3rem;
+            border-radius: 1.2rem;
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: rgba(247, 249, 255, 0.7);
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-card span {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            overflow: hidden;
+            border-radius: 1.2rem;
+            background: rgba(34, 47, 94, 0.5);
+        }
+
+        th {
+            background: rgba(78, 107, 175, 0.35);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 0.85rem 1rem;
+        }
+
+        td {
+            padding: 0.95rem 1rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(247, 249, 255, 0.92);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(245, 165, 36, 0.2);
+            color: #f7c173;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-wrapper">
+        <header>
+            <div class="brand-block">
+                <img src="http://127.0.0.1:8000/storage/images/logo.png" alt="Pil Andina">
+                <div>
+                    <span class="brand-text">Pil Andina</span>
+                    <h1>Cotización #1</h1>
+                    <span class="badge">Informe ejecutivo</span>
+                </div>
+            </div>
+            <div class="meta">
+                <div>16/11/2025 23:49</div>
+                <div>Emitido por: Samuel Supervisor</div>
+            </div>
+        </header>
+
+            <style>
+        .hero {
+            background: linear-gradient(135deg, rgba(78, 107, 175, 0.35), rgba(15, 22, 56, 0.95));
+            border-radius: 1.5rem;
+            padding: 1.5rem 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.8rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .hero h2 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: #fff;
+        }
+        .hero-details {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.85);
+        }
+        .hero-details strong {
+            display: block;
+            font-size: 0.8rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.6);
+        }
+        .total-badge {
+            background: rgba(245, 165, 36, 0.15);
+            border: 1px solid rgba(245, 165, 36, 0.3);
+            border-radius: 1.2rem;
+            padding: 1rem 1.5rem;
+            text-align: right;
+        }
+        .total-badge span {
+            display: block;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.6);
+        }
+        .total-badge strong {
+            font-size: 1.8rem;
+            color: #ffd68a;
+        }
+        .notes-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+
+    <div class="hero">
+        <div>
+            <div class="hero-details">
+                <strong>Cotización</strong>
+                <h2>#1</h2>
+                <p style="margin:0;">Empresa institucional</p>
+                <p style="margin:0.3rem 0 0;">
+                    Cliente:
+                                            FRAF2_UF_LP_2025 · la Paz
+                                    </p>
+            </div>
+        </div>
+        <div class="total-badge">
+            <span>Total estimado</span>
+            <strong>Bs 520.00</strong>
+            <span style="display:block;margin-top:0.5rem;">Válido hasta 18/11/2025</span>
+        </div>
+    </div>
+
+            <div class="notes-card">
+            <strong>Notas:</strong>
+            <p style="margin:0.4rem 0 0;">equisde</p>
+        </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+                            <tr>
+                    <td>133</td>
+                    <td>leche de chocolate</td>
+                    <td>80</td>
+                    <td>Bs 6.50</td>
+                    <td>Bs 520.00</td>
+                </tr>
+                    </tbody>
+    </table>
+    </div>
+</body>
+</html>

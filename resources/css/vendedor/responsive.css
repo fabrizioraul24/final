@@ -1,0 +1,17 @@
+﻿@media (max-width: 900px) {
+    .vendor-companies-page .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .vendor-companies-page .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vendor-companies-page .company-create-modal .form-grid,
+    .vendor-companies-page .company-edit-modal .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

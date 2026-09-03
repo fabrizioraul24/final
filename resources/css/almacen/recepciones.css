@@ -1,0 +1,158 @@
+﻿.warehouse-orders-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.warehouse-orders-filter {
+    grid-template-columns: minmax(220px, 360px) auto auto;
+}
+
+.warehouse-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.warehouse-panel-head h2 {
+    margin: 0.35rem 0 0;
+    color: #1e293b;
+    font-size: 1.05rem;
+    font-weight: 950;
+}
+
+.warehouse-panel-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid #dbeafe;
+    border-radius: 999px;
+    background: #f8fbff;
+    color: #465b82;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.warehouse-orders-table td {
+    vertical-align: middle;
+}
+
+.warehouse-orders-table td > strong {
+    display: block;
+    color: #1e293b;
+    font-size: 0.86rem;
+    font-weight: 950;
+}
+
+.warehouse-orders-table td > span {
+    display: block;
+    margin-top: 0.18rem;
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 780;
+}
+
+.warehouse-orders-status-form {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.warehouse-orders-status-form .fit-select-control {
+    min-width: 150px;
+}
+
+.warehouse-status-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 1.8rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.warehouse-status-pill.danger {
+    border: 1px solid #fecaca;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.warehouse-order-detail-page {
+    gap: 1.15rem;
+}
+
+.warehouse-order-detail-title h1 {
+    margin: 0.45rem 0 0.3rem;
+    color: #1e293b;
+    font-size: clamp(1.45rem, 2vw, 2.15rem);
+    font-weight: 950;
+}
+
+.warehouse-order-detail-title p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.warehouse-order-detail-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+}
+
+.warehouse-order-detail-actions button {
+    cursor: pointer;
+}
+
+.warehouse-order-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.warehouse-order-products-panel {
+    min-width: 0;
+}
+
+.warehouse-order-map-panel {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.warehouse-order-map-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.warehouse-order-map-head h4 {
+    margin: 0;
+}
+
+.warehouse-order-map-head a {
+    text-decoration: none;
+}
+
+.warehouse-order-map-frame {
+    overflow: hidden;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #e0f2fe;
+    aspect-ratio: 16 / 10;
+}
+
+.warehouse-order-map-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+

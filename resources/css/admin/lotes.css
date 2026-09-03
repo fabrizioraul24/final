@@ -1,0 +1,229 @@
+﻿.fit-lot-filter-form {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 1fr) minmax(170px, 0.8fr) minmax(160px, 0.7fr) auto auto;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+
+.fit-lot-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.fit-lot-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 1rem;
+    align-items: stretch;
+    border: 1px solid #e0e7ff;
+    border-radius: 1.35rem;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+}
+
+.fit-lot-card.critical {
+    border-color: rgba(244, 63, 94, 0.28);
+}
+
+.fit-lot-card-main {
+    min-width: 0;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.fit-lot-product-head {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.fit-lot-product-head > div {
+    min-width: 0;
+}
+
+.fit-lot-product-head h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.fit-lot-product-image {
+    width: 4.5rem;
+    height: 4.5rem;
+    flex-basis: 4.5rem;
+}
+
+.fit-lot-product-image.large {
+    width: 5.2rem;
+    height: 5.2rem;
+    flex-basis: 5.2rem;
+}
+
+.fit-lot-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+}
+
+.fit-lot-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.fit-lot-stat-grid > div,
+.fit-lot-panel {
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    background: #f8fafc;
+    padding: 0.85rem;
+}
+
+.fit-lot-stat-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-lot-stat-grid strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.fit-lot-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(244, 63, 94, 0.24);
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background: rgba(244, 63, 94, 0.08);
+    color: #f43f5e;
+}
+
+.fit-lot-alert i {
+    font-size: 1.25rem;
+}
+
+.fit-lot-alert strong,
+.fit-lot-alert span {
+    display: block;
+}
+
+.fit-lot-alert strong {
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.fit-lot-alert span {
+    margin-top: 0.1rem;
+    color: #9f1239;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.fit-lot-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #e0e7ff;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.fit-lot-card-actions .fit-primary-button {
+    width: 100%;
+}
+
+.fit-empty-card {
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.fit-empty-card p {
+    margin: 0;
+    color: #64748b;
+    font-weight: 800;
+}
+
+.fit-lot-detail {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1.25rem;
+}
+
+.fit-lot-detail-summary,
+.fit-lot-detail-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.fit-lot-detail-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+}
+
+.fit-lot-panel h4 {
+    margin: 0 0 0.8rem;
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.fit-lot-panel p {
+    margin: 0;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.5;
+}
+
+.fit-lot-history-table .fit-action-button {
+    margin-left: auto;
+}
+
+.fit-lot-movement-list {
+    display: grid;
+    gap: 0.65rem;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+}
+
+.fit-lot-movement-item {
+    display: grid;
+    gap: 0.2rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background: #ffffff;
+}
+
+.fit-lot-movement-item strong {
+    color: #0f172a;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.fit-lot-movement-item span,
+.fit-lot-movement-item p,
+.fit-lot-movement-item time,
+.fit-lot-empty {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+

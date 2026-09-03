@@ -1,0 +1,629 @@
+﻿.seller-admin-board {
+    display: grid;
+    gap: 1.65rem;
+    padding-bottom: 2rem;
+}
+
+.seller-admin-top-grid,
+.seller-admin-main-grid,
+.seller-admin-bottom-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.seller-admin-top-grid {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.seller-admin-main-grid {
+    grid-template-columns: 1.45fr 0.85fr 1.15fr;
+}
+
+.seller-admin-bottom-grid {
+    grid-template-columns: 0.9fr 1.85fr;
+}
+
+.seller-admin-card {
+    min-width: 0;
+    border: 1px solid #bfdbfe;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    padding: 1.55rem;
+}
+
+.seller-admin-card h3,
+.seller-admin-card h4 {
+    margin: 0;
+    color: #1e293b;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.seller-admin-card h3 {
+    font-size: 0.98rem;
+}
+
+.seller-admin-card h4 {
+    font-size: 0.82rem;
+}
+
+.seller-admin-card p {
+    margin: 0.35rem 0 0;
+    color: #8da0bd;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.seller-admin-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.seller-admin-pill,
+.seller-admin-tabs {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0b4fc1;
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.seller-admin-pill {
+    gap: 0.35rem;
+    padding: 0.25rem 0.8rem;
+}
+
+.seller-admin-tabs {
+    gap: 0.25rem;
+    padding: 0.25rem;
+}
+
+.seller-admin-tabs span,
+.seller-admin-tabs strong {
+    padding: 0.34rem 0.7rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.seller-admin-tabs strong {
+    background: #0b4fc1;
+    color: #ffffff;
+}
+
+.seller-admin-metrics-card {
+    display: flex;
+    min-height: 286px;
+    flex-direction: column;
+}
+
+.seller-admin-kpi-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 2rem;
+}
+
+.seller-admin-kpi-row i {
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+.seller-admin-kpi-row strong {
+    color: #1e293b;
+    font-size: 1.95rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.seller-admin-blue {
+    color: #0b4fc1;
+}
+
+.seller-admin-green {
+    color: #10b981;
+}
+
+.seller-admin-divider {
+    margin: auto 0 0;
+    border-top: 1px solid #bfdbfe;
+}
+
+.seller-admin-calendar-card {
+    min-height: 286px;
+}
+
+.seller-admin-calendar-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    color: #1e293b;
+    font-size: 1.02rem;
+    font-weight: 900;
+    text-transform: lowercase;
+}
+
+.seller-admin-calendar-head i {
+    color: #8da0bd;
+    font-size: 1.25rem;
+}
+
+.seller-admin-calendar-head i:first-child {
+    justify-self: start;
+}
+
+.seller-admin-calendar-head i:last-child {
+    justify-self: end;
+}
+
+.seller-admin-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.8rem 0.65rem;
+    margin-top: 1.25rem;
+    text-align: center;
+}
+
+.seller-admin-calendar-grid span {
+    min-height: 1.62rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+
+.seller-admin-calendar-grid .seller-admin-day-name {
+    color: #8da0bd;
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.seller-admin-calendar-grid .is-today {
+    background: #0b4fc1;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(11, 79, 193, 0.24);
+}
+
+.seller-admin-progress-card {
+    min-height: 286px;
+}
+
+.seller-admin-progress-list {
+    display: grid;
+    gap: 1.1rem;
+    margin-top: 2.1rem;
+}
+
+.seller-admin-progress-item {
+    display: grid;
+    gap: 0.42rem;
+}
+
+.seller-admin-progress-item > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #8da0bd;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.seller-admin-progress-item strong {
+    color: #8da0bd;
+}
+
+.seller-admin-track {
+    height: 0.78rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e0f2fe;
+}
+
+.seller-admin-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #0b4fc1;
+}
+
+.seller-admin-track span.green {
+    background: #10b981;
+}
+
+.seller-admin-sales-card {
+    min-height: 286px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.seller-admin-search {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #8da0bd;
+    padding: 0.25rem 0.25rem 0.25rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.seller-admin-search i {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #0b4fc1;
+    color: #ffffff;
+}
+
+.seller-admin-mini-chart,
+.seller-admin-line-visual,
+.seller-admin-income-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.58rem;
+}
+
+.seller-admin-mini-chart {
+    height: 7.4rem;
+}
+
+.seller-admin-mini-chart span,
+.seller-admin-income-chart span {
+    flex: 1;
+    min-height: 8%;
+    border-radius: 999px 999px 0.4rem 0.4rem;
+    background: linear-gradient(180deg, rgba(11, 79, 193, 0.28), rgba(11, 79, 193, 0.08));
+    border: 1px solid rgba(11, 79, 193, 0.18);
+}
+
+.seller-admin-mini-chart span:nth-child(even),
+.seller-admin-income-chart span:nth-child(even) {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.38), rgba(16, 185, 129, 0.1));
+    border-color: rgba(16, 185, 129, 0.22);
+}
+
+.seller-admin-weekly-card {
+    min-height: 370px;
+}
+
+.seller-admin-line-visual {
+    position: relative;
+    height: 210px;
+    margin-top: 2rem;
+    padding-inline: 0.2rem;
+    border-bottom: 2px solid #e0f2fe;
+}
+
+.seller-admin-line-visual::before,
+.seller-admin-line-visual::after {
+    content: '';
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    bottom: 2.15rem;
+    height: 118px;
+    border-radius: 55% 45% 48% 52%;
+    pointer-events: none;
+}
+
+.seller-admin-line-visual::before {
+    background: linear-gradient(180deg, rgba(11, 79, 193, 0.24), rgba(11, 79, 193, 0));
+    border-top: 4px solid #0b4fc1;
+    transform: skewX(-8deg);
+}
+
+.seller-admin-line-visual::after {
+    height: 86px;
+    border-top: 3px solid #10b981;
+    transform: translateY(28px) skewX(13deg);
+}
+
+.seller-admin-line-visual span {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    max-width: 52px;
+    border-radius: 999px 999px 0 0;
+    background: rgba(11, 79, 193, 0.08);
+}
+
+.seller-admin-axis,
+.seller-admin-legend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    color: #8da0bd;
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.seller-admin-legend {
+    justify-content: center;
+    margin-top: 1.1rem;
+}
+
+.seller-admin-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.seller-admin-legend i {
+    width: 0.9rem;
+    height: 0.18rem;
+    border-radius: 999px;
+    background: #0b4fc1;
+}
+
+.seller-admin-legend i.soft {
+    background: rgba(16, 185, 129, 0.35);
+}
+
+.seller-admin-goal-card {
+    min-height: 370px;
+    display: flex;
+    flex-direction: column;
+}
+
+.seller-admin-ring {
+    width: 7.4rem;
+    height: 7.4rem;
+    display: grid;
+    place-items: center;
+    margin: auto auto 1.1rem;
+    border-radius: 999px;
+    background: conic-gradient(#0b4fc1 var(--progress), #eef2ff var(--progress));
+    position: relative;
+}
+
+.seller-admin-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0.72rem;
+    border-radius: inherit;
+    background: #ffffff;
+}
+
+.seller-admin-ring strong {
+    position: relative;
+    z-index: 1;
+    color: #1e293b;
+    font-size: 1.7rem;
+    font-weight: 950;
+}
+
+.seller-admin-centered {
+    max-width: 14rem;
+    margin-inline: auto !important;
+    text-align: center;
+}
+
+.seller-admin-primary-link {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 2.55rem;
+    margin-top: 1rem;
+    border-radius: 999px;
+    background: #0b4fc1;
+    color: #ffffff;
+    font-size: 0.84rem;
+    font-weight: 900;
+    text-decoration: none;
+    box-shadow: 0 10px 20px rgba(11, 79, 193, 0.24);
+}
+
+.seller-admin-income-card {
+    min-height: 370px;
+}
+
+.seller-admin-income-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 0.8rem;
+}
+
+.seller-admin-income-row strong,
+.seller-admin-income-row span {
+    display: block;
+}
+
+.seller-admin-income-row strong {
+    color: #1e293b;
+    font-size: 1.65rem;
+    font-weight: 950;
+    line-height: 1;
+}
+
+.seller-admin-income-row span {
+    margin-top: 0.45rem;
+    color: #8da0bd;
+    font-size: 0.76rem;
+    font-weight: 900;
+}
+
+.seller-admin-income-chart {
+    height: 180px;
+    margin-top: 2.1rem;
+}
+
+.seller-admin-categories-card {
+    min-height: 166px;
+}
+
+.seller-admin-category-list {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.2rem;
+}
+
+.seller-admin-category-list div {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    align-items: center;
+    gap: 0.9rem;
+    color: #8da0bd;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.seller-admin-category-list strong {
+    height: 0.88rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e0f2fe;
+}
+
+.seller-admin-category-list i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #0b4fc1;
+}
+
+.seller-admin-category-list i.green {
+    background: #10b981;
+}
+
+.seller-admin-list-card {
+    min-height: 166px;
+}
+
+.seller-admin-activity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.1rem;
+}
+
+.seller-admin-list {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+}
+
+.seller-admin-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+    min-height: 2.35rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.95rem;
+    background: #f8fbff;
+    padding: 0.55rem 0.75rem;
+}
+
+.seller-admin-list-row span {
+    overflow: hidden;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.seller-admin-list-row strong {
+    color: #0b4fc1;
+    font-size: 0.78rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.seller-admin-empty {
+    min-height: 2.35rem;
+    display: grid;
+    place-items: center;
+    border: 1px dashed #bfdbfe;
+    border-radius: 0.95rem;
+    background: #f8fbff;
+}
+
+html.dark .seller-admin-card {
+    background: #151722;
+    border-color: rgba(147, 197, 253, 0.22);
+    color: #f8fafc;
+}
+
+html.dark .seller-admin-card h3,
+html.dark .seller-admin-card h4,
+html.dark .seller-admin-kpi-row strong,
+html.dark .seller-admin-income-row strong,
+html.dark .seller-admin-ring strong,
+html.dark .seller-admin-calendar-head,
+html.dark .seller-admin-calendar-grid span {
+    color: #f8fafc;
+}
+
+html.dark .seller-admin-pill,
+html.dark .seller-admin-tabs,
+html.dark .seller-admin-search,
+html.dark .seller-admin-track,
+html.dark .seller-admin-category-list strong {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+html.dark .seller-admin-ring::before {
+    background: #151722;
+}
+
+html.dark .seller-admin-list-row,
+html.dark .seller-admin-empty {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1180px) {
+    .seller-admin-top-grid,
+    .seller-admin-main-grid,
+    .seller-admin-bottom-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seller-admin-weekly-card,
+    .seller-admin-list-card {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 720px) {
+    .seller-admin-top-grid,
+    .seller-admin-main-grid,
+    .seller-admin-bottom-grid,
+    .seller-admin-activity-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-admin-weekly-card,
+    .seller-admin-list-card {
+        grid-column: auto;
+    }
+
+    .seller-admin-tabs {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+

@@ -1,0 +1,64 @@
+﻿.warehouse-damages-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.warehouse-damages-filter {
+    grid-template-columns: minmax(240px, 1fr) minmax(220px, 340px) auto auto;
+}
+
+.warehouse-damage-product-card {
+    align-items: center;
+}
+
+.warehouse-damage-create-page {
+    gap: 1.15rem;
+}
+
+.warehouse-damage-lots-panel {
+    min-width: 0;
+}
+
+.warehouse-damage-lots-table th:last-child,
+.warehouse-damage-lots-table td:last-child {
+    min-width: 420px;
+}
+
+.warehouse-damage-inline-form {
+    display: grid;
+    grid-template-columns: 112px minmax(180px, 1fr) auto;
+    gap: 0.55rem;
+    align-items: end;
+}
+
+.warehouse-damage-inline-form label {
+    display: grid;
+    gap: 0.32rem;
+    min-width: 0;
+}
+
+.warehouse-damage-inline-form label span {
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.warehouse-damage-inline-form input {
+    width: 100%;
+    min-height: 2.35rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.78rem;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 0.5rem 0.65rem;
+    outline: none;
+}
+
+.warehouse-damage-inline-form input:focus {
+    border-color: #7187AD;
+    box-shadow: 0 0 0 4px rgba(113, 135, 173, 0.14);
+}
+

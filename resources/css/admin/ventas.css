@@ -1,0 +1,209 @@
+﻿.fit-sale-filter-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 250px) minmax(170px, 220px) auto auto;
+}
+
+.fit-metric-card:disabled {
+    cursor: default;
+}
+
+.fit-sale-id {
+    font-size: 0.82rem;
+}
+
+.fit-sale-client-icon {
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(11, 79, 193, 0.1);
+    color: var(--fit-indigo);
+    font-size: 1.1rem;
+    flex: 0 0 auto;
+}
+
+.fit-sale-payment {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(11, 79, 193, 0.18);
+    border-radius: 999px;
+    padding: 0.3rem 0.62rem;
+    background: rgba(11, 79, 193, 0.08);
+    color: var(--fit-indigo);
+    font-size: 0.72rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.fit-sale-amount {
+    color: #047857;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.fit-sale-items .fit-form-grid {
+    grid-template-columns: minmax(120px, 0.8fr) minmax(190px, 1.3fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr);
+}
+
+.fit-sale-total {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    border-top: 1px solid #e0e7ff;
+    padding-top: 1rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-sale-total strong {
+    color: #047857;
+    font-size: 1.25rem;
+}
+
+.fit-sale-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fit-sale-status-modal {
+    width: min(520px, 92vw);
+}
+
+.fit-sale-create-modal {
+    width: min(1180px, 96vw);
+}
+
+.fit-sale-create-modal .fit-sale-items .fit-form-grid {
+    grid-template-columns: minmax(120px, 0.7fr) minmax(220px, 1.4fr) minmax(110px, 0.65fr) minmax(110px, 0.65fr) minmax(120px, 0.7fr);
+}
+
+.fit-sale-report-modal {
+    width: min(980px, 96vw);
+}
+
+.fit-sale-report-detail {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+}
+
+.fit-sale-report-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #f8fbff;
+}
+
+.fit-sale-report-heading span,
+.fit-sale-report-info span {
+    display: block;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-sale-report-heading h4 {
+    margin: 0.25rem 0 0;
+    color: #0f172a;
+    font-size: 1.25rem;
+    font-weight: 950;
+}
+
+.fit-sale-report-heading p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.fit-sale-report-heading > strong {
+    color: #047857;
+    font-size: 1.35rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.fit-sale-report-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fit-sale-report-info {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.fit-sale-report-info > div {
+    padding: 0.9rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.9rem;
+    background: #f8fbff;
+}
+
+.fit-sale-report-info strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+@media (max-width: 900px) {
+    .fit-sale-create-modal .fit-sale-items .fit-form-grid,
+    .fit-sale-report-summary,
+    .fit-sale-report-info {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-sale-report-heading {
+        flex-direction: column;
+    }
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    .fit-sale-report-modal,
+    .fit-sale-report-modal * {
+        visibility: visible !important;
+    }
+
+    .modal.active {
+        position: static !important;
+        display: block !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        backdrop-filter: none !important;
+    }
+
+    .fit-sale-report-modal {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        max-height: none !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .fit-sale-report-modal .modal-header {
+        position: static !important;
+    }
+
+    .print-hide,
+    .fit-sale-report-modal .close-button {
+        display: none !important;
+    }
+}

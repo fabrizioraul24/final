@@ -1,0 +1,10 @@
+@import './dashboard-base.css';
+@import './dashboard-overrides.css';
+@import './dashboard-admin.css';
+@import './ventas.css';
+@import './agenda.css';
+@import './cotizaciones.css';
+@import './registro-ventas.css';
+@import './clientes.css';
+@import './shell.css';
+@import './responsive.css';

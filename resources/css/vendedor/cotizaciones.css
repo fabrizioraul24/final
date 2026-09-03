@@ -1,0 +1,126 @@
+﻿/* Vendor quotations module: isolated Blade screen, no admin React surface. */
+.vendor-quotations-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.vendor-quotations-page .fit-metric-card {
+    text-decoration: none;
+}
+
+.vendor-quotations-page .fit-metric-card.blue {
+    color: #0b4fc1;
+}
+
+.vendor-quotations-page .fit-metric-card.blue .fit-metric-icon {
+    background: rgba(11, 79, 193, 0.14);
+    color: #0b4fc1;
+}
+
+.vendor-quotations-page .fit-filter-card,
+.vendor-quotations-page .fit-section,
+.vendor-quotations-page .fit-table-card {
+    border-color: #bfdbfe;
+}
+
+.fit-vendor-quotation-modal {
+    width: min(1080px, 96vw);
+}
+
+.vendor-quotation-products {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #f8fbff;
+}
+
+.vendor-quotation-items-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.vendor-quotation-item-row {
+    position: relative;
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #ffffff;
+}
+
+.vendor-quotation-item-row .remove-quotation-item {
+    justify-self: end;
+}
+
+.vendor-quotation-product-grid {
+    grid-template-columns: minmax(110px, 0.7fr) minmax(220px, 1.5fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr);
+}
+
+.vendor-quotation-detail-items {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.vendor-quotation-detail-items > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.9rem;
+    background: #f8fbff;
+}
+
+.vendor-quotation-detail-items strong,
+.vendor-quotation-detail-items span {
+    color: #1e293b;
+    font-size: 0.82rem;
+}
+
+.vendor-quotations-page .fit-quotation-status.borrador,
+.vendor-quotations-page .fit-quotation-status.draft {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.vendor-quotations-page .fit-quotation-status.enviada,
+.vendor-quotations-page .fit-quotation-status.sent {
+    color: #0b4fc1;
+    background: #dbeafe;
+}
+
+.vendor-quotations-page .fit-quotation-status.aceptada,
+.vendor-quotations-page .fit-quotation-status.active {
+    color: #047857;
+    background: #d1fae5;
+}
+
+.vendor-quotations-page .fit-quotation-status.rechazada,
+.vendor-quotations-page .fit-quotation-status.rejected {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+html.dark .vendor-quotation-products,
+html.dark .vendor-quotation-item-row,
+html.dark .vendor-quotation-detail-items > div {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .vendor-quotation-detail-items strong,
+html.dark .vendor-quotation-detail-items span {
+    color: #f8fafc;
+}
+
+@media (max-width: 920px) {
+    .vendor-quotation-product-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

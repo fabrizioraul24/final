@@ -1,0 +1,15 @@
+﻿@import './reutilizables/base.css';
+@import './clientes.css';
+@import './productos.css';
+@import './lotes.css';
+@import './categorias.css';
+@import './traspasos.css';
+@import './ventas.css';
+@import './cotizaciones.css';
+@import './logs.css';
+@import './backups.css';
+@import './agente.css';
+@import '../vendedor/index.css';
+@import '../almacen/index.css';
+@import './reutilizables/responsive.css';
+@import './reutilizables/dark.css';

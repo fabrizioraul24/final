@@ -1,0 +1,106 @@
+﻿/* Vendor sales log: personal report and weekly activity. */
+.vendor-sales-log-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.vendor-sales-log-page .fit-metric-card {
+    text-decoration: none;
+}
+
+.vendor-sales-log-page .fit-metric-card.blue {
+    color: #0b4fc1;
+}
+
+.vendor-sales-log-page .fit-metric-card.blue .fit-metric-icon {
+    background: rgba(11, 79, 193, 0.14);
+    color: #0b4fc1;
+}
+
+.vendor-sales-log-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1.25rem;
+    align-items: stretch;
+}
+
+.vendor-sales-log-chart-card,
+.vendor-sales-log-report-card {
+    border: 1px solid #bfdbfe;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    padding: 1.25rem;
+}
+
+.vendor-sales-log-chart-wrap {
+    height: 280px;
+    margin-top: 1rem;
+}
+
+.vendor-sales-log-report-card {
+    display: grid;
+    align-content: start;
+    gap: 0.85rem;
+}
+
+.vendor-sales-log-report-card > span {
+    color: #8da0bd;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.vendor-sales-log-report-card h2 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 1.25rem;
+    font-weight: 950;
+}
+
+.vendor-sales-log-report-card p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.84rem;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.vendor-sales-log-report-card .fit-primary-button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.45rem;
+}
+
+.vendor-sales-log-filter {
+    grid-template-columns: minmax(180px, 0.8fr) minmax(180px, 0.8fr) minmax(190px, 0.8fr) auto auto;
+}
+
+.vendor-sales-log-page .fit-filter-card,
+.vendor-sales-log-page .fit-section,
+.vendor-sales-log-page .fit-table-card {
+    border-color: #bfdbfe;
+}
+
+html.dark .vendor-sales-log-chart-card,
+html.dark .vendor-sales-log-report-card {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .vendor-sales-log-report-card h2 {
+    color: #f8fafc;
+}
+
+html.dark .vendor-sales-log-report-card p {
+    color: #94a3b8;
+}
+
+@media (max-width: 1080px) {
+    .vendor-sales-log-layout,
+    .vendor-sales-log-filter {
+        grid-template-columns: 1fr;
+    }
+}
+

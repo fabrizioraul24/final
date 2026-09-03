@@ -1,0 +1,68 @@
+﻿.fit-quotation-filter-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 250px) minmax(170px, 220px) auto auto;
+}
+
+.fit-quotation-metric-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fit-quotation-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.fit-quotation-status span {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+}
+
+.fit-quotation-status.draft {
+    color: #475569;
+    background: rgba(100, 116, 139, 0.14);
+}
+
+.fit-quotation-status.draft span {
+    background: #64748b;
+}
+
+.fit-quotation-status.sent {
+    color: var(--fit-indigo);
+    background: rgba(11, 79, 193, 0.14);
+}
+
+.fit-quotation-status.sent span {
+    background: var(--fit-indigo);
+}
+
+.fit-quotation-status.active {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.14);
+}
+
+.fit-quotation-status.active span {
+    background: #10b981;
+}
+
+.fit-quotation-status.rejected {
+    color: #e11d48;
+    background: rgba(244, 63, 94, 0.14);
+}
+
+.fit-quotation-status.rejected span {
+    background: #f43f5e;
+}
+
+.fit-quotation-items .fit-form-grid {
+    grid-template-columns: minmax(120px, 0.8fr) minmax(220px, 1.5fr) minmax(120px, 0.7fr) minmax(120px, 0.8fr);
+}
+
+.fit-quotation-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}

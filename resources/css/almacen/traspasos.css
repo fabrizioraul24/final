@@ -1,0 +1,163 @@
+﻿.warehouse-transfers-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.warehouse-source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    width: fit-content;
+    min-height: 1.85rem;
+    padding: 0.32rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 920;
+    white-space: nowrap;
+}
+
+.warehouse-source-pill.ai {
+    border: 1px solid #bfdbfe;
+    background: rgba(11, 79, 193, 0.1);
+    color: #0b4fc1;
+}
+
+.warehouse-source-pill.manual {
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+    color: #465b82;
+}
+
+.warehouse-transfer-detail-page {
+    gap: 1.15rem;
+}
+
+.warehouse-transfer-status-top {
+    align-self: start;
+    min-width: 190px;
+}
+
+.warehouse-transfer-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.warehouse-transfer-items-panel {
+    min-width: 0;
+}
+
+.warehouse-transfer-item-list {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.warehouse-transfer-item-card {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #f8fbff;
+}
+
+.warehouse-transfer-item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.warehouse-transfer-item-head h3 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 0.98rem;
+    font-weight: 950;
+}
+
+.warehouse-transfer-item-head p {
+    margin: 0.2rem 0 0;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 820;
+}
+
+.warehouse-transfer-item-head > span {
+    color: #465b82;
+    font-size: 0.78rem;
+    font-weight: 920;
+    white-space: nowrap;
+}
+
+.warehouse-transfer-item-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 0.7rem;
+    align-items: end;
+}
+
+.warehouse-transfer-item-form label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.warehouse-transfer-item-form label.wide {
+    grid-column: span 2;
+}
+
+.warehouse-transfer-item-form label span {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.warehouse-transfer-item-form input {
+    width: 100%;
+    min-height: 2.45rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.85rem;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.55rem 0.72rem;
+    outline: none;
+}
+
+.warehouse-transfer-item-form input:focus {
+    border-color: #7187AD;
+    box-shadow: 0 0 0 4px rgba(113, 135, 173, 0.14);
+}
+
+.warehouse-transfer-generated-lot {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.78rem 0.9rem;
+    border: 1px dashed #bfdbfe;
+    border-radius: 0.9rem;
+    background: #ffffff;
+}
+
+.warehouse-transfer-generated-lot span,
+.warehouse-transfer-generated-lot small,
+.warehouse-transfer-origin p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.warehouse-transfer-generated-lot strong {
+    color: #465b82;
+    font-size: 0.9rem;
+    font-weight: 950;
+}
+
+.warehouse-transfer-origin {
+    display: grid;
+    gap: 0.55rem;
+}
+

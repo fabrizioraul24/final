@@ -1,0 +1,727 @@
+﻿/* Admin-aligned seller overrides */
+.seller-dashboard {
+    gap: 1.25rem;
+    padding-bottom: 0;
+}
+
+.sync-indicator-bar,
+.welcome-hero,
+.shortcut-card,
+.commission-target-card,
+.stats-summary-strip,
+.premium-list-card {
+    border-radius: 1.15rem !important;
+    border-color: rgba(11, 79, 193, 0.14) !important;
+    background: var(--fit-card) !important;
+    color: var(--fit-text);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08) !important;
+}
+
+.sync-indicator-bar {
+    padding: 0.85rem 1rem;
+}
+
+.sync-status span:first-of-type,
+.welcome-text h2,
+.section-header-bar h3,
+.shortcut-info h4,
+.commission-target-card h3,
+.stats-summary-strip h3,
+.info-card-header h4,
+.seller-list-title,
+.circular-value,
+.strip-item strong {
+    color: var(--fit-text) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+.sync-time,
+.welcome-text p,
+.welcome-date,
+.shortcut-info p,
+.target-details,
+.strip-item span,
+.strip-item p,
+.info-card-header p,
+.seller-list-meta,
+.conversion-details {
+    color: var(--fit-muted) !important;
+}
+
+.welcome-hero {
+    padding: 1.35rem 1.5rem;
+}
+
+.welcome-hero::after {
+    display: none;
+}
+
+.welcome-time {
+    color: var(--fit-indigo) !important;
+    text-shadow: none;
+}
+
+.section-header-bar h3 i,
+.shortcut-action,
+.commission-target-card h3 i,
+#targetPercentText {
+    color: var(--fit-indigo) !important;
+}
+
+.shortcut-card {
+    min-height: 140px;
+}
+
+.shortcut-card:hover,
+.seller-list-row:hover {
+    transform: translateY(-2px);
+    border-color: rgba(11, 79, 193, 0.28) !important;
+    box-shadow: 0 22px 44px rgba(11, 79, 193, 0.12) !important;
+}
+
+.commission-amount-badge {
+    color: #0f766e;
+    background: rgba(20, 184, 166, 0.1);
+    border-color: rgba(20, 184, 166, 0.22);
+    text-shadow: none;
+}
+
+.target-progress-bar-container {
+    background: #e2e8f0;
+    border-color: #dbeafe;
+}
+
+.target-progress-fill {
+    background: linear-gradient(90deg, var(--fit-indigo), var(--fit-purple));
+    box-shadow: 0 8px 18px rgba(11, 79, 193, 0.18);
+}
+
+.strip-item,
+.seller-list-row,
+.seller-empty-state {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.circular-progress {
+    box-shadow: 0 14px 28px rgba(11, 79, 193, 0.12);
+}
+
+.circular-progress::before {
+    background-color: var(--fit-card);
+}
+
+html.dark .sync-indicator-bar,
+html.dark .welcome-hero,
+html.dark .shortcut-card,
+html.dark .commission-target-card,
+html.dark .stats-summary-strip,
+html.dark .premium-list-card {
+    background: #161820 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f8fafc;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24) !important;
+}
+
+html.dark .sync-status span:first-of-type,
+html.dark .welcome-text h2,
+html.dark .section-header-bar h3,
+html.dark .shortcut-info h4,
+html.dark .commission-target-card h3,
+html.dark .stats-summary-strip h3,
+html.dark .info-card-header h4,
+html.dark .seller-list-title,
+html.dark .circular-value,
+html.dark .strip-item strong {
+    color: #f8fafc !important;
+}
+
+html.dark .sync-time,
+html.dark .welcome-text p,
+html.dark .welcome-date,
+html.dark .shortcut-info p,
+html.dark .target-details,
+html.dark .strip-item span,
+html.dark .strip-item p,
+html.dark .info-card-header p,
+html.dark .seller-list-meta,
+html.dark .conversion-details {
+    color: #94a3b8 !important;
+}
+
+html.dark .strip-item,
+html.dark .seller-list-row,
+html.dark .seller-empty-state {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .circular-progress::before {
+    background-color: #161820;
+}
+
+@media (max-width: 760px) {
+    .sync-indicator-bar,
+    .welcome-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .welcome-meta {
+        text-align: left;
+    }
+}
+
+/* Seller metrics copied from the Dash2 admin card language in /dash. */
+.seller-dash2-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.seller-dash2-card {
+    min-height: 270px;
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(49, 46, 129, 0.8);
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.seller-dash2-card h3 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: inherit;
+}
+
+.seller-dash2-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.seller-dash2-head h3,
+.seller-dash2-progress-card > h3 {
+    color: #94a3b8;
+}
+
+.seller-dash2-select,
+.seller-dash2-chip {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid #c7d2fe;
+    background: rgba(238, 242, 255, 0.65);
+    color: #4338ca;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.seller-dash2-trend {
+    display: flex;
+    flex-direction: column;
+}
+
+.seller-dash2-number-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.seller-dash2-number-row i {
+    font-size: 1.375rem;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.seller-dash2-number-row strong {
+    display: block;
+    color: #1e293b;
+    font-size: 1.875rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.seller-dash2-up {
+    color: #6366f1;
+}
+
+.seller-dash2-down {
+    color: #fb7185;
+}
+
+.seller-dash2-trend p,
+.seller-dash2-revenue-main span,
+.seller-dash2-search-card p {
+    margin: 0.125rem 0 0;
+    color: #94a3b8;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.seller-dash2-separator {
+    border-top: 1px solid currentColor;
+    opacity: 0.16;
+}
+
+.seller-dash2-progress-list {
+    display: grid;
+    gap: 1rem;
+    margin: auto 0;
+}
+
+.seller-dash2-progress-item {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.seller-dash2-progress-item > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.seller-dash2-track {
+    width: 100%;
+    height: 0.75rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #eef2ff;
+}
+
+.seller-dash2-bar {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.5s ease;
+}
+
+.seller-dash2-bar-indigo {
+    background: #818cf8;
+}
+
+.seller-dash2-bar-rose {
+    background: #fb7185;
+}
+
+.seller-dash2-bar-blue {
+    background: #0b4fc1;
+}
+
+.seller-dash2-revenue-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.seller-dash2-money {
+    color: #1e293b;
+    font-size: clamp(1.35rem, 1.7vw, 1.875rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0;
+}
+
+.seller-dash2-growth {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981 !important;
+    font-size: 0.625rem !important;
+    font-weight: 800 !important;
+    white-space: nowrap;
+}
+
+.seller-dash2-mini-bars {
+    height: 7rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 1.5rem;
+}
+
+.seller-dash2-mini-bars span {
+    width: 100%;
+    max-width: 42px;
+    min-height: 18px;
+    border-radius: 0.75rem;
+    background: #0b4fc1;
+    box-shadow: 0 10px 24px rgba(11, 79, 193, 0.18);
+}
+
+.seller-dash2-mini-bars span:nth-child(even) {
+    background: #f25a59;
+}
+
+.seller-dash2-search {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.25rem 0.25rem 0.25rem 1rem;
+    border-radius: 999px;
+    border: 1px solid #e0e7ff;
+    background: rgba(238, 242, 255, 0.55);
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.seller-dash2-search i {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #0b4fc1;
+    color: #ffffff;
+}
+
+.seller-dash2-wave {
+    height: 7rem;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.45rem;
+}
+
+.seller-dash2-wave span {
+    width: 100%;
+    min-height: 20%;
+    border-radius: 1rem 1rem 0.45rem 0.45rem;
+    border: 1px solid #c7d2fe;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(11, 79, 193, 0.08),
+        rgba(11, 79, 193, 0.08) 4px,
+        rgba(238, 242, 255, 0.7) 4px,
+        rgba(238, 242, 255, 0.7) 8px
+    );
+}
+
+html.dark .seller-dash2-card {
+    background: #151722;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .seller-dash2-number-row strong,
+html.dark .seller-dash2-money,
+html.dark .seller-dash2-card h3 {
+    color: #f1f5f9;
+}
+
+html.dark .seller-dash2-head h3,
+html.dark .seller-dash2-progress-card > h3,
+html.dark .seller-dash2-trend p,
+html.dark .seller-dash2-revenue-main span,
+html.dark .seller-dash2-search-card p,
+html.dark .seller-dash2-progress-item > div:first-child {
+    color: #94a3b8;
+}
+
+html.dark .seller-dash2-select,
+html.dark .seller-dash2-chip,
+html.dark .seller-dash2-search {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+}
+
+html.dark .seller-dash2-track {
+    background: #1e293b;
+}
+
+html.dark .seller-dash2-wave span {
+    border-color: #334155;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0.04) 4px,
+        rgba(30, 41, 59, 0.8) 4px,
+        rgba(30, 41, 59, 0.8) 8px
+    );
+}
+
+@media (max-width: 1180px) {
+    .seller-dash2-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .seller-dash2-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Seller dashboard admin-style surface. Only affects vendedor. */
+.seller-dashboard {
+    gap: 1.65rem;
+}
+
+.seller-dashboard .sync-indicator-bar,
+.seller-dashboard .welcome-hero,
+.seller-dashboard .shortcuts-section,
+.seller-dashboard .seller-hero-row {
+    display: none;
+}
+
+.seller-dashboard .seller-dash2-grid {
+    order: 1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+.seller-dashboard .seller-info-grid {
+    order: 2;
+}
+
+.seller-dashboard .seller-dash2-card,
+.seller-dashboard .premium-list-card {
+    border: 1px solid #bfdbfe !important;
+    border-radius: 1.5rem !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05) !important;
+}
+
+.seller-dashboard .seller-dash2-card {
+    min-height: 285px;
+}
+
+.seller-dashboard .seller-dash2-card h3,
+.seller-dashboard .premium-list-card h4,
+.seller-dashboard .seller-list-title,
+.seller-dashboard .circular-value {
+    color: #1e293b !important;
+}
+
+.seller-dashboard .seller-dash2-head h3,
+.seller-dashboard .seller-dash2-progress-card > h3,
+.seller-dashboard .seller-dash2-trend p,
+.seller-dashboard .seller-dash2-revenue-main span,
+.seller-dashboard .seller-dash2-search-card p,
+.seller-dashboard .seller-dash2-progress-item > div:first-child,
+.seller-dashboard .info-card-header p,
+.seller-dashboard .seller-list-meta,
+.seller-dashboard .conversion-details {
+    color: #8da0bd !important;
+}
+
+.seller-dashboard .seller-dash2-select,
+.seller-dashboard .seller-dash2-chip {
+    border-color: #bfdbfe !important;
+    background: #e0f2fe !important;
+    color: #0b4fc1 !important;
+}
+
+.seller-dashboard .seller-dash2-up,
+.seller-dashboard .seller-dash2-bar-blue {
+    color: #0b4fc1;
+    background: #0b4fc1;
+}
+
+.seller-dashboard .seller-dash2-down,
+.seller-dashboard .seller-dash2-bar-rose,
+.seller-dashboard .seller-dash2-mini-bars span:nth-child(even) {
+    color: #10b981;
+    background: #10b981;
+}
+
+.seller-dashboard .seller-dash2-bar-indigo,
+.seller-dashboard .seller-dash2-mini-bars span {
+    background: #0b4fc1;
+}
+
+.seller-dashboard .seller-dash2-growth {
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    background: rgba(16, 185, 129, 0.16) !important;
+    color: #059669 !important;
+}
+
+.seller-dashboard .seller-dash2-track {
+    background: #e0f2fe;
+}
+
+.seller-dashboard .seller-dash2-separator {
+    border-color: #bfdbfe;
+    opacity: 1;
+}
+
+.seller-dashboard .seller-dash2-search {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #8da0bd;
+}
+
+.seller-dashboard .seller-dash2-search i {
+    background: #0b4fc1;
+}
+
+.seller-dashboard .seller-dash2-wave span {
+    border-color: #bfdbfe;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(11, 79, 193, 0.12),
+        rgba(11, 79, 193, 0.12) 4px,
+        rgba(16, 185, 129, 0.12) 4px,
+        rgba(16, 185, 129, 0.12) 8px
+    );
+}
+
+.seller-dash2-calendar-card {
+    justify-content: flex-start;
+}
+
+.seller-dash2-calendar-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 900;
+    text-transform: lowercase;
+}
+
+.seller-dash2-calendar-head i:first-child {
+    justify-self: start;
+}
+
+.seller-dash2-calendar-head i:last-child {
+    justify-self: end;
+}
+
+.seller-dash2-calendar-head i {
+    color: #8da0bd;
+    font-size: 1.25rem;
+}
+
+.seller-dash2-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.8rem 0.65rem;
+    margin-top: 1.2rem;
+    text-align: center;
+}
+
+.seller-dash2-calendar-grid span {
+    min-height: 1.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.seller-dash2-calendar-grid .seller-dash2-calendar-day-name {
+    color: #8da0bd;
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.seller-dash2-calendar-grid .is-today {
+    background: #0b4fc1;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(11, 79, 193, 0.24);
+}
+
+.seller-dashboard .seller-list-row,
+.seller-dashboard .seller-empty-state {
+    border-color: #dbeafe !important;
+    background: #f8fbff !important;
+    color: #1e293b !important;
+}
+
+.seller-dashboard .conversion-rate-container {
+    color: #1e293b;
+}
+
+.seller-dashboard .circular-progress {
+    background: conic-gradient(#10b981 var(--progress, 0%), #e0f2fe var(--progress, 0%)) !important;
+}
+
+.seller-dashboard .circular-progress::before {
+    background-color: #ffffff;
+}
+
+html.dark .seller-dashboard .seller-dash2-card,
+html.dark .seller-dashboard .premium-list-card {
+    background: #151722 !important;
+    border-color: rgba(147, 197, 253, 0.22) !important;
+    color: #f8fafc !important;
+}
+
+html.dark .seller-dash2-calendar-head,
+html.dark .seller-dash2-calendar-grid span,
+html.dark .seller-dashboard .seller-dash2-card h3,
+html.dark .seller-dashboard .premium-list-card h4,
+html.dark .seller-dashboard .seller-list-title,
+html.dark .seller-dashboard .circular-value {
+    color: #f8fafc !important;
+}
+
+html.dark .seller-dashboard .seller-list-row,
+html.dark .seller-dashboard .seller-empty-state {
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f8fafc !important;
+}
+
+html.dark .seller-dashboard .seller-dash2-track {
+    background: #1e293b;
+}
+
+html.dark .seller-dashboard .seller-dash2-select,
+html.dark .seller-dashboard .seller-dash2-chip,
+html.dark .seller-dashboard .seller-dash2-search {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+html.dark .seller-dashboard .circular-progress::before {
+    background-color: #151722;
+}
+
+@media (max-width: 1180px) {
+    .seller-dashboard .seller-dash2-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .seller-dashboard .seller-dash2-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Seller admin-style dashboard. */
