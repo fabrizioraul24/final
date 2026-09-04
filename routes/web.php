@@ -43,6 +43,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/agente-reposicion', [AiReplenishmentAgentController::class, 'index'])->name('agent.replenishment');
     Route::get('/agente-reposicion/reporte/pdf', [AiReplenishmentAgentController::class, 'report'])->name('agent.replenishment.report');
     Route::get('/agente-reposicion/estado', [AiReplenishmentAgentController::class, 'status'])->name('agent.replenishment.status');
+    Route::get('/agente-reposicion/evaluador/real', [AiReplenishmentAgentController::class, 'evaluatorReal'])->name('agent.replenishment.evaluator.real');
     Route::post('/agente-reposicion/run', [AiReplenishmentAgentController::class, 'runNow'])->name('agent.replenishment.run');
     Route::post('/agente-reposicion/solicitudes/{id}/aprobar', [AiReplenishmentAgentController::class, 'approveTransferRequest'])->name('agent.replenishment.approve');
     Route::post('/agente-reposicion/solicitudes/{id}/rechazar', [AiReplenishmentAgentController::class, 'rejectTransferRequest'])->name('agent.replenishment.reject');

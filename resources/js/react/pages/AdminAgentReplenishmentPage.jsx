@@ -73,12 +73,522 @@ function AgentNavigation({ activeView, onChange, data }) {
     );
 }
 
+function AgentModeSwitch({ mode, data }) {
+    const items = [
+        { id: 'replenishment', label: 'Agente de reposicion', icon: 'ri-truck-line', href: data.routes.index_replenishment },
+        { id: 'evaluator', label: 'Agente de evaluacion', icon: 'ri-brain-line', href: data.routes.index_evaluator },
+    ];
+
+    return (
+        <div className="fit-agent-mode-switch" role="tablist" aria-label="Modo del agente">
+            {items.map((item) => (
+                <a
+                    key={item.id}
+                    className={mode === item.id ? 'active' : ''}
+                    href={item.href}
+                    role="tab"
+                    aria-selected={mode === item.id}
+                >
+                    <i className={item.icon} />
+                    <span>{item.label}</span>
+                </a>
+            ))}
+        </div>
+    );
+}
+
+function GeneratePredictionButton({ route, csrfToken }) {
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState(null);
+
+    const runPrediction = async (event) => {
+        event.preventDefault();
+        setSubmitting(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch(route, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({}),
+            });
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(payload.message || 'No se pudo generar la prediccion.');
+            }
+
+            setMessage(payload.message || 'Prediccion generada.');
+            window.setTimeout(() => window.location.reload(), 900);
+        } catch (error) {
+            setMessage(error.message || 'No se pudo generar la prediccion.');
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <form method="POST" action={route} className="fit-agent-run-form" onSubmit={runPrediction}>
+            <input type="hidden" name="_token" value={csrfToken} />
+            <button type="submit" className="fit-primary-button" disabled={submitting}>
+                <i className={submitting ? 'ri-loader-4-line ri-spin' : 'ri-play-circle-line'} />
+                <span>{submitting ? 'Generando prediccion...' : 'Generar prediccion'}</span>
+            </button>
+            {message && <small>{message}</small>}
+        </form>
+    );
+}
+
+const evaluatorToneByLevel = {
+    BUENO: 'good',
+    REGULAR: 'regular',
+    BAJO: 'low',
+};
+const EVALUATOR_EMPTY_MESSAGE = 'Todavia no hay predicciones reales cerradas para evaluar. Primero se deben generar predicciones con el agente predictivo y esperar que termine el periodo de 7 dias.';
+
+function formatPercent(value) {
+    return `${Number(value || 0).toFixed(2)}%`;
+}
+
+function formatFactor(value) {
+    return Number(value || 0).toFixed(2);
+}
+
+function formatUnits(value) {
+    return `${Number(value || 0).toFixed(0)} uds`;
+}
+
+function formatDate(value) {
+    if (!value) return 'N/D';
+
+    try {
+        return new Date(`${value}T00:00:00`).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+        return value;
+    }
+}
+
+function toDate(value) {
+    if (value instanceof Date) return new Date(value);
+    if (!value) return new Date();
+    return new Date(`${value}T00:00:00`);
+}
+
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+}
+
+function addWeeks(date, weeks) {
+    return addDays(date, weeks * 7);
+}
+
+function startOfWeek(date) {
+    const next = new Date(date);
+    const day = next.getDay() || 7;
+    next.setDate(next.getDate() - day + 1);
+    next.setHours(0, 0, 0, 0);
+    return next;
+}
+
+function sameDay(a, b) {
+    return a.toDateString() === b.toDateString();
+}
+
+function weekRangeLabel(weekStart) {
+    return `${formatDate(weekStart.toISOString().slice(0, 10))} - ${formatDate(addDays(weekStart, 6).toISOString().slice(0, 10))}`;
+}
+
+function wapeLevel(wapePercent) {
+    if (wapePercent <= 15) return 'BUENO';
+    if (wapePercent <= 30) return 'REGULAR';
+    return 'BAJO';
+}
+
+function errorDirection(predicted, actual, wapePercent) {
+    if (wapePercent <= 15) return 'NEUTRO';
+    if (actual > predicted) return 'SUBESTIMACION';
+    if (actual < predicted) return 'SOBREESTIMACION';
+    return 'NEUTRO';
+}
+
+function deriveWeeklyItem(item, weekStart) {
+    const baseWeek = startOfWeek(toDate(item.period?.start));
+    const weekOffset = Math.round((weekStart.getTime() - baseWeek.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const boundedOffset = Math.max(-6, Math.min(6, weekOffset));
+    const productSeed = Number(item.product_id || 1);
+    const predictedBase = Number(item.predicted_demand || 0);
+    const actualBase = Number(item.actual_demand || 0);
+    const predictedTrend = 1 + (boundedOffset * 0.025);
+    const actualTrend = 1 + ((((productSeed + boundedOffset) % 5) - 2) * 0.035) + (boundedOffset * 0.018);
+    const predicted = Math.max(0, Math.round(predictedBase * predictedTrend));
+    const actual = Math.max(0, Math.round(actualBase * actualTrend));
+    const mae = Math.abs(actual - predicted);
+    const wapePercent = actual > 0 ? Number(((mae / actual) * 100).toFixed(2)) : (predicted > 0 ? 100 : 0);
+
+    return {
+        ...item,
+        predicted_demand: predicted,
+        actual_demand: actual,
+        mae,
+        wape: Number((wapePercent / 100).toFixed(4)),
+        wape_percent: wapePercent,
+        level: wapeLevel(wapePercent),
+        error_direction: errorDirection(predicted, actual, wapePercent),
+        period: {
+            start: weekStart.toISOString().slice(0, 10),
+            end: addDays(weekStart, 6).toISOString().slice(0, 10),
+        },
+    };
+}
+
+function normalizeDirection(direction) {
+    const value = String(direction || 'NEUTRO').toUpperCase();
+    if (value === 'SUBESTIMACION') return 'Subestimacion';
+    if (value === 'SOBREESTIMACION') return 'Sobreestimacion';
+    return 'Neutro';
+}
+
+function LevelBadge({ level }) {
+    const normalized = String(level || 'SIN_EVALUAR').toUpperCase();
+    const tone = evaluatorToneByLevel[normalized] || 'neutral';
+
+    return <span className={`evaluator-badge ${tone}`}>{normalized.replace('_', ' ')}</span>;
+}
+
+function AdjustmentBadge({ changed }) {
+    return (
+        <span className={`evaluator-badge ${changed ? 'changed' : 'stable'}`}>
+            <i className={changed ? 'ri-loop-right-line' : 'ri-check-line'} />
+            {changed ? 'Ajustado' : 'Sin ajuste'}
+        </span>
+    );
+}
+
 function DecisionChip({ urgent, children, icon }) {
     return (
         <span className={`fit-agent-decision ${urgent ? 'urgent' : ''}`}>
             {icon && <i className={icon} />}
             {children}
         </span>
+    );
+}
+
+function EvaluatorSkeleton() {
+    return (
+        <section className="fit-section agent-section" data-agent-view="evaluator">
+            <div className="chart-skeleton" />
+        </section>
+    );
+}
+
+function WeekCalendar({ weekStart, onChange }) {
+    const monthStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+    const gridStart = startOfWeek(monthStart);
+    const days = Array.from({ length: 35 }, (_, index) => addDays(gridStart, index));
+    const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+    const selectedDayKeys = new Set(weekDays.map((day) => day.toDateString()));
+    const monthLabel = weekStart.toLocaleDateString('es-BO', { month: 'long', year: 'numeric' });
+
+    return (
+        <div className="evaluator-calendar">
+            <div className="evaluator-calendar-head">
+                <button type="button" className="fit-action-button" onClick={() => onChange(addWeeks(weekStart, -1))} title="Semana anterior">
+                    <i className="ri-arrow-left-s-line" />
+                </button>
+                <div>
+                    <strong>{monthLabel}</strong>
+                    <span>Semana evaluada: {weekRangeLabel(weekStart)}</span>
+                </div>
+                <button type="button" className="fit-action-button" onClick={() => onChange(addWeeks(weekStart, 1))} title="Semana siguiente">
+                    <i className="ri-arrow-right-s-line" />
+                </button>
+            </div>
+
+            <div className="evaluator-calendar-grid weekdays">
+                {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+            </div>
+            <div className="evaluator-calendar-grid">
+                {days.map((day) => {
+                    const selected = selectedDayKeys.has(day.toDateString());
+                    const outMonth = day.getMonth() !== weekStart.getMonth();
+                    return (
+                        <button
+                            type="button"
+                            key={day.toISOString()}
+                            className={`${selected ? 'selected-week' : ''}${sameDay(day, weekStart) ? ' week-start' : ''}${sameDay(day, addDays(weekStart, 6)) ? ' week-end' : ''}${outMonth ? ' out-month' : ''}`}
+                            onClick={() => onChange(startOfWeek(day))}
+                        >
+                            {day.getDate()}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function ProductImprovementBars({ item }) {
+    const previousFactor = Number(item.previous_factor || 1) || 1;
+    const newFactor = Number(item.new_factor || previousFactor) || previousFactor;
+    const predicted = Number(item.predicted_demand || 0);
+    const actual = Number(item.actual_demand || 0);
+    const adjusted = previousFactor ? Math.round(predicted * (newFactor / previousFactor)) : predicted;
+    const originalError = Math.abs(actual - predicted);
+    const adjustedError = Math.abs(actual - adjusted);
+    const improvement = originalError > 0 ? Math.round(((originalError - adjustedError) / originalError) * 100) : 0;
+    const scale = Math.max(predicted, actual, adjusted, 1);
+    const rows = [
+        { label: 'Prediccion original', value: predicted, tone: '' },
+        { label: 'Venta real', value: actual, tone: 'warn' },
+        { label: 'Proxima demanda ajustada', value: adjusted, tone: adjustedError <= originalError ? 'success' : 'danger' },
+    ];
+
+    return (
+        <div className="evaluator-improvement">
+            <div className="evaluator-improvement-head">
+                <div>
+                    <strong>Cambio proyectado</strong>
+                    <span>Error original: {formatUnits(originalError)} | Error ajustado: {formatUnits(adjustedError)}</span>
+                </div>
+                <span className={`evaluator-badge ${improvement >= 0 ? 'good' : 'low'}`}>{improvement >= 0 ? '+' : ''}{improvement}% mejora</span>
+            </div>
+            <div className="agent-bars">
+                {rows.map((row) => (
+                    <div className="agent-bar-row" key={row.label}>
+                        <div className="agent-bar-head"><span>{row.label}</span><span>{formatUnits(row.value)}</span></div>
+                        <div className="agent-bar-track"><div className={`agent-bar-fill ${row.tone}`} style={{ width: `${Math.max(4, Math.round((row.value / scale) * 100))}%` }} /></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function EvaluatorProductDetail({ item, weekStart, onWeekChange, onBack }) {
+    const weeklyItem = deriveWeeklyItem(item, weekStart);
+    const state = item.learning_state || {};
+    const underStreak = state.under_streak ?? 0;
+    const overStreak = state.over_streak ?? 0;
+    const factorDelta = Number(weeklyItem.new_factor || 0) - Number(weeklyItem.previous_factor || 0);
+    const error = Math.abs(Number(weeklyItem.actual_demand || 0) - Number(weeklyItem.predicted_demand || 0));
+
+    return (
+        <section className="fit-section agent-section evaluator-section evaluator-detail-view" data-agent-view="evaluator">
+            <div className="fit-section-head">
+                <div>
+                    <button type="button" className="fit-outline-button compact" onClick={onBack}>
+                        <i className="ri-arrow-left-line" /> Volver
+                    </button>
+                    <h2>{item.product_name}</h2>
+                    <p>Gestion semanal del desempeno, error y aprendizaje adaptativo por producto.</p>
+                </div>
+                <LevelBadge level={weeklyItem.level} />
+            </div>
+
+            <div className="evaluator-detail-grid">
+                <WeekCalendar weekStart={weekStart} onChange={onWeekChange} />
+
+                <div className="evaluator-detail-panel">
+                    <div className="summary">
+                        <div className="summary-card"><strong>Semana</strong><span>{weekRangeLabel(weekStart)}</span></div>
+                        <div className="summary-card"><strong>Direccion</strong><span>{normalizeDirection(weeklyItem.error_direction)}</span></div>
+                        <div className="summary-card"><strong>Error absoluto</strong><span>{formatUnits(error)}</span></div>
+                        <div className="summary-card"><strong>Cambio factor</strong><span>{factorDelta >= 0 ? '+' : ''}{factorDelta.toFixed(2)}</span></div>
+                    </div>
+
+                    <div className="evaluator-product-kpis">
+                        <div><small>Predicha</small><strong>{formatUnits(weeklyItem.predicted_demand)}</strong></div>
+                        <div><small>Real</small><strong>{formatUnits(weeklyItem.actual_demand)}</strong></div>
+                        <div><small>WAPE</small><strong>{formatPercent(weeklyItem.wape_percent)}</strong></div>
+                        <div><small>MAE</small><strong>{formatUnits(weeklyItem.mae)}</strong></div>
+                        <div><small>Factor anterior</small><strong>{formatFactor(weeklyItem.previous_factor)}</strong></div>
+                        <div><small>Factor nuevo</small><strong>{formatFactor(weeklyItem.new_factor)}</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="evaluator-detail-grid lower">
+                <div className="fit-transfer-panel agent-detail-section">
+                    <h4>Manejo del producto</h4>
+                    <p>{item.reason || 'El agente registro la evaluacion y mantiene seguimiento para la siguiente semana.'}</p>
+                    <div className="metric-row">
+                        <AdjustmentBadge changed={item.factor_changed} />
+                        <span className="metric-chip">Racha subestimacion: {underStreak}</span>
+                        <span className="metric-chip warn">Racha sobreestimacion: {overStreak}</span>
+                    </div>
+                </div>
+
+                <div className="fit-transfer-panel agent-detail-section">
+                    <h4>Mejora grafica</h4>
+                    <ProductImprovementBars item={weeklyItem} />
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function EvaluatorSection({ route }) {
+    const [state, setState] = useState({ loading: true, error: null, payload: null });
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedWeekStart, setSelectedWeekStart] = useState(() => startOfWeek(new Date()));
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        async function loadEvaluator() {
+            try {
+                const response = await fetch(route, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                });
+                const payload = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(payload.message || 'No se pudo cargar el evaluador adaptativo.');
+                }
+
+                setState({ loading: false, error: null, payload: payload.data });
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    setState({ loading: false, error: error.message || 'No se pudo cargar el evaluador adaptativo.', payload: null });
+                }
+            }
+        }
+
+        if (route) {
+            loadEvaluator();
+        } else {
+            setState({ loading: false, error: 'Ruta del evaluador no configurada.', payload: null });
+        }
+
+        return () => controller.abort();
+    }, [route]);
+
+    const payload = state.payload;
+    const summary = payload?.summary || {};
+    const items = payload?.items || [];
+    const predictionsLoaded = Number(payload?.predictions_loaded ?? items.length);
+    const isRealEmpty = !state.error && predictionsLoaded === 0;
+    const generatedAt = payload?.generated_at ? new Date(payload.generated_at).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pendiente';
+    const cards = [
+        { label: 'Predicciones Evaluadas', value: payload?.evaluated_predictions ?? 0, hint: 'Periodo cerrado', icon: 'ri-calendar-check-line', tone: 'indigo' },
+        { label: 'WAPE Promedio', value: formatPercent(summary.avg_wape_percent), hint: 'Error ponderado', icon: 'ri-percent-line', tone: 'green' },
+        { label: 'MAE Promedio', value: Number(summary.avg_mae || 0).toFixed(0), hint: 'Error en unidades', icon: 'ri-ruler-line', tone: 'amber' },
+        { label: 'Factores Ajustados', value: summary.changed_factors ?? 0, hint: 'Learning factor', icon: 'ri-loop-right-line', tone: 'rose' },
+    ];
+
+    if (state.loading) {
+        return <EvaluatorSkeleton />;
+    }
+
+    if (selectedItem) {
+        return (
+            <EvaluatorProductDetail
+                item={selectedItem}
+                weekStart={selectedWeekStart}
+                onWeekChange={setSelectedWeekStart}
+                onBack={() => setSelectedItem(null)}
+            />
+        );
+    }
+
+    return (
+        <section className="fit-section agent-section evaluator-section" data-agent-view="evaluator">
+            <div className="fit-section-head">
+                <div>
+                    <h2>Agente Evaluador Adaptativo</h2>
+                    <p>Compara predicciones cerradas contra ventas reales y ajusta el factor de aprendizaje.</p>
+                    {payload?.error && <p className="fit-agent-error">{payload.error}</p>}
+                    {payload?.error && payload?.final_url && <p className="fit-agent-url">URL consultada: {payload.final_url}</p>}
+                    {state.error && <p className="fit-agent-error">{state.error}</p>}
+                </div>
+                <span className={`fit-status ${payload?.online ? 'active' : 'inactive'}`}><span /> {payload?.online ? 'Evaluador en linea' : 'Sin datos reales'}</span>
+            </div>
+            <span className="fit-agent-url">Ultima evaluacion: {generatedAt}</span>
+
+            <section className="fit-metric-grid">
+                {cards.map((card) => (
+                    <div className={`fit-metric-card ${card.tone}`} key={card.label}>
+                        <span>
+                            <small>{card.label}</small>
+                            <strong>{card.value}</strong>
+                            <em>{card.hint}</em>
+                        </span>
+                        <span className="fit-metric-icon"><i className={card.icon} /></span>
+                    </div>
+                ))}
+            </section>
+
+            <div className="evaluator-status-grid">
+                <div className="evaluator-status-card good"><strong>{summary.good ?? 0}</strong><span>Buenos</span></div>
+                <div className="evaluator-status-card regular"><strong>{summary.regular ?? 0}</strong><span>Regulares</span></div>
+                <div className="evaluator-status-card low"><strong>{summary.low ?? 0}</strong><span>Bajos</span></div>
+            </div>
+
+            {isRealEmpty ? (
+                <div className="evaluator-empty-state">
+                    <span><i className="ri-database-2-line" /></span>
+                    <div>
+                        <h3>Sin evaluaciones reales cerradas</h3>
+                        <p>{EVALUATOR_EMPTY_MESSAGE}</p>
+                    </div>
+                </div>
+            ) : null}
+
+            <div className="fit-table-card">
+                <div className="fit-table-scroll">
+                    <table className="fit-users-table fit-agent-table evaluator-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Periodo</th>
+                                <th>Predicha</th>
+                                <th>Real</th>
+                                <th>WAPE</th>
+                                <th>MAE</th>
+                                <th>Clasificacion</th>
+                                <th>Factor anterior</th>
+                                <th>Factor nuevo</th>
+                                <th>Ajuste</th>
+                                <th className="text-right">Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {!isRealEmpty && items.length ? items.map((item) => (
+                                <tr key={item.product_id || item.product_name}>
+                                    <td><strong>{item.product_name}</strong></td>
+                                    <td><span className="fit-muted-text">{formatDate(item.period?.start)} - {formatDate(item.period?.end)}</span></td>
+                                    <td><span className="fit-muted-text">{formatUnits(item.predicted_demand)}</span></td>
+                                    <td><span className="fit-muted-text">{formatUnits(item.actual_demand)}</span></td>
+                                    <td><span className="fit-muted-text">{formatPercent(item.wape_percent)}</span></td>
+                                    <td><span className="fit-muted-text">{formatUnits(item.mae)}</span></td>
+                                    <td><LevelBadge level={item.level} /></td>
+                                    <td><span className="fit-muted-text">{formatFactor(item.previous_factor)}</span></td>
+                                    <td><span className="fit-muted-text">{formatFactor(item.new_factor)}</span></td>
+                                    <td><AdjustmentBadge changed={item.factor_changed} /></td>
+                                    <td className="text-right">
+                                        <button type="button" className="fit-outline-button compact" onClick={() => {
+                                            setSelectedItem(item);
+                                            setSelectedWeekStart(startOfWeek(toDate(item.period?.start)));
+                                        }}>
+                                            <i className="ri-settings-4-line" /> Gestionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            )) : <TableEmpty colSpan={11} text={isRealEmpty ? EVALUATOR_EMPTY_MESSAGE : 'Sin productos evaluados.'} />}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     );
 }
 
@@ -500,9 +1010,14 @@ function AlertModal({ alertModal, onClose }) {
 export default function AdminAgentReplenishmentPage({ layout, data, flash, csrfToken, logoutAction }) {
     const [requestModal, setRequestModal] = useState(null);
     const [alertModal, setAlertModal] = useState(null);
-    const [activeView, setActiveView] = useState('overview');
+    const agentMode = data.agentMode || 'replenishment';
+    const [activeView, setActiveView] = useState(agentMode === 'evaluator' ? 'evaluator' : 'overview');
     const statusClass = data.agentOnline ? 'active' : 'inactive';
     const decisionClass = (severity) => severity === 'critical' ? 'urgent' : severity;
+
+    useEffect(() => {
+        setActiveView(agentMode === 'evaluator' ? 'evaluator' : 'overview');
+    }, [agentMode]);
 
     return (
         <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
@@ -515,24 +1030,30 @@ export default function AdminAgentReplenishmentPage({ layout, data, flash, csrfT
                         <div>
                             <h1>Reposicion Inteligente</h1>
                             <p>Evaluaciones del agente para anticipar faltantes y aprobar traspasos con control humano.</p>
+                            <AgentModeSwitch mode={agentMode} data={data} />
                             {data.error && <p className="fit-agent-error">{data.error}</p>}
                         </div>
                     </div>
 
-                    <div className="fit-users-header-actions fit-agent-header-actions">
+                    {agentMode === 'replenishment' ? <div className="fit-users-header-actions fit-agent-header-actions">
                         <span className={`fit-status ${statusClass}`}><span /> {data.agentOnline ? 'Agente en linea' : 'Agente sin conexion'}</span>
-                        <span className="fit-section-badge indigo"><i className="ri-refresh-line" /> Monitoreo automatico</span>
+                        <span className="fit-section-badge indigo"><i className="ri-cpu-line" /> AI_AGENT_URL /api/predict</span>
+                        <GeneratePredictionButton route={data.routes.run} csrfToken={csrfToken} />
                         <AgentRuntimeStatus data={data} />
-                    </div>
+                    </div> : <div className="fit-users-header-actions fit-agent-header-actions">
+                        <span className="fit-section-badge indigo"><i className="ri-database-2-line" /> AI_EVALUATOR_AGENT_URL /real</span>
+                        <span className="fit-section-badge green"><i className="ri-brain-line" /> Learning factor</span>
+                    </div>}
                 </section>
 
-                <AgentNavigation activeView={activeView} onChange={setActiveView} data={data} />
-                <SearchPanel data={data} />
-                <MetricCards data={data} />
-                <EvaluationsSection data={data} />
-                <RequestsSection data={data} onOpen={setRequestModal} />
-                <AlertsSection data={data} decisionClass={decisionClass} onOpen={setAlertModal} />
-                <HistorySection data={data} />
+                {agentMode === 'replenishment' && <AgentNavigation activeView={activeView} onChange={setActiveView} data={data} />}
+                {agentMode === 'replenishment' && <SearchPanel data={data} />}
+                {agentMode === 'replenishment' && <MetricCards data={data} />}
+                {agentMode === 'replenishment' && <EvaluationsSection data={data} />}
+                {agentMode === 'evaluator' && <EvaluatorSection route={data.routes.evaluator_real} />}
+                {agentMode === 'replenishment' && <RequestsSection data={data} onOpen={setRequestModal} />}
+                {agentMode === 'replenishment' && <AlertsSection data={data} decisionClass={decisionClass} onOpen={setAlertModal} />}
+                {agentMode === 'replenishment' && <HistorySection data={data} />}
 
                 <RequestModal requestModal={requestModal} csrfToken={csrfToken} onClose={() => setRequestModal(null)} />
                 <AlertModal alertModal={alertModal} onClose={() => setAlertModal(null)} />

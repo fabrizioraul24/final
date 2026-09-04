@@ -34,6 +34,11 @@ return [
     'ai_agent' => [
         'url' => env('AI_AGENT_URL', 'http://127.0.0.1:8010'),
         'duplicate_window_hours' => env('AI_AGENT_DUPLICATE_WINDOW_HOURS', 24),
+        'predict_timeout' => env('AI_AGENT_PREDICT_TIMEOUT', 180),
+    ],
+
+    'ai_evaluator_agent' => [
+        'url' => env('AI_EVALUATOR_AGENT_URL', 'http://127.0.0.1:8011'),
     ],
 
     'fastapi' => [

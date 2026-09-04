@@ -47,6 +47,18 @@
     font-weight: 850;
 }
 
+.fit-agent-url {
+    width: fit-content;
+    margin-top: 0.45rem !important;
+    border: 1px solid rgba(100, 116, 139, 0.18);
+    border-radius: 999px;
+    padding: 0.34rem 0.68rem;
+    background: rgba(100, 116, 139, 0.08);
+    color: #475569 !important;
+    font-size: 0.72rem !important;
+    font-weight: 850;
+}
+
 .fit-agent-skeleton {
     display: grid;
     gap: 1rem;
@@ -272,6 +284,32 @@
     justify-content: flex-end;
 }
 
+.fit-agent-run-form {
+    display: grid;
+    justify-items: end;
+    gap: 0.28rem;
+    margin: 0;
+}
+
+.fit-agent-run-form small {
+    max-width: 18rem;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: right;
+}
+
+.ri-spin {
+    animation: fit-agent-spin 0.8s linear infinite;
+}
+
+@keyframes fit-agent-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .fit-agent-header-actions .fit-section-badge {
     gap: 0.35rem;
 }
@@ -318,6 +356,44 @@
     padding: 0.38rem;
     background: rgba(224, 231, 255, 0.72);
     box-shadow: inset 0 1px 4px rgba(11, 79, 193, 0.08);
+}
+
+.fit-agent-mode-switch {
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.85rem;
+    border: 1px solid rgba(11, 79, 193, 0.18);
+    border-radius: 999px;
+    padding: 0.32rem;
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.fit-agent-mode-switch a {
+    min-height: 2.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.58rem 0.9rem;
+    background: transparent;
+    color: #334155;
+    font-size: 0.74rem;
+    font-weight: 950;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fit-agent-mode-switch a.active {
+    background: var(--fit-indigo);
+    color: #ffffff;
+    box-shadow: 0 10px 18px rgba(11, 79, 193, 0.22);
 }
 
 .fit-agent-tabs button {
@@ -368,10 +444,323 @@
 
 .agent-view-overview [data-agent-view="overview"],
 .agent-view-evaluations [data-agent-view="evaluations"],
+.agent-view-evaluator [data-agent-view="evaluator"],
 .agent-view-requests [data-agent-view="requests"],
 .agent-view-alerts [data-agent-view="alerts"],
 .agent-view-history [data-agent-view="history"] {
     display: grid;
+}
+
+.evaluator-section {
+    gap: 1rem;
+}
+
+.evaluator-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.evaluator-detail-view .fit-section-head {
+    align-items: flex-start;
+}
+
+.evaluator-detail-view .fit-section-head h2 {
+    margin-top: 0.7rem;
+}
+
+.evaluator-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+    gap: 1rem;
+}
+
+.evaluator-detail-grid.lower {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+}
+
+.evaluator-calendar,
+.evaluator-detail-panel,
+.evaluator-improvement {
+    min-width: 0;
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    background: #ffffff;
+    padding: 1rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.evaluator-calendar-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.evaluator-calendar-head strong {
+    display: block;
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-weight: 950;
+    text-transform: capitalize;
+}
+
+.evaluator-calendar-head span {
+    display: block;
+    margin-top: 0.15rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.evaluator-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.18rem;
+}
+
+.evaluator-calendar-grid.weekdays {
+    margin-bottom: 0.28rem;
+}
+
+.evaluator-calendar-grid.weekdays span {
+    display: grid;
+    place-items: center;
+    height: 1.45rem;
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 950;
+}
+
+.evaluator-calendar-grid button {
+    min-width: 0;
+    height: 2.35rem;
+    border: 0;
+    background: transparent;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.evaluator-calendar-grid button.out-month {
+    color: #94a3b8;
+}
+
+.evaluator-calendar-grid button.selected-week {
+    background: rgba(11, 79, 193, 0.14);
+    color: var(--fit-indigo);
+    box-shadow: inset 0 2px 0 rgba(11, 79, 193, 0.38), inset 0 -2px 0 rgba(11, 79, 193, 0.38);
+}
+
+.evaluator-calendar-grid button.week-start {
+    border-radius: 999px 0 0 999px;
+}
+
+.evaluator-calendar-grid button.week-end {
+    border-radius: 0 999px 999px 0;
+}
+
+.evaluator-calendar-grid button.selected-week:not(.week-start):not(.week-end) {
+    border-radius: 0;
+}
+
+.evaluator-detail-panel {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+}
+
+.evaluator-detail-panel .summary-card strong {
+    display: block;
+    color: #334155;
+    font-size: 0.68rem;
+    font-weight: 950;
+}
+
+.evaluator-detail-panel .summary-card span {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 0.88rem;
+    font-weight: 950;
+}
+
+.evaluator-product-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.evaluator-product-kpis div {
+    min-width: 0;
+    border: 1px solid #e0e7ff;
+    border-radius: 0.85rem;
+    background: #f8fafc;
+    padding: 0.78rem;
+}
+
+.evaluator-product-kpis small {
+    display: block;
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.evaluator-product-kpis strong {
+    display: block;
+    margin-top: 0.18rem;
+    color: #0f172a;
+    font-size: 0.98rem;
+    font-weight: 950;
+}
+
+.evaluator-improvement {
+    display: grid;
+    gap: 0.9rem;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+}
+
+.evaluator-improvement-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+
+.evaluator-improvement-head strong {
+    display: block;
+    color: #0f172a;
+    font-size: 0.86rem;
+    font-weight: 950;
+}
+
+.evaluator-improvement-head span {
+    display: block;
+    margin-top: 0.22rem;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.evaluator-status-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 1rem;
+    padding: 0.88rem 1rem;
+    background: #ffffff;
+}
+
+.evaluator-status-card strong {
+    color: #0f172a;
+    font-size: 1.3rem;
+    font-weight: 950;
+}
+
+.evaluator-status-card span {
+    font-size: 0.76rem;
+    font-weight: 900;
+}
+
+.evaluator-status-card.good {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(16, 185, 129, 0.08);
+    color: #059669;
+}
+
+.evaluator-status-card.regular {
+    border-color: rgba(245, 158, 11, 0.28);
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.evaluator-status-card.low {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(244, 63, 94, 0.08);
+    color: #e11d48;
+}
+
+.evaluator-empty-state {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    border: 1px dashed rgba(100, 116, 139, 0.32);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.evaluator-empty-state > span {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 0.8rem;
+    background: rgba(11, 79, 193, 0.1);
+    color: var(--fit-indigo);
+    font-size: 1.15rem;
+}
+
+.evaluator-empty-state h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.evaluator-empty-state p {
+    margin: 0.25rem 0 0;
+    max-width: 760px;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.evaluator-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 0.3rem 0.6rem;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.evaluator-badge.good,
+.evaluator-badge.stable {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.evaluator-badge.regular {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.evaluator-badge.low,
+.evaluator-badge.changed {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(244, 63, 94, 0.1);
+    color: #e11d48;
+}
+
+.evaluator-table th,
+.evaluator-table td {
+    white-space: nowrap;
 }
 
 .fit-agent-filter-form {
@@ -598,6 +987,10 @@
     background: var(--fit-coral);
 }
 
+.agent-bar-fill.success {
+    background: #10b981;
+}
+
 .agent-bar-fill.danger {
     background: #f43f5e;
 }
@@ -659,6 +1052,8 @@ html.dark .reason-summary p strong {
 }
 
 html.dark .fit-agent-runtime small,
+html.dark .fit-agent-url,
+html.dark .fit-agent-run-form small,
 html.dark .alert-product-card > p,
 html.dark .alert-card-item p,
 html.dark .agent-lot-row p,
@@ -673,11 +1068,18 @@ html.dark .fit-agent-tabs {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
-html.dark .fit-agent-tabs button {
+html.dark .fit-agent-mode-switch {
+    background: rgba(21, 23, 32, 0.82);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-agent-tabs button,
+html.dark .fit-agent-mode-switch a {
     color: #94a3b8;
 }
 
-html.dark .fit-agent-tabs button.active {
+html.dark .fit-agent-tabs button.active,
+html.dark .fit-agent-mode-switch a.active {
     background: var(--fit-indigo);
     color: #ffffff;
 }
@@ -685,9 +1087,48 @@ html.dark .fit-agent-tabs button.active {
 html.dark .alert-product-card,
 html.dark .alert-card-item,
 html.dark .agent-lot-row,
-html.dark .agent-decision-card {
+html.dark .agent-decision-card,
+html.dark .evaluator-status-card,
+html.dark .evaluator-empty-state,
+html.dark .evaluator-calendar,
+html.dark .evaluator-detail-panel,
+html.dark .evaluator-detail-panel .summary-card,
+html.dark .evaluator-product-kpis div {
     background: #1e212b;
     border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .evaluator-badge {
+    color: #94a3b8;
+}
+
+html.dark .evaluator-status-card strong,
+html.dark .evaluator-empty-state h3,
+html.dark .evaluator-calendar-head strong,
+html.dark .evaluator-product-kpis strong,
+html.dark .evaluator-detail-panel .summary-card span,
+html.dark .evaluator-improvement-head strong {
+    color: #f8fafc !important;
+}
+
+html.dark .evaluator-calendar-head span,
+html.dark .evaluator-empty-state p,
+html.dark .evaluator-calendar-grid.weekdays span,
+html.dark .evaluator-calendar-grid button.out-month,
+html.dark .evaluator-product-kpis small,
+html.dark .evaluator-detail-panel .summary-card strong,
+html.dark .evaluator-improvement-head span {
+    color: #cbd5e1 !important;
+}
+
+html.dark .evaluator-calendar-grid button {
+    color: #cbd5e1;
+}
+
+html.dark .evaluator-calendar-grid button.selected-week {
+    background: rgba(126, 166, 255, 0.18);
+    color: #7ea6ff;
+    box-shadow: inset 0 2px 0 rgba(126, 166, 255, 0.45), inset 0 -2px 0 rgba(126, 166, 255, 0.45);
 }
 
 html.dark .agent-decision-card .input-ghost {
@@ -698,4 +1139,35 @@ html.dark .agent-decision-card .input-ghost {
 
 html.dark .agent-bar-track {
     background: rgba(11, 79, 193, 0.16);
+}
+
+@media (max-width: 780px) {
+    .fit-agent-mode-switch {
+        width: 100%;
+    }
+
+    .fit-agent-mode-switch a {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-inline: 0.55rem;
+    }
+
+    .fit-agent-mode-switch a span {
+        white-space: normal;
+        line-height: 1.15;
+    }
+
+    .evaluator-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .evaluator-detail-grid,
+    .evaluator-detail-grid.lower {
+        grid-template-columns: 1fr;
+    }
+
+    .evaluator-product-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
 }

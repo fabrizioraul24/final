@@ -10,6 +10,7 @@ use App\Models\Transfer;
 use App\Models\TransferItem;
 use App\Models\TransferRequest;
 use App\Models\Warehouse;
+use App\Services\AiEvaluatorAgentService;
 use App\Services\AiReplenishmentAgentService;
 use App\Services\ReportService;
 use App\Support\AdminReact;
@@ -39,7 +40,8 @@ class AiReplenishmentAgentController extends Controller
 
         $search = trim((string) $request->input('search', ''));
         $categoryId = $request->input('category_id');
-        $snapshot = $this->cachedSnapshot($service);
+        $agentMode = $request->input('agent') === 'evaluator' ? 'evaluator' : 'replenishment';
+        $snapshot = $agentMode === 'evaluator' ? $this->emptySnapshot() : $this->cachedSnapshot($service);
         $health = $snapshot['health'];
         $payload = $snapshot['payload'];
         $forecasts = collect($snapshot['forecasts']);
@@ -84,6 +86,7 @@ class AiReplenishmentAgentController extends Controller
 
         return view('react-page', AdminReact::page('agentReplenishment', 'Agente de Reposicion | Pil Andina', 'Agente de Reposicion', 'agent', [
             'data' => [
+                'agentMode' => $agentMode,
                 'search' => $search,
                 'categoryId' => $categoryId,
                 'categories' => Category::orderBy('name')->get()->map(fn (Category $category) => ['id' => $category->id, 'name' => $category->name]),
@@ -102,12 +105,24 @@ class AiReplenishmentAgentController extends Controller
                 'recentRequestsTotal' => $recentRequestsTotal,
                 'routes' => [
                     'index' => route('admin.agent.replenishment'),
+                    'index_replenishment' => route('admin.agent.replenishment'),
+                    'index_evaluator' => route('admin.agent.replenishment', ['agent' => 'evaluator']),
                     'report' => route('admin.agent.replenishment.report', ['search' => $search, 'category_id' => $categoryId]),
                     'run' => route('admin.agent.replenishment.run'),
                     'status' => route('admin.agent.replenishment.status'),
+                    'evaluator_real' => route('admin.agent.replenishment.evaluator.real'),
                 ],
             ],
         ], 'adminAgentReplenishment'));
+    }
+
+    public function evaluatorReal(AiEvaluatorAgentService $service): JsonResponse
+    {
+        $this->authorizeAgentAccess();
+
+        return response()->json([
+            'data' => $service->evaluateReal(),
+        ]);
     }
 
     public function report(Request $request, AiReplenishmentAgentService $service)
@@ -169,17 +184,30 @@ class AiReplenishmentAgentController extends Controller
         ], 'reporte-agente-reposicion.pdf');
     }
 
-    public function runNow(AiReplenishmentAgentService $service): RedirectResponse
+    public function runNow(Request $request, AiReplenishmentAgentService $service): RedirectResponse|JsonResponse
     {
         $this->authorizeAgentAccess();
 
+        $timeout = (int) config('services.ai_agent.predict_timeout', 180);
+        if (function_exists('set_time_limit')) {
+            set_time_limit($timeout + 10);
+        }
+
         $payload = $service->predict();
         if (! $payload['online']) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'El agente no respondio: ' . ($payload['error'] ?? 'sin detalle'),
+                    'error' => $payload['error'] ?? null,
+                ], 502);
+            }
+
             return back()->with('error', 'El agente no respondio: ' . ($payload['error'] ?? 'sin detalle'));
         }
 
         $result = $service->createPendingRequests($payload['transfer_requests'] ?? []);
-        Cache::forget(self::CACHE_KEY);
+        $health = $service->health();
+        Cache::put(self::CACHE_KEY, $this->buildSnapshotFromPayload($health, $payload), now()->addMinutes(30));
         $now = now();
         Cache::put(self::LAST_RUN_CACHE_KEY, $now->toIso8601String());
         Cache::add(self::STARTED_AT_CACHE_KEY, $now->toIso8601String(), now()->addYear());
@@ -189,7 +217,17 @@ class AiReplenishmentAgentController extends Controller
             'skipped' => count($result['skipped']),
         ], 'Ejecucion manual del agente de reposicion');
 
-        return back()->with('status', 'Analisis ejecutado. Creadas: ' . count($result['created']) . '. Omitidas por duplicado/datos: ' . count($result['skipped']) . '.');
+        $message = 'Analisis ejecutado. Creadas: ' . count($result['created']) . '. Omitidas por duplicado/datos: ' . count($result['skipped']) . '.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'created' => count($result['created']),
+                'skipped' => count($result['skipped']),
+            ]);
+        }
+
+        return back()->with('status', $message);
     }
 
     public function status(AiReplenishmentAgentService $service): JsonResponse
@@ -620,21 +658,62 @@ class AiReplenishmentAgentController extends Controller
 
     private function cachedSnapshot(AiReplenishmentAgentService $service): array
     {
-        return Cache::remember(self::CACHE_KEY, now()->addMinute(), function () use ($service) {
-            $health = $service->health();
-            $payload = $service->predict();
-            $forecasts = $this->enrichForecasts(collect($payload['forecasts'] ?? []))->values();
-            $alerts = $payload['alerts'] ?? [];
-            $alertProductCards = $this->buildOperationalAlertCards($alerts, $forecasts)->values();
+        $snapshot = Cache::get(self::CACHE_KEY);
+        if (is_array($snapshot)) {
+            return $snapshot;
+        }
 
-            return [
-                'health' => $health,
-                'payload' => $payload,
-                'forecasts' => $forecasts->all(),
-                'alerts' => $alerts,
-                'alertProductCards' => $alertProductCards->all(),
-            ];
-        });
+        $empty = $this->emptySnapshot();
+        $empty['health'] = $service->health();
+
+        return $empty;
+    }
+
+    private function buildSnapshotFromPayload(array $health, array $payload): array
+    {
+        $forecasts = $this->enrichForecasts(collect($payload['forecasts'] ?? []))->values();
+        $alerts = $payload['alerts'] ?? [];
+        $alertProductCards = $this->buildOperationalAlertCards($alerts, $forecasts)->values();
+
+        return [
+            'health' => $health,
+            'payload' => $payload,
+            'forecasts' => $forecasts->all(),
+            'alerts' => $alerts,
+            'alertProductCards' => $alertProductCards->all(),
+        ];
+    }
+
+    private function emptySnapshot(): array
+    {
+        return [
+            'health' => [
+                'online' => false,
+                'status' => null,
+                'data' => [],
+                'error' => null,
+            ],
+            'payload' => [
+                'online' => false,
+                'last_run_at' => now(),
+                'forecasts' => [],
+                'transfer_requests' => [],
+                'alerts' => [
+                    'low_stock' => [],
+                    'expiring' => [],
+                    'post_peak_drop' => [],
+                ],
+                'raw' => [],
+                'error' => null,
+            ],
+            'forecasts' => [],
+            'alerts' => [
+                'low_stock' => [],
+                'expiring' => [],
+                'post_peak_drop' => [],
+            ],
+            'alertProductCards' => [],
+        ];
     }
 
     private function lastRunLabel(array $payload): string

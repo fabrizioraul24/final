@@ -39,10 +39,15 @@ class AiReplenishmentAgentService
     public function predict(): array
     {
         $url = rtrim(config('services.ai_agent.url'), '/') . '/api/predict';
+        $timeout = (int) config('services.ai_agent.predict_timeout', 180);
 
         try {
+            if (function_exists('set_time_limit')) {
+                set_time_limit($timeout + 10);
+            }
+
             $response = Http::retry(2, 1000)
-                ->timeout(25)
+                ->timeout($timeout)
                 ->get($url);
 
             if ($response->failed()) {
