@@ -8,6 +8,10 @@
     text-decoration: none;
 }
 
+.vendor-quotations-page .fit-quotation-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .vendor-quotations-page .fit-metric-card.blue {
     color: #0b4fc1;
 }

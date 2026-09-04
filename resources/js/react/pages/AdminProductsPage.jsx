@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DashboardShell from '../components/admin/DashboardShell';
-import { FieldError, FlashMessages, Modal, Pagination, TableEmpty } from '../components/admin/common';
+import { FlashMessages, Modal, Pagination, TableEmpty } from '../components/admin/common';
 
 function ProductImage({ product }) {
     return (
@@ -79,9 +79,7 @@ function ProductsTable({ products, inactive = false, csrfToken, onView, onEdit, 
 }
 
 export default function AdminProductsPage({ layout, data, flash, errors, old, csrfToken, logoutAction }) {
-    const [editingProduct, setEditingProduct] = useState(null);
     const [viewingProduct, setViewingProduct] = useState(null);
-    const [createProductOpen, setCreateProductOpen] = useState(() => Object.keys(errors || {}).length > 0);
     const [productToToggle, setProductToToggle] = useState(null);
     const [activeMetric, setActiveMetric] = useState('all');
 
@@ -99,82 +97,6 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
     const handleMetricClick = (key) => {
         setActiveMetric(key === 'categories' ? 'all' : key);
     };
-
-    const renderForm = (product = null) => (
-        <div className="fit-form-grid">
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_category_id' : 'category_id'}>Categoria *</label>
-                <select id={product ? 'edit_category_id' : 'category_id'} name="category_id" defaultValue={product?.category_id ?? old?.category_id ?? ''} required>
-                    <option value="">Selecciona una categoria</option>
-                    {data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                </select>
-                <FieldError errors={errors} name="category_id" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_name' : 'name'}>Nombre *</label>
-                <input id={product ? 'edit_name' : 'name'} type="text" name="name" placeholder="Ej. Leche entera 1L" defaultValue={product?.name ?? old?.name ?? ''} required />
-                <FieldError errors={errors} name="name" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_sku' : 'sku'}>SKU / Codigo *</label>
-                <input id={product ? 'edit_sku' : 'sku'} type="text" name="sku" placeholder="Ej. PIL-001" defaultValue={product?.sku ?? old?.sku ?? ''} required />
-                <FieldError errors={errors} name="sku" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_image' : 'image'}>{product ? 'Imagen nueva' : 'Imagen del producto *'}</label>
-                <input id={product ? 'edit_image' : 'image'} type="file" name="image" accept="image/*" required={!product} />
-                <FieldError errors={errors} name="image" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_suggested_price_public' : 'suggested_price_public'}>Precio publico *</label>
-                <input id={product ? 'edit_suggested_price_public' : 'suggested_price_public'} type="number" step="0.01" min="0" name="suggested_price_public" defaultValue={product?.suggested_price_public ?? old?.suggested_price_public ?? ''} required />
-                <FieldError errors={errors} name="suggested_price_public" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_price_institutional' : 'price_institutional'}>Precio institucional *</label>
-                <input id={product ? 'edit_price_institutional' : 'price_institutional'} type="number" step="0.01" min="0" name="price_institutional" defaultValue={product?.price_institutional ?? old?.price_institutional ?? ''} required />
-                <FieldError errors={errors} name="price_institutional" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_min_quantity' : 'min_quantity'}>Stock minimo *</label>
-                <input id={product ? 'edit_min_quantity' : 'min_quantity'} type="number" min="0" name="min_quantity" defaultValue={product?.min_quantity ?? old?.min_quantity ?? 0} required />
-                <FieldError errors={errors} name="min_quantity" />
-            </div>
-
-            <div className="fit-form-field">
-                <label htmlFor={product ? 'edit_max_quantity' : 'max_quantity'}>Stock maximo *</label>
-                <input id={product ? 'edit_max_quantity' : 'max_quantity'} type="number" min="0" name="max_quantity" defaultValue={product?.max_quantity ?? old?.max_quantity ?? 0} required />
-                <FieldError errors={errors} name="max_quantity" />
-            </div>
-
-            <div className="fit-form-field span-2">
-                <label htmlFor={product ? 'edit_description' : 'description'}>Descripcion</label>
-                <textarea id={product ? 'edit_description' : 'description'} name="description" rows="4" defaultValue={product?.description ?? old?.description ?? ''} />
-                <FieldError errors={errors} name="description" />
-            </div>
-
-            <div className="fit-form-field span-2">
-                <label htmlFor={product ? 'edit_audit_reason' : 'audit_reason'}>Motivo para bitacora</label>
-                <textarea id={product ? 'edit_audit_reason' : 'audit_reason'} name="audit_reason" rows="3" placeholder="Ej. Descuento temporal autorizado para un cliente o actualizacion de lista de precios" defaultValue={old?.audit_reason ?? ''} />
-                <FieldError errors={errors} name="audit_reason" />
-            </div>
-
-            <div className="fit-form-field span-2">
-                <label htmlFor={product ? 'edit_is_active' : 'is_active'}>Estado *</label>
-                <select id={product ? 'edit_is_active' : 'is_active'} name="is_active" defaultValue={String(product ? (product.is_active ? 1 : 0) : (old?.is_active ?? 1))} required>
-                    <option value="1">Activo</option>
-                    <option value="0">Inactivo</option>
-                </select>
-                <FieldError errors={errors} name="is_active" />
-            </div>
-        </div>
-    );
 
     return (
         <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
@@ -201,10 +123,10 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
                             <i className="ri-download-2-line" />
                             <span>Descargar Reporte PDF</span>
                         </a>
-                        <button type="button" className="fit-primary-button" onClick={() => setCreateProductOpen(true)}>
+                        <a className="fit-primary-button" href={data.routes.create}>
                             <i className="ri-add-box-line" />
                             <span>Crear Producto</span>
-                        </button>
+                        </a>
                     </div>
                 </section>
 
@@ -262,7 +184,7 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
                             products={data.activeProducts.data}
                             csrfToken={csrfToken}
                             onView={setViewingProduct}
-                            onEdit={setEditingProduct}
+                            onEdit={(product) => { window.location.href = product.edit_url; }}
                             onToggle={setProductToToggle}
                         />
                         <Pagination pagination={data.activeProducts} />
@@ -283,41 +205,12 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
                             inactive
                             csrfToken={csrfToken}
                             onView={setViewingProduct}
-                            onEdit={setEditingProduct}
+                            onEdit={(product) => { window.location.href = product.edit_url; }}
                             onToggle={setProductToToggle}
                         />
                         <Pagination pagination={data.inactiveProducts} />
                     </section>
                 )}
-
-                <Modal open={createProductOpen} title="Registro Oficial de Productos" onClose={() => setCreateProductOpen(false)} wide contentClassName="fit-modal-content">
-                    <form method="POST" action={data.routes.store} className="fit-register-form" encType="multipart/form-data">
-                        <input type="hidden" name="_token" value={csrfToken} />
-                        {renderForm()}
-                        <div className="fit-modal-footer">
-                            <button type="button" className="fit-outline-button" onClick={() => setCreateProductOpen(false)}>Cancelar</button>
-                            <button type="submit" className="fit-primary-button">
-                                <i className="ri-checkbox-circle-line" /> Registrar Producto
-                            </button>
-                        </div>
-                    </form>
-                </Modal>
-
-                <Modal open={!!editingProduct} title="Editar Producto" onClose={() => setEditingProduct(null)} wide contentClassName="fit-modal-content">
-                    {editingProduct && (
-                        <form method="POST" action={editingProduct.update_url} className="fit-register-form" encType="multipart/form-data">
-                            <input type="hidden" name="_token" value={csrfToken} />
-                            <input type="hidden" name="_method" value="PUT" />
-                            {renderForm(editingProduct)}
-                            <div className="fit-modal-footer">
-                                <button type="button" className="fit-outline-button" onClick={() => setEditingProduct(null)}>Cancelar</button>
-                                <button type="submit" className="fit-primary-button">
-                                    <i className="ri-save-3-line" /> Guardar Cambios
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </Modal>
 
                 <Modal open={!!viewingProduct} title="Detalle del Producto" onClose={() => setViewingProduct(null)} wide contentClassName="fit-modal-content">
                     {viewingProduct && (

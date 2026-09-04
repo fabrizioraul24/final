@@ -10,28 +10,24 @@
         </div>
     @endif
 
-    <div class="stats-grid">
-        <div class="card">
-            <h3>Cartera total</h3>
-            <div class="value">{{ $stats['total'] }}</div>
-            <span class="chip"><i class="ri-building-4-line"></i> Activos + desactivados</span>
+    <section class="fit-metric-grid">
+        <div class="fit-metric-card indigo">
+            <span><small>Cartera total</small><strong>{{ $stats['total'] }}</strong><em>Activos + desactivados</em></span>
+            <span class="fit-metric-icon"><i class="ri-building-4-line"></i></span>
         </div>
-        <div class="card">
-            <h3>Empresas institucionales</h3>
-            <div class="value">{{ $stats['institutional'] }}</div>
-            <span class="chip text-white/70">Usan precios corporativos</span>
+        <div class="fit-metric-card blue">
+            <span><small>Empresas institucionales</small><strong>{{ $stats['institutional'] }}</strong><em>Precios corporativos</em></span>
+            <span class="fit-metric-icon"><i class="ri-community-line"></i></span>
         </div>
-        <div class="card">
-            <h3>Tiendas de barrio</h3>
-            <div class="value">{{ $stats['retail'] }}</div>
-            <span class="chip text-white/70">Con duenas registradas</span>
+        <div class="fit-metric-card green">
+            <span><small>Tiendas de barrio</small><strong>{{ $stats['retail'] }}</strong><em>Con duenas registradas</em></span>
+            <span class="fit-metric-icon"><i class="ri-store-2-line"></i></span>
         </div>
-        <div class="card">
-            <h3>Desactivados</h3>
-            <div class="value">{{ $stats['inactive'] }}</div>
-            <span class="chip text-white/70">En papelera (recuperables)</span>
+        <div class="fit-metric-card rose">
+            <span><small>Desactivados</small><strong>{{ $stats['inactive'] }}</strong><em>Recuperables</em></span>
+            <span class="fit-metric-icon"><i class="ri-inbox-archive-line"></i></span>
         </div>
-    </div>
+    </section>
 
     <div class="card" id="companyCreateForm" data-company-form>
         <div class="chart-head">
@@ -495,7 +491,6 @@
     });
 </script>
 @endpush
-
 
 
 

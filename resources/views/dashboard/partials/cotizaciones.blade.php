@@ -18,23 +18,20 @@
         </div>
     @endif
 
-    <div class="stats-grid">
-        <div class="card">
-            <h3>Total cotizaciones</h3>
-            <div class="value">{{ $stats['total'] }}</div>
-            <span class="chip text-white/70"><i class="ri-file-list-3-line"></i>Histórico</span>
+    <section class="fit-metric-grid fit-metric-grid-three">
+        <div class="fit-metric-card indigo">
+            <span><small>Total cotizaciones</small><strong>{{ $stats['total'] }}</strong><em>Historico comercial</em></span>
+            <span class="fit-metric-icon"><i class="ri-file-list-3-line"></i></span>
         </div>
-        <div class="card">
-            <h3>Enviadas</h3>
-            <div class="value">{{ $stats['sent'] }}</div>
-            <span class="chip text-blue-300"><i class="ri-send-plane-line"></i>En ruta</span>
+        <div class="fit-metric-card blue">
+            <span><small>Enviadas</small><strong>{{ $stats['sent'] }}</strong><em>En ruta</em></span>
+            <span class="fit-metric-icon"><i class="ri-send-plane-line"></i></span>
         </div>
-        <div class="card">
-            <h3>Aceptadas</h3>
-            <div class="value">{{ $stats['accepted'] }}</div>
-            <span class="chip text-green-300"><i class="ri-checkbox-circle-line"></i>Ganadas</span>
+        <div class="fit-metric-card green">
+            <span><small>Aceptadas</small><strong>{{ $stats['accepted'] }}</strong><em>Ganadas</em></span>
+            <span class="fit-metric-icon"><i class="ri-checkbox-circle-line"></i></span>
         </div>
-    </div>
+    </section>
 
     <div class="card">
         <div class="chart-head">

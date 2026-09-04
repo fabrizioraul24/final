@@ -54,10 +54,14 @@ class AiReplenishmentAgentController extends Controller
         $pendingRequestsQuery = TransferRequest::with('product')
             ->where('created_by_agent', true)
             ->where('status', TransferRequest::STATUS_PENDING)
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
         $recentRequestsQuery = TransferRequest::with(['product', 'transfer'])
             ->where('created_by_agent', true)
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($search !== '') {
             $pendingRequestsQuery->whereHas('product', fn ($query) => $query->whereAnyLikeInsensitive(['name', 'sku', 'description'], $search));
@@ -122,10 +126,14 @@ class AiReplenishmentAgentController extends Controller
         $pendingRequestsQuery = TransferRequest::with('product')
             ->where('created_by_agent', true)
             ->where('status', TransferRequest::STATUS_PENDING)
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
         $recentRequestsQuery = TransferRequest::with(['product', 'transfer'])
             ->where('created_by_agent', true)
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($search !== '') {
             $forecasts = $this->filterAgentProducts($forecasts, $search);

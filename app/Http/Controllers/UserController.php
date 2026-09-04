@@ -30,8 +30,8 @@ class UserController extends Controller
             ->filter(fn (Role $role) => str_contains(strtolower($role->name), 'admin'))
             ->pluck('id');
 
-        $activeUsersQuery = User::with('role')->latest();
-        $inactiveUsersQuery = User::onlyTrashed()->with('role')->latest();
+        $activeUsersQuery = User::with('role')->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
+        $inactiveUsersQuery = User::onlyTrashed()->with('role')->orderByDesc('deleted_at')->orderByDesc('updated_at')->orderByDesc('id');
 
         if ($search) {
             $activeUsersQuery->whereAnyLikeInsensitive(['name', 'email', 'username'], $search);
@@ -197,7 +197,7 @@ class UserController extends Controller
         $search = $request->input('search');
         $roleFilter = $request->input('role_id');
 
-        $usersQuery = User::with('role')->latest();
+        $usersQuery = User::with('role')->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
 
         if ($search) {
             $usersQuery->whereAnyLikeInsensitive(['name', 'email', 'username'], $search);

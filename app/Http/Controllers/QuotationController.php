@@ -29,7 +29,10 @@ class QuotationController extends Controller
         $isVendor = $request->routeIs('dashboard.vendedor.*');
         $userId = $request->user()?->id;
 
-        $quotationsQuery = Quotation::with(['company', 'customer.user', 'seller', 'items.product'])->latest();
+        $quotationsQuery = Quotation::with(['company', 'customer.user', 'seller', 'items.product'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($isVendor && $userId) {
             $quotationsQuery->where('seller_id', $userId);

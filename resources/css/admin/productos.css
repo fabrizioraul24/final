@@ -103,4 +103,149 @@
     overflow-wrap: anywhere;
 }
 
+.fit-product-form-page {
+    gap: 1.4rem;
+}
+
+.fit-product-form-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.fit-product-form-main {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.fit-product-form-card,
+.fit-product-form-preview,
+.fit-product-form-actions {
+    border: 1px solid #e0e7ff;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.fit-product-form-card {
+    padding: 1.25rem;
+}
+
+.fit-section-head.compact {
+    margin-bottom: 1rem;
+}
+
+.fit-section-head.compact h2 {
+    font-size: 1rem;
+}
+
+.fit-product-form-side {
+    position: sticky;
+    top: 1.25rem;
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.fit-product-form-preview {
+    overflow: hidden;
+}
+
+.fit-product-form-preview__image {
+    display: grid;
+    place-items: center;
+    min-height: 230px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e0e7ff;
+}
+
+.fit-product-form-preview__image img {
+    width: 100%;
+    height: 230px;
+    display: block;
+    object-fit: contain;
+    padding: 1rem;
+}
+
+.fit-product-form-preview__image div {
+    display: grid;
+    place-items: center;
+    gap: 0.45rem;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.fit-product-form-preview__image i {
+    font-size: 2rem;
+}
+
+.fit-product-form-preview__copy {
+    display: grid;
+    gap: 0.3rem;
+    padding: 1rem;
+}
+
+.fit-product-form-preview__copy strong {
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+.fit-product-form-preview__copy span {
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.fit-product-form-actions {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+}
+
+.fit-product-form-actions .fit-outline-button,
+.fit-product-form-actions .fit-primary-button {
+    width: 100%;
+}
+
+html.dark .fit-product-form-card,
+html.dark .fit-product-form-preview,
+html.dark .fit-product-form-actions {
+    background: #161820;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+html.dark .fit-product-form-preview__image {
+    background: #1e212b;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .fit-product-form-preview__copy strong {
+    color: #f8fafc;
+}
+
+html.dark .fit-product-form-preview__copy span {
+    color: #94a3b8;
+}
+
+@media (max-width: 1120px) {
+    .fit-product-form-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-product-form-side {
+        position: static;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    }
+}
+
+@media (max-width: 720px) {
+    .fit-product-form-side {
+        grid-template-columns: 1fr;
+    }
+}
 

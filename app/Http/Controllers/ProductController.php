@@ -54,12 +54,45 @@ class ProductController extends Controller
                 ],
                 'routes' => [
                     'index' => route('dashboard.products'),
+                    'create' => route('dashboard.products.create'),
                     'store' => route('dashboard.products.store'),
                     'report' => route('dashboard.products.report', ['search' => $search, 'category_id' => $categoryId]),
                 ],
                 'predictionError' => null,
             ],
         ], 'adminProducts'));
+    }
+
+    public function create(): View
+    {
+        return view('react-page', AdminReact::page('products', 'Crear producto | Pil Andina', 'Crear Producto', 'products', [
+            'data' => [
+                'mode' => 'create',
+                'product' => null,
+                'categories' => $this->categoryOptions(),
+                'routes' => [
+                    'index' => route('dashboard.products'),
+                    'store' => route('dashboard.products.store'),
+                ],
+            ],
+        ], 'adminProductForm'));
+    }
+
+    public function edit(Product $product): View
+    {
+        $product->load('category')->loadSum('inventory', 'quantity');
+
+        return view('react-page', AdminReact::page('products', 'Editar producto | Pil Andina', 'Editar Producto', 'products', [
+            'data' => [
+                'mode' => 'edit',
+                'product' => $this->productPayload($product),
+                'categories' => $this->categoryOptions(),
+                'routes' => [
+                    'index' => route('dashboard.products'),
+                    'update' => route('dashboard.products.update', $product),
+                ],
+            ],
+        ], 'adminProductForm'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -221,7 +254,7 @@ class ProductController extends Controller
         $categoryId = $request->input('category_id');
         $status = $request->input('status');
 
-        $productsQuery = Product::with(['category', 'inventory'])->latest();
+        $productsQuery = Product::with(['category', 'inventory'])->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
 
         if ($search) {
             $productsQuery->whereAnyLikeInsensitive(['name', 'sku', 'description'], $search);
@@ -248,7 +281,9 @@ class ProductController extends Controller
         $productsQuery = Product::query()
             ->with('category')
             ->withSum('inventory', 'quantity')
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($search) {
             $productsQuery->whereAnyLikeInsensitive(['name', 'sku', 'description'], $search);
@@ -310,8 +345,16 @@ class ProductController extends Controller
             'is_active' => (bool) $product->is_active,
             'status_label' => $product->is_active ? 'Activo' : 'Inactivo',
             'stock_total' => (int) ($product->inventory_sum_quantity ?? 0),
+            'edit_url' => route('dashboard.products.edit', $product),
             'update_url' => route('dashboard.products.update', $product),
             'toggle_url' => route('dashboard.products.toggle', $product),
         ];
+    }
+
+    private function categoryOptions()
+    {
+        return Category::orderBy('name')
+            ->get()
+            ->map(fn (Category $category) => ['id' => $category->id, 'name' => $category->name]);
     }
 }

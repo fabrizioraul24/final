@@ -126,8 +126,9 @@ class ProductLotController extends Controller
             ->when($scope === 'expiring', fn ($query) => $query
                 ->where('quantity', '>', 0)
                 ->whereBetween('expires_at', [$today, $today->copy()->addDays(30)]))
-            ->orderBy('expires_at')
-            ->orderBy('id')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString();
 
@@ -384,7 +385,11 @@ class ProductLotController extends Controller
             ->withSum(['lots as current_stock' => $lotScope], 'quantity')
             ->withCount(['lots as lots_count' => $lotScope])
             ->withMin(['lots as next_expiry' => $lotScope], 'expires_at')
-            ->orderBy('name');
+            ->withMax(['lots as latest_lot_activity' => $lotScope], 'updated_at')
+            ->orderByDesc('latest_lot_activity')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         return $query;
     }

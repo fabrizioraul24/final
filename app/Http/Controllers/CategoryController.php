@@ -20,7 +20,7 @@ class CategoryController extends Controller
         $search = $request->input('search');
         $scope = $request->input('scope');
 
-        $baseQuery = Category::withTrashed()->withCount('products')->orderByDesc('created_at');
+        $baseQuery = Category::withTrashed()->withCount('products')->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
 
         $applyFilters = function ($query) use ($search, $scope) {
             if ($search) {

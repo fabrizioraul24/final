@@ -11,6 +11,10 @@
     appearance: none;
 }
 
+.vendor-companies-page .fit-company-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .vendor-companies-page .fit-company-metric-grid > .card {
     width: 100%;
     display: flex;

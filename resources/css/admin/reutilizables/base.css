@@ -688,6 +688,10 @@ body {
     gap: 1.25rem;
 }
 
+.fit-metric-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .fit-metric-card {
     width: 100%;
     display: flex;

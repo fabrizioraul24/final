@@ -37,6 +37,8 @@ class TransferController extends Controller
             'agentTransferRequest.product',
         ])
             ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(10)
             ->withQueryString();
@@ -139,6 +141,8 @@ class TransferController extends Controller
             'agentTransferRequest.product',
         ])
             ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
 

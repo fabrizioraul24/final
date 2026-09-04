@@ -1,10 +1,12 @@
 const pageLoaders = {
     landing: () => import('./pages/LandingPage'),
+    publicCatalog: () => import('./pages/PublicCatalogPage'),
     login: () => import('./pages/LoginPage'),
     adminDashboard: () => import('./pages/AdminDashboardPage'),
     adminUsers: () => import('./pages/AdminUsersPage'),
     adminCompanies: () => import('./pages/AdminCompaniesPage'),
     adminProducts: () => import('./pages/AdminProductsPage'),
+    adminProductForm: () => import('./pages/AdminProductFormPage'),
     adminCategories: () => import('./pages/AdminCategoriesPage'),
     adminLots: () => import('./pages/AdminLotsPage'),
     adminTransfers: () => import('./pages/AdminTransfersPage'),

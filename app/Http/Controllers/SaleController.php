@@ -44,7 +44,10 @@ class SaleController extends Controller
         $statusFilter = $request->input('status');
         $search = $request->input('search');
 
-        $salesQuery = Sale::with(['company', 'customer.user', 'seller', 'warehouse', 'items.product'])->latest();
+        $salesQuery = Sale::with(['company', 'customer.user', 'seller', 'warehouse', 'items.product'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($isVendor && $request->user()) {
             $salesQuery->where('seller_id', $request->user()->id);

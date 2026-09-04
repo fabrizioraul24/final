@@ -22,7 +22,7 @@ class CompanyController extends Controller
         $search = $request->input('search');
         $typeFilter = $request->input('type');
 
-        $baseQuery = Company::withTrashed()->with('creator')->latest();
+        $baseQuery = Company::withTrashed()->with('creator')->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
 
         $applyFilters = function ($query) use ($search, $typeFilter) {
             if ($search) {
@@ -156,7 +156,7 @@ class CompanyController extends Controller
         $search = $request->input('search');
         $typeFilter = $request->input('type');
 
-        $companiesQuery = Company::query()->with('creator')->latest();
+        $companiesQuery = Company::query()->with('creator')->orderByDesc('updated_at')->orderByDesc('created_at')->orderByDesc('id');
 
         if ($search) {
             $companiesQuery->whereAnyLikeInsensitive([

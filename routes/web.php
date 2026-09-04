@@ -28,6 +28,7 @@ use App\Http\Controllers\AiReplenishmentAgentController;
 */
 
 Route::get('/', LandingController::class);
+Route::get('/catalogo', [LandingController::class, 'catalog'])->name('catalog.public');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.perform');
@@ -111,7 +112,9 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/clientes/reporte/pdf', [CompanyController::class, 'report'])->name('dashboard.companies.report');
 
     Route::get('/productos', [ProductController::class, 'index'])->name('dashboard.products');
+    Route::get('/productos/crear', [ProductController::class, 'create'])->name('dashboard.products.create');
     Route::post('/productos', [ProductController::class, 'store'])->name('dashboard.products.store');
+    Route::get('/productos/{product}/editar', [ProductController::class, 'edit'])->name('dashboard.products.edit');
     Route::put('/productos/{product}', [ProductController::class, 'update'])->name('dashboard.products.update');
     Route::patch('/productos/{product}/toggle', [ProductController::class, 'toggle'])->name('dashboard.products.toggle');
     Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('dashboard.products.destroy');
