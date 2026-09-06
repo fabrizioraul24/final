@@ -9,13 +9,6 @@
         'tienda_barrio' => 'Tienda de barrio',
         'comprador_minorista' => 'Comprador minorista',
     ];
-    $statusLabels = [
-        'borrador' => 'Borrador',
-        'enviada' => 'Enviada',
-        'aceptada' => 'Aceptada',
-        'rechazada' => 'Rechazada',
-    ];
-    $activeMetric = $filters['status'] ?: 'all';
 @endphp
 
 @section('content')
@@ -49,22 +42,22 @@
     </section>
 
     <section class="fit-metric-grid fit-quotation-metric-grid">
-        <a class="fit-metric-card indigo {{ $activeMetric === 'all' ? 'active' : '' }}" href="{{ route($listRoute) }}">
+        <a class="fit-metric-card indigo active" href="{{ route($listRoute) }}">
             <span><small>Total Cotizaciones</small><strong>{{ $stats['total'] }}</strong><em>Ver todas</em></span>
             <span class="fit-metric-icon"><i class="ri-file-list-3-line"></i></span>
         </a>
-        <a class="fit-metric-card amber {{ $activeMetric === 'borrador' ? 'active' : '' }}" href="{{ route($listRoute, ['status' => 'borrador', 'sale_type' => $filters['sale_type'], 'search' => $filters['search']]) }}">
-            <span><small>Borradores</small><strong>{{ $stats['draft'] }}</strong><em>En preparacion</em></span>
-            <span class="fit-metric-icon"><i class="ri-draft-line"></i></span>
-        </a>
-        <a class="fit-metric-card blue {{ $activeMetric === 'enviada' ? 'active' : '' }}" href="{{ route($listRoute, ['status' => 'enviada', 'sale_type' => $filters['sale_type'], 'search' => $filters['search']]) }}">
-            <span><small>Enviadas</small><strong>{{ $stats['sent'] }}</strong><em>En negociacion</em></span>
-            <span class="fit-metric-icon"><i class="ri-send-plane-line"></i></span>
-        </a>
-        <a class="fit-metric-card green {{ $activeMetric === 'aceptada' ? 'active' : '' }}" href="{{ route($listRoute, ['status' => 'aceptada', 'sale_type' => $filters['sale_type'], 'search' => $filters['search']]) }}">
-            <span><small>Aceptadas</small><strong>{{ $stats['accepted'] }}</strong><em>Ganadas</em></span>
-            <span class="fit-metric-icon"><i class="ri-checkbox-circle-line"></i></span>
-        </a>
+        <div class="fit-metric-card blue">
+            <span><small>Monto total</small><strong>Bs {{ number_format((float) ($stats['total_amount'] ?? 0), 2) }}</strong><em>Cotizado</em></span>
+            <span class="fit-metric-icon"><i class="ri-money-dollar-circle-line"></i></span>
+        </div>
+        <div class="fit-metric-card amber">
+            <span><small>Promedio</small><strong>Bs {{ number_format((float) ($stats['average_amount'] ?? 0), 2) }}</strong><em>Por cotizacion</em></span>
+            <span class="fit-metric-icon"><i class="ri-line-chart-line"></i></span>
+        </div>
+        <div class="fit-metric-card green">
+            <span><small>Productos</small><strong>{{ $stats['items_count'] ?? 0 }}</strong><em>Items cotizados</em></span>
+            <span class="fit-metric-icon"><i class="ri-box-3-line"></i></span>
+        </div>
     </section>
 
     <section class="fit-filter-card">
@@ -82,17 +75,8 @@
                     @endforeach
                 </select>
             </label>
-            <label class="fit-select-control" for="status_filter">
-                <i class="ri-checkbox-circle-line"></i>
-                <select id="status_filter" name="status">
-                    <option value="">Todos los estados</option>
-                    @foreach($statusLabels as $value => $label)
-                        <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </label>
             <button type="submit" class="fit-primary-button compact"><i class="ri-search-line"></i><span>Buscar</span></button>
-            @if($filters['search'] || $filters['sale_type'] || $filters['status'])
+            @if($filters['search'] || $filters['sale_type'])
                 <a href="{{ route($listRoute) }}" class="fit-clear-button">Limpiar filtros</a>
             @endif
         </form>
@@ -115,7 +99,6 @@
                             <th>ID</th>
                             <th>Cliente</th>
                             <th>Tipo</th>
-                            <th>Estado</th>
                             <th>Total</th>
                             <th>Valido hasta</th>
                             <th class="text-right">Acciones</th>
@@ -126,15 +109,6 @@
                             @php
                                 $clientName = $quotation->company->name ?? $quotation->customer->user->name ?? 'Sin cliente';
                                 $clientCity = $quotation->company->city ?? $quotation->customer->city ?? 'Ciudad no registrada';
-                                $itemsPayload = $quotation->items->map(function ($item) {
-                                    return [
-                                        'product' => $item->product->name ?? 'Producto',
-                                        'sku' => $item->product->sku ?? '',
-                                        'qty' => (int) $item->quantity,
-                                        'price' => (float) $item->unit_price,
-                                        'subtotal' => (float) $item->subtotal,
-                                    ];
-                                })->values();
                             @endphp
                             <tr>
                                 <td><code class="fit-code fit-sale-id">#{{ $quotation->id }}</code></td>
@@ -145,22 +119,13 @@
                                     </div>
                                 </td>
                                 <td><span class="fit-role-badge default"><i class="ri-price-tag-3-line"></i> {{ $saleTypeLabels[$quotation->sale_type] ?? $quotation->sale_type }}</span></td>
-                                <td><span class="fit-quotation-status {{ $quotation->status }}"><span></span> {{ $statusLabels[$quotation->status] ?? ucfirst($quotation->status) }}</span></td>
                                 <td><strong class="fit-sale-amount">Bs {{ number_format((float) $quotation->total_amount, 2) }}</strong></td>
                                 <td><span class="fit-muted-text">{{ optional($quotation->valid_until)->format('d/m/Y') }}</span></td>
                                 <td class="text-right">
                                     <div class="fit-row-actions">
-                                        <button type="button" class="fit-action-button success btn-vendor-quotation-detail" title="Ver detalles"
-                                            data-id="{{ $quotation->id }}"
-                                            data-client="{{ $clientName }}"
-                                            data-type="{{ $saleTypeLabels[$quotation->sale_type] ?? $quotation->sale_type }}"
-                                            data-status="{{ $statusLabels[$quotation->status] ?? $quotation->status }}"
-                                            data-valid="{{ optional($quotation->valid_until)->format('d/m/Y') }}"
-                                            data-total="Bs {{ number_format((float) $quotation->total_amount, 2) }}"
-                                            data-notes="{{ $quotation->notes ?: 'Sin notas registradas.' }}"
-                                            data-items='@json($itemsPayload)'>
+                                        <a href="{{ route('dashboard.vendedor.quotations.show', $quotation) }}" class="fit-action-button success" title="Ver detalles">
                                             <i class="ri-eye-line"></i>
-                                        </button>
+                                        </a>
                                         <a class="fit-action-button warning" target="_blank" rel="noopener" href="{{ route($pdfRoute, $quotation) }}" title="Descargar PDF">
                                             <i class="ri-file-download-line"></i>
                                         </a>
@@ -168,7 +133,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" style="text-align:center;padding:1rem;">No hay cotizaciones registradas para este vendedor.</td></tr>
+                            <tr><td colspan="6" style="text-align:center;padding:1rem;">No hay cotizaciones registradas para este vendedor.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -201,15 +166,7 @@
                         <input type="date" id="valid_until" name="valid_until" value="{{ old('valid_until', now()->addWeek()->format('Y-m-d')) }}" required>
                         @error('valid_until')<small style="color:#f87171">{{ $message }}</small>@enderror
                     </div>
-                    <div class="fit-form-field">
-                        <label for="quotation_status">Estado *</label>
-                        <select id="quotation_status" name="status" required>
-                            @foreach($statusLabels as $value => $label)
-                                <option value="{{ $value }}" @selected(old('status', 'borrador') === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('status')<small style="color:#f87171">{{ $message }}</small>@enderror
-                    </div>
+                    <input type="hidden" name="status" value="enviada">
                     <div class="fit-form-field span-2" id="quotationCompanyField">
                         <label for="quotation_company_id">Empresa / tienda de tu cartera *</label>
                         <select id="quotation_company_id" name="company_id">
@@ -272,26 +229,6 @@
         </div>
     </div>
 
-    <div class="modal" id="vendorQuotationDetailModal">
-        <div class="modal-content fit-modal-content fit-vendor-quotation-modal">
-            <div class="modal-header">
-                <h3>Detalle de cotizacion</h3>
-                <button class="close-button" type="button" data-close-quotation-detail>&times;</button>
-            </div>
-            <div id="vendorQuotationSummary" class="fit-transfer-summary fit-quotation-summary"></div>
-            <div class="fit-transfer-panel">
-                <h4>Notas comerciales</h4>
-                <p id="vendorQuotationNotes">Sin notas registradas.</p>
-            </div>
-            <div class="fit-transfer-panel">
-                <h4>Productos</h4>
-                <div id="vendorQuotationItems" class="vendor-quotation-detail-items"></div>
-            </div>
-            <div class="fit-modal-footer">
-                <button type="button" class="fit-outline-button" data-close-quotation-detail>Cerrar</button>
-            </div>
-        </div>
-    </div>
 </div>
 @endsection
 
@@ -299,7 +236,6 @@
 <script>
 (() => {
     const createModal = document.getElementById('vendorQuotationCreateModal');
-    const detailModal = document.getElementById('vendorQuotationDetailModal');
     const saleTypeSelect = document.getElementById('quotation_sale_type');
     const companyField = document.getElementById('quotationCompanyField');
     const customerField = document.getElementById('quotationCustomerField');
@@ -435,36 +371,6 @@
         if (event.target.classList.contains('quantity-input') || event.target.classList.contains('unit-price-input')) {
             recalcTotal();
         }
-    });
-
-    document.querySelectorAll('.btn-vendor-quotation-detail').forEach((button) => {
-        button.addEventListener('click', () => {
-            let items = [];
-            try {
-                items = JSON.parse(button.dataset.items || '[]');
-            } catch (error) {
-                items = [];
-            }
-
-            document.getElementById('vendorQuotationSummary').innerHTML = `
-                <div><span>ID</span><strong>#${button.dataset.id}</strong></div>
-                <div><span>Cliente</span><strong>${button.dataset.client}</strong></div>
-                <div><span>Tipo</span><strong>${button.dataset.type}</strong></div>
-                <div><span>Estado</span><strong>${button.dataset.status}</strong></div>
-                <div><span>Valido hasta</span><strong>${button.dataset.valid || '-'}</strong></div>
-                <div><span>Total</span><strong>${button.dataset.total}</strong></div>
-            `;
-            document.getElementById('vendorQuotationNotes').textContent = button.dataset.notes || 'Sin notas registradas.';
-            document.getElementById('vendorQuotationItems').innerHTML = items.length
-                ? items.map((item) => `<div><strong>${item.product}</strong><span>${item.sku || 'N/D'} - ${item.qty} uds x Bs ${Number(item.price || 0).toFixed(2)} = Bs ${Number(item.subtotal || 0).toFixed(2)}</span></div>`).join('')
-                : '<p class="fit-muted-text">Sin productos registrados.</p>';
-            detailModal?.classList.add('active');
-        });
-    });
-
-    document.querySelectorAll('[data-close-quotation-detail]').forEach((button) => button.addEventListener('click', () => detailModal?.classList.remove('active')));
-    detailModal?.addEventListener('click', (event) => {
-        if (event.target === detailModal) detailModal.classList.remove('active');
     });
 
     updateBuyerForm();

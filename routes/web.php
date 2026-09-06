@@ -41,7 +41,10 @@ Route::get('/predicciones', [\App\Http\Controllers\PredictController::class, 'in
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/agente-reposicion', [AiReplenishmentAgentController::class, 'index'])->name('agent.replenishment');
+    Route::get('/agente-reposicion/graficos', [AiReplenishmentAgentController::class, 'insightsPage'])->name('agent.replenishment.insights-page');
     Route::get('/agente-reposicion/reporte/pdf', [AiReplenishmentAgentController::class, 'report'])->name('agent.replenishment.report');
+    Route::get('/agente-reposicion/reporte-visual/pdf', [AiReplenishmentAgentController::class, 'visualReport'])->name('agent.replenishment.visual-report');
+    Route::get('/agente-reposicion/metricas', [AiReplenishmentAgentController::class, 'insights'])->name('agent.replenishment.insights');
     Route::get('/agente-reposicion/estado', [AiReplenishmentAgentController::class, 'status'])->name('agent.replenishment.status');
     Route::get('/agente-reposicion/evaluador/real', [AiReplenishmentAgentController::class, 'evaluatorReal'])->name('agent.replenishment.evaluator.real');
     Route::post('/agente-reposicion/run', [AiReplenishmentAgentController::class, 'runNow'])->name('agent.replenishment.run');
@@ -76,6 +79,7 @@ Route::prefix('dashboard')->group(function () {
         Route::get('/cotizaciones', [QuotationController::class, 'index'])->name('quotations');
         Route::post('/cotizaciones', [QuotationController::class, 'store'])->name('quotations.store');
         Route::get('/cotizaciones/product-lookup', [QuotationController::class, 'lookupProduct'])->name('quotations.lookup');
+        Route::get('/cotizaciones/{quotation}', [QuotationController::class, 'show'])->name('quotations.show');
         Route::get('/cotizaciones/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('quotations.pdf');
     });
     Route::get('/comprador', [\App\Http\Controllers\BuyerController::class, 'index'])->name('dashboard.comprador');
@@ -141,13 +145,16 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/traspasos/{transfer}/reporte/pdf', [TransferController::class, 'reportSingle'])->name('dashboard.transfers.report.single');
 
     Route::get('/ventas', [SaleController::class, 'index'])->name('dashboard.sales');
+    Route::get('/ventas/crear', [SaleController::class, 'create'])->name('dashboard.sales.create');
     Route::post('/ventas', [SaleController::class, 'store'])->name('dashboard.sales.store');
     Route::get('/ventas/product-lookup', [SaleController::class, 'lookupProduct'])->name('dashboard.sales.lookup');
+    Route::get('/ventas/{sale}', [SaleController::class, 'show'])->name('dashboard.sales.show');
     Route::put('/ventas/{sale}', [SaleController::class, 'update'])->name('dashboard.sales.update');
 
     Route::get('/cotizaciones', [QuotationController::class, 'index'])->name('dashboard.quotations');
     Route::post('/cotizaciones', [QuotationController::class, 'store'])->name('dashboard.quotations.store');
     Route::get('/cotizaciones/product-lookup', [QuotationController::class, 'lookupProduct'])->name('dashboard.quotations.lookup');
+    Route::get('/cotizaciones/{quotation}', [QuotationController::class, 'show'])->name('dashboard.quotations.show');
     Route::get('/cotizaciones/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('dashboard.quotations.pdf');
 
     Route::get('/logs', [AuditLogController::class, 'index'])->name('dashboard.logs');

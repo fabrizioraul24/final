@@ -3,7 +3,15 @@
 }
 
 .fit-quotation-metric-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fit-quotation-filter-form.no-status {
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 250px) auto auto;
+}
+
+.fit-quotation-metric-grid .fit-metric-card.disabled {
+    cursor: default;
 }
 
 .fit-quotation-status {
@@ -65,4 +73,206 @@
 
 .fit-quotation-summary {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fit-quotation-show-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 1rem;
+    align-items: start;
+}
+
+.fit-quotation-show-main {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+}
+
+.fit-quotation-show-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #f8fbff;
+}
+
+.fit-quotation-show-heading span,
+.fit-quotation-info-grid span,
+.fit-quotation-show-side > span,
+.fit-quotation-side-row span {
+    display: block;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-quotation-show-heading h4 {
+    margin: 0.25rem 0 0;
+    color: #0f172a;
+    font-size: 1.25rem;
+    font-weight: 950;
+}
+
+.fit-quotation-show-heading p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.fit-quotation-show-heading > strong {
+    color: #047857;
+    font-size: 1.35rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.fit-quotation-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.fit-quotation-info-grid > div {
+    padding: 0.9rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.9rem;
+    background: #f8fbff;
+}
+
+.fit-quotation-info-grid > div.span-2 {
+    grid-column: span 2;
+}
+
+.fit-quotation-info-grid strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.fit-quotation-show-side {
+    position: sticky;
+    top: 1rem;
+    display: grid;
+    gap: 0.85rem;
+    padding: 1.1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+    background: #ffffff;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.fit-quotation-show-side h2 {
+    margin: -0.35rem 0 0;
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 950;
+}
+
+.fit-quotation-side-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 0.8rem;
+    background: #f8fbff;
+}
+
+.fit-quotation-side-row strong {
+    color: #047857;
+    font-size: 1rem;
+    font-weight: 950;
+    text-align: right;
+}
+
+html.dark .fit-quotation-show-page .fit-quotation-show-heading,
+html.dark .fit-quotation-show-page .fit-quotation-info-grid > div,
+html.dark .fit-quotation-show-page .fit-quotation-show-side,
+html.dark .fit-quotation-show-page .fit-quotation-side-row {
+    background: #1e212b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+html.dark .fit-quotation-show-page .fit-quotation-show-heading {
+    background: linear-gradient(135deg, rgba(11, 79, 193, 0.2), #1e212b 58%, rgba(245, 158, 11, 0.12));
+}
+
+html.dark .fit-quotation-show-page .fit-quotation-show-heading h4,
+html.dark .fit-quotation-show-page .fit-quotation-info-grid strong,
+html.dark .fit-quotation-show-page .fit-quotation-show-side h2,
+html.dark .fit-quotation-show-page .fit-quotation-side-row strong,
+html.dark .fit-quotation-show-page .fit-users-table td strong {
+    color: #f8fafc;
+}
+
+html.dark .fit-quotation-show-page .fit-quotation-show-heading span,
+html.dark .fit-quotation-show-page .fit-quotation-show-heading p,
+html.dark .fit-quotation-show-page .fit-quotation-info-grid span,
+html.dark .fit-quotation-show-page .fit-quotation-show-side > span,
+html.dark .fit-quotation-show-page .fit-quotation-side-row span {
+    color: #94a3b8;
+}
+
+html.dark .fit-quotation-show-page .fit-quotation-show-heading > strong,
+html.dark .fit-quotation-show-page .fit-sale-amount,
+html.dark .fit-quotation-show-page .fit-quotation-side-row strong {
+    color: #34d399;
+}
+
+@media (max-width: 900px) {
+    .fit-quotation-show-layout,
+    .fit-quotation-info-grid,
+    .fit-quotation-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .fit-quotation-info-grid > div.span-2 {
+        grid-column: auto;
+    }
+
+    .fit-quotation-show-side {
+        position: static;
+    }
+
+    .fit-quotation-show-heading {
+        flex-direction: column;
+    }
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    .fit-quotation-print-area,
+    .fit-quotation-print-area * {
+        visibility: visible !important;
+    }
+
+    .fit-quotation-print-area {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .fit-quotation-print-area .fit-quotation-show-main,
+    .fit-quotation-print-area .fit-quotation-show-side {
+        margin-bottom: 1rem !important;
+        box-shadow: none !important;
+    }
+
+    .print-hide {
+        display: none !important;
+    }
 }

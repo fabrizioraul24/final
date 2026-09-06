@@ -73,10 +73,11 @@ function AgentNavigation({ activeView, onChange, data }) {
     );
 }
 
-function AgentModeSwitch({ mode, data }) {
+export function AgentModeSwitch({ mode, data }) {
     const items = [
         { id: 'replenishment', label: 'Agente de reposicion', icon: 'ri-truck-line', href: data.routes.index_replenishment },
         { id: 'evaluator', label: 'Agente de evaluacion', icon: 'ri-brain-line', href: data.routes.index_evaluator },
+        { id: 'insights', label: 'Dashboard grafico', icon: 'ri-bar-chart-box-line', href: data.routes.index_insights },
     ];
 
     return (
@@ -219,6 +220,18 @@ function errorDirection(predicted, actual, wapePercent) {
 }
 
 function deriveWeeklyItem(item, weekStart) {
+    const weekKey = weekStart.toISOString().slice(0, 10);
+    const storedWeek = item.weekly_history?.find((week) => week.period?.start === weekKey);
+
+    if (storedWeek) {
+        return {
+            ...item,
+            ...storedWeek,
+            weekly_history: item.weekly_history,
+            learning_state: item.learning_state,
+        };
+    }
+
     const baseWeek = startOfWeek(toDate(item.period?.start));
     const weekOffset = Math.round((weekStart.getTime() - baseWeek.getTime()) / (7 * 24 * 60 * 60 * 1000));
     const boundedOffset = Math.max(-6, Math.min(6, weekOffset));
@@ -438,6 +451,9 @@ function EvaluatorSection({ route }) {
     const [state, setState] = useState({ loading: true, error: null, payload: null });
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedWeekStart, setSelectedWeekStart] = useState(() => startOfWeek(new Date()));
+    const [detailLoadingId, setDetailLoadingId] = useState(null);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const sentinelRef = React.useRef(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -475,6 +491,7 @@ function EvaluatorSection({ route }) {
     const payload = state.payload;
     const summary = payload?.summary || {};
     const items = payload?.items || [];
+    const pagination = payload?.pagination || {};
     const predictionsLoaded = Number(payload?.predictions_loaded ?? items.length);
     const isRealEmpty = !state.error && predictionsLoaded === 0;
     const generatedAt = payload?.generated_at ? new Date(payload.generated_at).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pendiente';
@@ -484,6 +501,87 @@ function EvaluatorSection({ route }) {
         { label: 'MAE Promedio', value: Number(summary.avg_mae || 0).toFixed(0), hint: 'Error en unidades', icon: 'ri-ruler-line', tone: 'amber' },
         { label: 'Factores Ajustados', value: summary.changed_factors ?? 0, hint: 'Learning factor', icon: 'ri-loop-right-line', tone: 'rose' },
     ];
+
+    const openProductDetail = async (item) => {
+        setDetailLoadingId(item.product_id);
+        setSelectedWeekStart(startOfWeek(toDate(item.period?.start)));
+
+        try {
+            const url = new URL(route, window.location.origin);
+            url.searchParams.set('product_id', item.product_id);
+            const response = await fetch(url.toString(), {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const detailPayload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(detailPayload.message || 'No se pudo cargar el detalle del producto.');
+            }
+
+            const history = detailPayload.data?.items || [];
+            const selectedWeek = history.find((week) => week.period?.start === item.period?.start) || item;
+            setSelectedItem({
+                ...selectedWeek,
+                weekly_history: history,
+                learning_state: selectedWeek.learning_state || item.learning_state,
+            });
+        } catch {
+            setSelectedItem(item);
+        } finally {
+            setDetailLoadingId(null);
+        }
+    };
+
+    const loadMore = React.useCallback(async () => {
+        if (!route || loadingMore || state.loading || !state.payload?.pagination?.has_more) {
+            return;
+        }
+
+        setLoadingMore(true);
+
+        try {
+            const url = new URL(route, window.location.origin);
+            url.searchParams.set('page', Number(state.payload.pagination.page || 1) + 1);
+            url.searchParams.set('per_page', state.payload.pagination.per_page || 40);
+            const response = await fetch(url.toString(), {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const nextPayload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(nextPayload.message || 'No se pudieron cargar mas evaluaciones.');
+            }
+
+            setState((current) => ({
+                ...current,
+                payload: {
+                    ...nextPayload.data,
+                    items: [...(current.payload?.items || []), ...(nextPayload.data?.items || [])],
+                },
+            }));
+        } catch (error) {
+            setState((current) => ({ ...current, error: error.message || 'No se pudieron cargar mas evaluaciones.' }));
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [loadingMore, route, state.loading, state.payload]);
+
+    useEffect(() => {
+        const node = sentinelRef.current;
+        if (!node || selectedItem) return undefined;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+                loadMore();
+            }
+        }, { rootMargin: '240px' });
+
+        observer.observe(node);
+
+        return () => observer.disconnect();
+    }, [loadMore, selectedItem]);
 
     if (state.loading) {
         return <EvaluatorSkeleton />;
@@ -563,7 +661,7 @@ function EvaluatorSection({ route }) {
                         </thead>
                         <tbody>
                             {!isRealEmpty && items.length ? items.map((item) => (
-                                <tr key={item.product_id || item.product_name}>
+                                <tr key={`${item.product_id || item.product_name}-${item.period?.start || 'period'}`}>
                                     <td><strong>{item.product_name}</strong></td>
                                     <td><span className="fit-muted-text">{formatDate(item.period?.start)} - {formatDate(item.period?.end)}</span></td>
                                     <td><span className="fit-muted-text">{formatUnits(item.predicted_demand)}</span></td>
@@ -575,11 +673,8 @@ function EvaluatorSection({ route }) {
                                     <td><span className="fit-muted-text">{formatFactor(item.new_factor)}</span></td>
                                     <td><AdjustmentBadge changed={item.factor_changed} /></td>
                                     <td className="text-right">
-                                        <button type="button" className="fit-outline-button compact" onClick={() => {
-                                            setSelectedItem(item);
-                                            setSelectedWeekStart(startOfWeek(toDate(item.period?.start)));
-                                        }}>
-                                            <i className="ri-settings-4-line" /> Gestionar
+                                        <button type="button" className="fit-outline-button compact" onClick={() => openProductDetail(item)} disabled={detailLoadingId === item.product_id}>
+                                            <i className={detailLoadingId === item.product_id ? 'ri-loader-4-line ri-spin' : 'ri-settings-4-line'} /> {detailLoadingId === item.product_id ? 'Cargando' : 'Gestionar'}
                                         </button>
                                     </td>
                                 </tr>
@@ -588,6 +683,18 @@ function EvaluatorSection({ route }) {
                     </table>
                 </div>
             </div>
+            {!isRealEmpty && (
+                <div className="evaluator-load-more" ref={sentinelRef}>
+                    {pagination.has_more ? (
+                        <button type="button" className="fit-outline-button compact" onClick={loadMore} disabled={loadingMore}>
+                            <i className={loadingMore ? 'ri-loader-4-line ri-spin' : 'ri-arrow-down-line'} />
+                            {loadingMore ? 'Cargando evaluaciones...' : `Cargar mas (${items.length}/${pagination.total || predictionsLoaded})`}
+                        </button>
+                    ) : (
+                        <span className="fit-muted-text">Mostrando {items.length} de {pagination.total || predictionsLoaded} evaluaciones.</span>
+                    )}
+                </div>
+            )}
         </section>
     );
 }
@@ -931,7 +1038,7 @@ function RequestModal({ requestModal, csrfToken, onClose }) {
                             <form method="POST" action={requestModal.approve_url}>
                                 <input type="hidden" name="_token" value={csrfToken} />
                                 <input type="text" name="decision_reason" className="input-ghost" placeholder="Motivo de aprobacion" />
-                                <button type="submit" className="fit-primary-button">Aprobar traspaso</button>
+                                <button type="submit" className="fit-primary-button"><i className="ri-checkbox-circle-line" /> Aprobar traspaso</button>
                             </form>
                         </div>
                         <div className="agent-decision-card">
@@ -939,7 +1046,7 @@ function RequestModal({ requestModal, csrfToken, onClose }) {
                             <form method="POST" action={requestModal.reject_url}>
                                 <input type="hidden" name="_token" value={csrfToken} />
                                 <input type="text" name="decision_reason" className="input-ghost" placeholder="Motivo de rechazo" />
-                                <button type="submit" className="fit-primary-button danger">Rechazar traspaso</button>
+                                <button type="submit" className="fit-primary-button danger agent-reject-button"><i className="ri-close-circle-line" /> Rechazar traspaso</button>
                             </form>
                         </div>
                     </div>

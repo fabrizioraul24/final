@@ -114,29 +114,22 @@ class VendorCompanyController extends Controller
         $typeFilter = $request->query('type');
 
         $query = Company::query()
-            ->where('created_by', $user->id)
-            ->orderBy('name');
+            ->with('creator')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         $this->applyFilters($query, $search, $typeFilter);
 
         $companies = $query->get();
 
-        $stats = [
-            'total' => $companies->count(),
-            'institutional' => $companies->where('company_type', 'empresa_institucional')->count(),
-            'retail' => $companies->where('company_type', 'tienda_barrio')->count(),
-            'with_email' => $companies->whereNotNull('email')->count(),
-        ];
-
-        return ReportService::download('reports.vendor-companies', [
-            'title' => 'Clientes registrados por ' . ($user->name ?? 'vendedor'),
+        return ReportService::download('reports.companies', [
+            'title' => 'Reporte de clientes del vendedor',
             'generatedAt' => now(),
-            'vendor' => $user,
             'companies' => $companies,
-            'stats' => $stats,
+            'companyTypes' => Company::TYPES,
             'filters' => [
-                'search' => $search,
-                'type' => $typeFilter,
+                'type_label' => $typeFilter ? (Company::TYPES[$typeFilter] ?? null) : null,
             ],
         ], 'clientes-vendedor-' . $user->id . '.pdf');
     }

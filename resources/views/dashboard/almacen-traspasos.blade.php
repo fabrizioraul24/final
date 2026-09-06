@@ -4,6 +4,7 @@
 @section('page-title', 'Traspasos de almacen')
 
 @php
+    $activeStatus = $filters['status'] ?? null;
     $statusLabels = [
         \App\Models\Transfer::STATUS_PENDING => 'Pendiente',
         \App\Models\Transfer::STATUS_IN_TRANSIT => 'En transito',
@@ -44,19 +45,19 @@
     </section>
 
     <section class="fit-metric-grid warehouse-metric-grid">
-        <a href="{{ route('dashboard.almacen.transfers') }}" class="fit-metric-card orange">
+        <a href="{{ route('dashboard.almacen.transfers') }}" class="fit-metric-card orange {{ ! $activeStatus ? 'active' : '' }}">
             <span><small>Total traspasos</small><strong>{{ $stats['total'] }}</strong><em>Asignados a almacen</em></span>
             <span class="fit-metric-icon"><i class="ri-route-line"></i></span>
         </a>
-        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_PENDING]) }}" class="fit-metric-card rose">
+        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_PENDING]) }}" class="fit-metric-card rose {{ $activeStatus === \App\Models\Transfer::STATUS_PENDING ? 'active' : '' }}">
             <span><small>Pendientes</small><strong>{{ $stats['pending'] }}</strong><em>Por revisar</em></span>
             <span class="fit-metric-icon"><i class="ri-time-line"></i></span>
         </a>
-        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_IN_TRANSIT]) }}" class="fit-metric-card blue">
+        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_IN_TRANSIT]) }}" class="fit-metric-card blue {{ $activeStatus === \App\Models\Transfer::STATUS_IN_TRANSIT ? 'active' : '' }}">
             <span><small>En transito</small><strong>{{ $stats['in_transit'] }}</strong><em>Camino a bodega</em></span>
             <span class="fit-metric-icon"><i class="ri-truck-line"></i></span>
         </a>
-        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_RECEIVED]) }}" class="fit-metric-card indigo">
+        <a href="{{ route('dashboard.almacen.transfers', ['status' => \App\Models\Transfer::STATUS_RECEIVED]) }}" class="fit-metric-card indigo {{ $activeStatus === \App\Models\Transfer::STATUS_RECEIVED ? 'active' : '' }}">
             <span><small>Recibidos</small><strong>{{ $stats['received'] }}</strong><em>Inventario actualizado</em></span>
             <span class="fit-metric-icon"><i class="ri-checkbox-circle-line"></i></span>
         </a>

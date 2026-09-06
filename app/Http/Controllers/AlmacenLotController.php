@@ -22,22 +22,30 @@ class AlmacenLotController extends Controller
             'product_id' => ['nullable', 'exists:products,id'],
             'warehouse_id' => ['nullable', 'exists:warehouses,id'],
             'expires_at' => ['nullable', 'date'],
+            'scope' => ['nullable', 'in:with_stock,with_lots,stock_total,alerts'],
         ]);
 
         $search = $filters['search'] ?? null;
         $productId = $filters['product_id'] ?? null;
         $warehouseId = $filters['warehouse_id'] ?? null;
         $expires = $filters['expires_at'] ?? null;
+        $scope = $filters['scope'] ?? null;
         $resolvedWarehouseId = $this->resolvedWarehouseId($warehouseId);
 
-        $productsWithLots = $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires)
+        $productsWithLots = $this->buildLotProductsQuery($search, $productId, $warehouseId, $expires, $scope)
             ->paginate(8)
             ->withQueryString();
 
         $productsWithLots->setCollection($this->decorateLotProducts($productsWithLots->getCollection()));
 
+        $baseLotStats = fn () => ProductLot::query()
+            ->when($resolvedWarehouseId, fn ($q) => $q->where('warehouse_id', $resolvedWarehouseId));
+
         $stats = [
-            'products' => Product::whereHas('lots', fn ($q) => $q->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId)))->count(),
+            'products' => Product::whereHas('lots', fn ($q) => $q
+                ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId))
+                ->where('quantity', '>', 0)
+            )->count(),
             'lots' => ProductLot::when($resolvedWarehouseId, fn ($q) => $q->where('warehouse_id', $resolvedWarehouseId))->count(),
             'stock' => ProductLot::when($resolvedWarehouseId, fn ($q) => $q->where('warehouse_id', $resolvedWarehouseId))->sum('quantity'),
             'expiring' => ProductLot::when($resolvedWarehouseId, fn ($q) => $q->where('warehouse_id', $resolvedWarehouseId))
@@ -45,6 +53,13 @@ class AlmacenLotController extends Controller
                 ->count(),
             'critical' => ProductLot::when($resolvedWarehouseId, fn ($q) => $q->where('warehouse_id', $resolvedWarehouseId))
                 ->whereColumn('quantity', '<=', 'safety_threshold')
+                ->count(),
+            'alerts' => $baseLotStats()
+                ->where(function ($query) {
+                    $query
+                        ->whereBetween('expires_at', [now(), now()->addDays(30)])
+                        ->orWhereColumn('quantity', '<=', 'safety_threshold');
+                })
                 ->count(),
         ];
 
@@ -57,6 +72,7 @@ class AlmacenLotController extends Controller
                 'product_id' => $productId,
                 'warehouse_id' => $resolvedWarehouseId,
                 'expires_at' => $expires,
+                'scope' => $scope,
             ],
             'stats' => $stats,
         ]);
@@ -149,7 +165,7 @@ class AlmacenLotController extends Controller
         return $laPaz ? collect([$laPaz]) : Warehouse::orderBy('name')->get();
     }
 
-    private function buildLotProductsQuery(?string $search, ?string $productId, ?string $warehouseId, ?string $expires)
+    private function buildLotProductsQuery(?string $search, ?string $productId, ?string $warehouseId, ?string $expires, ?string $scope = null)
     {
         $resolvedWarehouseId = $this->resolvedWarehouseId($warehouseId);
         $lotScope = function ($query) use ($resolvedWarehouseId, $expires) {
@@ -185,11 +201,30 @@ class AlmacenLotController extends Controller
             ])
             ->when($search, fn ($query) => $query->whereAnyLikeInsensitive(['name', 'sku', 'description'], $search))
             ->when($productId, fn ($query) => $query->where('id', $productId))
+            ->when($scope === 'with_stock', fn ($query) => $query->whereHas('lots', function ($lotQuery) use ($resolvedWarehouseId) {
+                $lotQuery
+                    ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId))
+                    ->where('quantity', '>', 0);
+            }))
+            ->when($scope === 'alerts', fn ($query) => $query->where(function ($alertQuery) use ($resolvedWarehouseId) {
+                $alertQuery
+                    ->whereHas('lots', function ($lotQuery) use ($resolvedWarehouseId) {
+                        $lotQuery
+                            ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId))
+                            ->whereBetween('expires_at', [now(), now()->addDays(30)]);
+                    })
+                    ->orWhereHas('lots', function ($lotQuery) use ($resolvedWarehouseId) {
+                        $lotQuery
+                            ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId))
+                            ->whereColumn('quantity', '<=', 'safety_threshold');
+                    });
+            }))
             ->whereHas('lots', $lotScope)
             ->withSum(['lots as current_stock' => $lotScope], 'quantity')
             ->withCount(['lots as lots_count' => $lotScope])
             ->withMin(['lots as next_expiry' => $lotScope], 'expires_at')
-            ->orderBy('name');
+            ->when($scope === 'stock_total', fn ($query) => $query->orderByDesc('current_stock'))
+            ->when($scope !== 'stock_total', fn ($query) => $query->orderBy('name'));
     }
 
     private function decorateLotProducts(Collection $products): Collection

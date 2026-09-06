@@ -5,6 +5,8 @@
 
 @php
     $activeWarehouse = $warehouses->firstWhere('id', $filters['warehouse_id']);
+    $activeScope = $filters['scope'] ?? null;
+    $baseMetricParams = ['warehouse_id' => $filters['warehouse_id'] ?? null];
 @endphp
 
 @section('content')
@@ -30,26 +32,29 @@
     </section>
 
     <section class="fit-metric-grid warehouse-metric-grid">
-        <div class="fit-metric-card orange">
+        <a href="{{ route('dashboard.almacen.lots', array_filter($baseMetricParams + ['scope' => 'with_stock'])) }}" class="fit-metric-card orange {{ $activeScope === 'with_stock' ? 'active' : '' }}">
             <span><small>Productos con stock</small><strong>{{ $stats['products'] }}</strong><em>Con lotes activos</em></span>
             <span class="fit-metric-icon"><i class="ri-stack-line"></i></span>
-        </div>
-        <div class="fit-metric-card blue">
+        </a>
+        <a href="{{ route('dashboard.almacen.lots', array_filter($baseMetricParams + ['scope' => 'with_lots'])) }}" class="fit-metric-card blue {{ $activeScope === 'with_lots' || ! $activeScope ? 'active' : '' }}">
             <span><small>Lotes registrados</small><strong>{{ $stats['lots'] }}</strong><em>Inventario fisico</em></span>
             <span class="fit-metric-icon"><i class="ri-barcode-line"></i></span>
-        </div>
-        <div class="fit-metric-card indigo">
+        </a>
+        <a href="{{ route('dashboard.almacen.lots', array_filter($baseMetricParams + ['scope' => 'stock_total'])) }}" class="fit-metric-card indigo {{ $activeScope === 'stock_total' ? 'active' : '' }}">
             <span><small>Stock total</small><strong>{{ number_format((int) $stats['stock']) }}</strong><em>Unidades disponibles</em></span>
             <span class="fit-metric-icon"><i class="ri-dropbox-line"></i></span>
-        </div>
-        <div class="fit-metric-card rose">
-            <span><small>Alertas</small><strong>{{ $stats['expiring'] + $stats['critical'] }}</strong><em>Vencimiento o minimo</em></span>
+        </a>
+        <a href="{{ route('dashboard.almacen.lots', array_filter($baseMetricParams + ['scope' => 'alerts'])) }}" class="fit-metric-card rose {{ $activeScope === 'alerts' ? 'active' : '' }}">
+            <span><small>Alertas</small><strong>{{ $stats['alerts'] }}</strong><em>Vencimiento o minimo</em></span>
             <span class="fit-metric-icon"><i class="ri-alarm-warning-line"></i></span>
-        </div>
+        </a>
     </section>
 
     <section class="fit-filter-card warehouse-inventory-filter-card">
         <form method="GET" action="{{ route('dashboard.almacen.lots') }}" class="fit-filter-form warehouse-inventory-filter" data-live-search-form>
+            @if($activeScope)
+                <input type="hidden" name="scope" value="{{ $activeScope }}">
+            @endif
             <label class="fit-search-control" for="filter_search">
                 <i class="ri-search-line"></i>
                 <input type="search" id="filter_search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Buscar producto, SKU o descripcion..." data-live-search-input>
@@ -76,7 +81,7 @@
                 <input type="date" id="filter_expires_at" name="expires_at" value="{{ $filters['expires_at'] ?? '' }}">
             </label>
             <button class="fit-primary-button compact" type="submit"><i class="ri-search-line"></i><span>Filtrar</span></button>
-            @if(($filters['search'] ?? null) || ($filters['product_id'] ?? null) || ($filters['expires_at'] ?? null))
+            @if(($filters['search'] ?? null) || ($filters['product_id'] ?? null) || ($filters['expires_at'] ?? null) || ($filters['scope'] ?? null))
                 <a href="{{ route('dashboard.almacen.lots') }}" class="fit-clear-button">Limpiar filtros</a>
             @endif
         </form>

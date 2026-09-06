@@ -8,8 +8,19 @@
     text-decoration: none;
 }
 
+.vendor-quotations-page .fit-action-button,
+.vendor-quotations-page .fit-primary-button,
+.vendor-quotations-page .fit-outline-button,
+.vendor-quotations-page .fit-clear-button {
+    text-decoration: none;
+}
+
 .vendor-quotations-page .fit-quotation-metric-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.vendor-quotations-page .fit-quotation-filter-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 250px) auto auto;
 }
 
 .vendor-quotations-page .fit-metric-card.blue {
@@ -86,6 +97,118 @@
     font-size: 0.82rem;
 }
 
+.vendor-quotation-show-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.vendor-quotation-show-main {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.vendor-quotation-show-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.25rem;
+    align-items: flex-start;
+    padding: 1.1rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(11, 79, 193, 0.1), rgba(5, 150, 105, 0.1));
+    border: 1px solid #dbeafe;
+}
+
+.vendor-quotation-show-heading span,
+.vendor-quotation-info-grid small {
+    display: block;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.vendor-quotation-show-heading h2 {
+    margin: 0.25rem 0;
+    color: #0f172a;
+    font-size: 1.45rem;
+}
+
+.vendor-quotation-show-heading p {
+    margin: 0;
+    color: #475569;
+    font-weight: 700;
+}
+
+.vendor-quotation-show-heading > strong {
+    color: #047857;
+    font-size: 1.65rem;
+    white-space: nowrap;
+}
+
+.vendor-quotation-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.vendor-quotation-info-grid > div,
+.vendor-quotation-side-row {
+    padding: 0.85rem 0.95rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+}
+
+.vendor-quotation-info-grid strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 0.92rem;
+}
+
+.vendor-quotation-show-side {
+    position: sticky;
+    top: 1rem;
+}
+
+.vendor-quotation-show-side h2 {
+    margin: 0 0 1rem;
+    color: #0f172a;
+    font-size: 1rem;
+}
+
+.vendor-quotation-show-side .warehouse-panel {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.vendor-quotation-side-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+}
+
+.vendor-quotation-side-row span {
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.vendor-quotation-side-row strong {
+    color: #0b4fc1;
+    text-align: right;
+}
+
+.vendor-quotation-notes {
+    margin: 0;
+    color: #334155;
+    line-height: 1.65;
+}
+
 .vendor-quotations-page .fit-quotation-status.borrador,
 .vendor-quotations-page .fit-quotation-status.draft {
     color: #92400e;
@@ -112,17 +235,53 @@
 
 html.dark .vendor-quotation-products,
 html.dark .vendor-quotation-item-row,
-html.dark .vendor-quotation-detail-items > div {
+html.dark .vendor-quotation-detail-items > div,
+html.dark .vendor-quotation-info-grid > div,
+html.dark .vendor-quotation-side-row {
     background: rgba(255, 255, 255, 0.035);
     border-color: rgba(255, 255, 255, 0.08);
 }
 
 html.dark .vendor-quotation-detail-items strong,
-html.dark .vendor-quotation-detail-items span {
+html.dark .vendor-quotation-detail-items span,
+html.dark .vendor-quotation-show-heading h2,
+html.dark .vendor-quotation-info-grid strong,
+html.dark .vendor-quotation-show-side h2 {
     color: #f8fafc;
 }
 
+html.dark .vendor-quotation-show-heading {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(16, 185, 129, 0.12));
+    border-color: rgba(147, 197, 253, 0.2);
+}
+
+html.dark .vendor-quotation-show-heading span,
+html.dark .vendor-quotation-show-heading p,
+html.dark .vendor-quotation-info-grid small,
+html.dark .vendor-quotation-side-row span,
+html.dark .vendor-quotation-notes {
+    color: #cbd5e1;
+}
+
+html.dark .vendor-quotation-side-row strong {
+    color: #93c5fd;
+}
+
 @media (max-width: 920px) {
+    .vendor-quotations-page .fit-quotation-filter-form,
+    .vendor-quotation-show-layout,
+    .vendor-quotation-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vendor-quotation-show-side {
+        position: static;
+    }
+
+    .vendor-quotation-show-heading {
+        flex-direction: column;
+    }
+
     .vendor-quotation-product-grid {
         grid-template-columns: 1fr;
     }

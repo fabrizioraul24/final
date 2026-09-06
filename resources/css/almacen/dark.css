@@ -67,3 +67,23 @@ html.dark .warehouse-panel-count {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+html.dark .warehouse-metric-grid a.fit-metric-card {
+    background: #161820;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .warehouse-metric-grid a.fit-metric-card:hover,
+html.dark .warehouse-metric-grid a.fit-metric-card.active {
+    border-color: currentColor;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+}
+
+html.dark .warehouse-metric-grid a.fit-metric-card strong {
+    color: #f8fafc;
+}
+
+html.dark .warehouse-metric-grid a.fit-metric-card small,
+html.dark .warehouse-metric-grid a.fit-metric-card em {
+    color: #94a3b8;
+}

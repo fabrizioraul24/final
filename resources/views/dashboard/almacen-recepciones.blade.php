@@ -4,6 +4,8 @@
 @section('page-title', 'Pedidos de almacen')
 
 @php
+    $activeStatus = $filters['status'] ?? null;
+    $activeScope = $filters['scope'] ?? null;
     $statusLabels = [
         'sin_entregar' => 'Sin entregar',
         'entregado' => 'Entregado',
@@ -36,26 +38,29 @@
     </section>
 
     <section class="fit-metric-grid warehouse-metric-grid">
-        <a href="{{ route('dashboard.almacen.receptions') }}" class="fit-metric-card orange">
+        <a href="{{ route('dashboard.almacen.receptions') }}" class="fit-metric-card orange {{ ! $activeStatus && ! $activeScope ? 'active' : '' }}">
             <span><small>Total pedidos</small><strong>{{ $stats['total'] }}</strong><em>Registro operativo</em></span>
             <span class="fit-metric-icon"><i class="ri-file-list-3-line"></i></span>
         </a>
-        <a href="{{ route('dashboard.almacen.receptions', ['status' => 'sin_entregar']) }}" class="fit-metric-card blue">
+        <a href="{{ route('dashboard.almacen.receptions', ['status' => 'sin_entregar']) }}" class="fit-metric-card blue {{ $activeStatus === 'sin_entregar' ? 'active' : '' }}">
             <span><small>Pendientes</small><strong>{{ $stats['pending'] }}</strong><em>Por preparar</em></span>
             <span class="fit-metric-icon"><i class="ri-time-line"></i></span>
         </a>
-        <a href="{{ route('dashboard.almacen.receptions', ['status' => 'entregado']) }}" class="fit-metric-card indigo">
+        <a href="{{ route('dashboard.almacen.receptions', ['status' => 'entregado']) }}" class="fit-metric-card indigo {{ $activeStatus === 'entregado' ? 'active' : '' }}">
             <span><small>Entregados</small><strong>{{ $stats['delivered'] }}</strong><em>Despacho cerrado</em></span>
             <span class="fit-metric-icon"><i class="ri-checkbox-circle-line"></i></span>
         </a>
-        <div class="fit-metric-card rose">
+        <a href="{{ route('dashboard.almacen.receptions', ['scope' => 'today']) }}" class="fit-metric-card rose {{ $activeScope === 'today' ? 'active' : '' }}">
             <span><small>Ingresados hoy</small><strong>{{ $stats['today'] }}</strong><em>Actividad diaria</em></span>
             <span class="fit-metric-icon"><i class="ri-calendar-check-line"></i></span>
-        </div>
+        </a>
     </section>
 
     <section class="fit-filter-card warehouse-orders-filter-card">
         <form method="GET" action="{{ route('dashboard.almacen.receptions') }}" class="fit-filter-form warehouse-orders-filter">
+            @if($activeScope)
+                <input type="hidden" name="scope" value="{{ $activeScope }}">
+            @endif
             <label class="fit-select-control" for="status">
                 <i class="ri-filter-3-line"></i>
                 <select id="status" name="status">
@@ -71,7 +76,7 @@
                 <i class="ri-search-line"></i>
                 <span>Filtrar</span>
             </button>
-            @if($filters['status'] ?? null)
+            @if(($filters['status'] ?? null) || ($filters['scope'] ?? null))
                 <a href="{{ route('dashboard.almacen.receptions') }}" class="fit-clear-button">Limpiar filtros</a>
             @endif
         </form>

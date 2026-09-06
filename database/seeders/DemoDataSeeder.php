@@ -14,6 +14,7 @@ use App\Models\ProductLot;
 use App\Models\ProductLotMovement;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Models\Role;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Transfer;
@@ -22,979 +23,725 @@ use App\Models\User;
 use App\Models\VendorVisit;
 use App\Models\Warehouse;
 use Carbon\Carbon;
-use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class DemoDataSeeder extends Seeder
 {
-    private const SALES_HISTORY_TARGET = 630;
+    private const SALES_TARGET_2025 = 20000;
+    private const SALE_MOVEMENTS_TARGET_2025 = 46607;
+    private const NEW_USERS_TARGET = 50;
+    private const INACTIVE_USERS_TARGET = 10;
 
-    private const TODAY_SALES_TARGET = 12;
-
-    private const QUOTATIONS_TARGET = 218;
-
-    private const BUYER_ORDERS_TARGET = 180;
-
-    private const VISITS_TARGET = 174;
-
-    private const TRANSFERS_TARGET = 24;
-
-    private const DAMAGES_TARGET = 24;
-
-    private const AUDIT_TARGET = 420;
+    private array $lotQueues = [];
+    private array $lotBalances = [];
 
     public function run(): void
     {
-        $faker = Faker::create('es_ES');
+        mt_srand(20250101);
 
-        $products = Product::with('category')->get();
-        $warehouses = Warehouse::get()->keyBy('code');
-        $cities = City::get()->keyBy('name');
-        $companies = Company::get()->groupBy('company_type');
-        $customers = Customer::with('user')->get();
-        $users = User::with('role')->get()->keyBy('email');
+        $products = Product::with('category')->orderBy('id')->get();
+        $warehouses = Warehouse::orderBy('id')->get()->keyBy('code');
+        $cities = City::orderBy('id')->get()->keyBy('name');
 
-        $sellerId = $users->get('ventas@gmail.com')?->id
-            ?? $users->get('admin@gmail.com')?->id
-            ?? User::query()->value('id');
-        $warehouseUserId = $users->get('almacen@gmail.com')?->id ?? $sellerId;
-        $adminId = $users->get('admin@gmail.com')?->id ?? $sellerId;
-
-        if ($products->isEmpty() || $warehouses->isEmpty() || $cities->isEmpty() || ! $sellerId || ! $adminId) {
-            $this->command?->warn('No hay datos base suficientes para DemoDataSeeder.');
+        if ($products->isEmpty() || $warehouses->isEmpty() || ! $warehouses->has('LPZ')) {
+            $this->command?->warn('No hay productos o almacenes suficientes para crear la historia 2025.');
             return;
         }
 
-        $this->seedQuotations($faker, $products, $companies, $customers, $sellerId);
-        $this->seedSales($faker, $products, $warehouses, $cities, $companies, $customers, $sellerId);
-        $this->seedBuyerOrders($faker, $products, $customers, $sellerId);
-        $this->seedVendorVisits($faker, $companies, $sellerId);
-        $this->seedTransfers($faker, $products, $warehouses, $sellerId, $warehouseUserId);
-        $this->seedDamageReports($faker, $warehouseUserId);
-        $this->seedAuditLogs($adminId, $sellerId, $warehouseUserId);
+        DB::transaction(function () use ($products, $warehouses, $cities) {
+            $this->cleanPrevious2025Load();
+
+            $users = $this->seedOperationalUsers($cities);
+            $customers = $this->seedRetailCustomers($users['buyers'], $cities);
+            $companies = Company::whereIn('company_type', ['empresa_institucional', 'tienda_barrio'])
+                ->orderBy('id')
+                ->get()
+                ->groupBy('company_type');
+
+            $this->seedLots($products, $warehouses, $users['warehouse']);
+            $this->seedTransfers($products, $warehouses, $users);
+            $this->seedDamageReports($products, $warehouses, $users['warehouse']);
+            $this->seedSales($products, $warehouses, $cities, $companies, $customers, $users['sellers']);
+            $this->seedBuyerOrders($products, $customers);
+            $this->seedQuotations($products, $companies, $customers, $users['sellers']);
+            $this->seedVendorVisits($companies, $users['sellers']);
+            $this->syncInventory();
+            $this->seedAuditLogs($users);
+        });
     }
 
-    private function seedQuotations(
-        $faker,
-        Collection $products,
-        Collection $companiesByType,
-        Collection $customers,
-        int $sellerId
-    ): void {
-        if (Quotation::count() >= self::QUOTATIONS_TARGET) {
-            return;
+    private function cleanPrevious2025Load(): void
+    {
+        $saleIds = Sale::withTrashed()
+            ->whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->pluck('id');
+
+        foreach ($saleIds->chunk(1000) as $chunk) {
+            SaleItem::whereIn('sale_id', $chunk)->delete();
+            Sale::withTrashed()->whereIn('id', $chunk)->forceDelete();
         }
 
-        $monthlyPlan = [14, 15, 16, 17, 18, 18, 19, 20, 21, 22, 20, 18];
+        ProductLotMovement::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->where(function ($query) {
+                $query->whereIn('type', ['venta', 'ingreso', 'traspaso', 'merma', 'vencimiento', 'ajuste', 'venta_demo', 'traspaso_demo', 'dano_demo'])
+                    ->orWhereRaw('LOWER(note) LIKE ?', ['%demo%'])
+                    ->orWhereRaw('LOWER(note) LIKE ?', ['%seeder%']);
+            })
+            ->delete();
 
-        foreach ($this->monthWindows() as $index => [$monthStart, $monthEnd]) {
-            $count = $monthlyPlan[$index] ?? 16;
+        ProductLot::where('lote_code', 'like', 'PIL-2025-%')->delete();
 
-            for ($i = 0; $i < $count; $i++) {
-                $channel = collect([
-                    'empresa_institucional',
-                    'empresa_institucional',
-                    'tienda_barrio',
-                    'tienda_barrio',
-                    'comprador_minorista',
-                ])->random();
+        BuyerOrderItem::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        BuyerOrder::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        QuotationItem::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        Quotation::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        VendorVisit::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        TransferItem::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        Transfer::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        DamageReport::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+        AuditLog::whereBetween('created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])->delete();
+    }
 
-                $context = $this->saleContext($channel, $companiesByType, $customers);
-                if (! $context) {
-                    continue;
+    private function seedOperationalUsers(Collection $cities): array
+    {
+        $roles = Role::pluck('id', 'name');
+        $sellerRole = $roles['Vendedor'] ?? null;
+        $buyerRole = $roles['Comprador'] ?? null;
+        $warehouseRole = Role::where('name', 'like', 'Almac%')->value('id') ?? ($roles['Almacen'] ?? null);
+
+        $sellerNames = ['Rodrigo Lima', 'Natalia Paredes', 'Edwin Flores', 'Carla Choque', 'Marco Rios', 'Lucia Soria', 'Rene Calderon', 'Paola Vargas', 'Javier Mamani', 'Daniela Cordero', 'Ivan Quispe', 'Andrea Molina', 'Luis Arteaga', 'Gabriela Salinas', 'Victor Condori', 'Mariana Arias', 'Sergio Teran', 'Claudia Villarroel', 'Miguel Apaza', 'Sandra Gutierrez', 'Hugo Rocabado', 'Noelia Bustillos', 'Ernesto Rojas', 'Pamela Caceres'];
+        $warehouseNames = ['Armando Gutierrez', 'Celia Huanca', 'Bruno Poma', 'Walter Choque', 'Ruth Aguilar', 'Oscar Beltran', 'Lidia Cori', 'Franz Mendoza'];
+        $buyerNames = ['Roxana Velarde', 'Oscar Montano', 'Elena Tapia', 'Hernan Paredes', 'Janeth Callisaya', 'Mario Alarcon', 'Veronica Pinto', 'Alvaro Crespo', 'Rosa Nina', 'Diego Saavedra', 'Patricia Cuentas', 'Raul Aliaga', 'Jimena Blanco', 'Cesar Rivas', 'Silvia Lora', 'Adrian Maldonado', 'Martha Copa', 'Fernando Villca'];
+
+        $records = [];
+        foreach ($sellerNames as $name) {
+            $records[] = [$name, $sellerRole, 'vendedor'];
+        }
+        foreach ($warehouseNames as $name) {
+            $records[] = [$name, $warehouseRole, 'almacen'];
+        }
+        foreach ($buyerNames as $name) {
+            $records[] = [$name, $buyerRole, 'comprador'];
+        }
+
+        $created = ['sellers' => collect(), 'warehouse' => collect(), 'buyers' => collect()];
+
+        foreach (array_slice($records, 0, self::NEW_USERS_TARGET) as $index => [$name, $roleId, $group]) {
+            if (! $roleId) {
+                continue;
+            }
+
+            $slug = Str::slug($name, '.');
+            $user = User::withTrashed()->updateOrCreate(
+                ['email' => $slug.'@pil2025.bo'],
+                [
+                    'name' => $name,
+                    'username' => $slug.'.2025',
+                    'password' => Hash::make($group.'1234'),
+                    'role_id' => $roleId,
+                    'deleted_at' => null,
+                    'created_at' => Carbon::create(2025, 1, 2)->addDays($index),
+                    'updated_at' => Carbon::create(2025, 1, 2)->addDays($index),
+                ]
+            );
+
+            if ($index >= self::NEW_USERS_TARGET - self::INACTIVE_USERS_TARGET) {
+                $user->delete();
+            } elseif ($group === 'vendedor') {
+                $created['sellers']->push($user);
+            } elseif ($group === 'almacen') {
+                $created['warehouse']->push($user);
+            } else {
+                $created['buyers']->push($user);
+            }
+        }
+
+        $created['sellers'] = $created['sellers']->merge(User::where('email', 'ventas@gmail.com')->get())->values();
+        $created['warehouse'] = $created['warehouse']->merge(User::where('email', 'almacen@gmail.com')->get())->values();
+        $created['buyers'] = $created['buyers']->merge(User::where('email', 'comprador@gmail.com')->get())->values();
+
+        return $created;
+    }
+
+    private function seedRetailCustomers(Collection $buyers, Collection $cities): Collection
+    {
+        $addresses = [
+            ['La Paz', 'Calle Rosendo Gutierrez #456, Sopocachi'],
+            ['La Paz', 'Av. Ballivian #1234, Calacoto'],
+            ['La Paz', 'Calle 29 #220, Achumani'],
+            ['La Paz', 'Av. Saavedra #901, Miraflores'],
+            ['El Alto', 'Av. Juan Pablo II #778, Rio Seco'],
+            ['El Alto', 'Av. 6 de Marzo #1420, Senkata'],
+            ['El Alto', 'Av. Civica #330, Ceja'],
+            ['El Alto', 'Av. Litoral #251, Villa Adela'],
+        ];
+
+        foreach ($buyers as $index => $user) {
+            if ($user->trashed()) {
+                continue;
+            }
+
+            [$city, $address] = $addresses[$index % count($addresses)];
+            Customer::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'nit' => (string) (6500000 + $index),
+                    'delivery_address' => $address,
+                    'city' => $city,
+                    'city_id' => $cities[$city]->id ?? null,
+                ]
+            );
+        }
+
+        return Customer::with('user')->whereHas('user', fn ($query) => $query->whereNull('deleted_at'))->get();
+    }
+
+    private function seedLots(Collection $products, Collection $warehouses, Collection $warehouseUsers): void
+    {
+        $movementRows = [];
+        $createdAt = Carbon::create(2025, 1, 2, 7, 30);
+        $warehouseUserId = $warehouseUsers->first()?->id;
+
+        foreach ($products as $product) {
+            foreach ($warehouses as $warehouse) {
+                for ($month = 1; $month <= 12; $month++) {
+                    $base = $warehouse->code === 'LPZ' ? 250000 : 65000;
+                    $qty = $base + (($product->id + $month) % 9) * 3500;
+                    $date = Carbon::create(2025, $month, min(24, 2 + ($product->id % 18)), 7 + ($month % 5), 0);
+                    $lotCode = sprintf('PIL-2025-%s-%s-%02d', $warehouse->code, $product->sku, $month);
+
+                    $lot = ProductLot::create([
+                        'product_id' => $product->id,
+                        'warehouse_id' => $warehouse->id,
+                        'lote_code' => $lotCode,
+                        'quantity' => $qty,
+                        'expires_at' => $date->copy()->addDays($this->shelfLife($product, $month))->toDateString(),
+                        'safety_threshold' => $product->min_quantity ?? 0,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]);
+
+                    $this->lotQueues[$product->id][$warehouse->id][] = [
+                        'id' => $lot->id,
+                        'quantity' => $qty,
+                        'expires_at' => $lot->expires_at,
+                    ];
+                    $this->lotBalances[$lot->id] = $qty;
+
+                    $movementRows[] = [
+                        'lot_id' => $lot->id,
+                        'user_id' => $warehouseUserId,
+                        'type' => 'ingreso',
+                        'quantity' => $qty,
+                        'note' => 'Ingreso por produccion y distribucion regional 2025.',
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ];
                 }
+            }
+        }
 
-                $date = $this->randomDateInWindow($faker, $monthStart, $monthEnd);
-                $status = $this->quotationStatusForDate($date);
-                $items = $this->pickProductsForSale($products, $channel, $date, rand(2, 5));
+        $this->insertChunked('product_lot_movements', $movementRows);
+    }
 
-                if ($items->isEmpty()) {
-                    continue;
-                }
+    private function seedSales(Collection $products, Collection $warehouses, Collection $cities, Collection $companies, Collection $customers, Collection $sellers): void
+    {
+        $salesRows = [];
+        $saleItemsRows = [];
+        $movementRows = [];
+        $monthlyPlan = [1450, 1600, 1750, 1620, 1580, 1650, 1700, 1780, 1850, 1750, 1850, 1420];
+        $saleNumber = 0;
+        $extraItems = self::SALE_MOVEMENTS_TARGET_2025 - (self::SALES_TARGET_2025 * 2);
 
-                $quotation = Quotation::create([
+        foreach ($monthlyPlan as $monthIndex => $salesInMonth) {
+            $month = $monthIndex + 1;
+            for ($i = 0; $i < $salesInMonth; $i++) {
+                $saleNumber++;
+                $date = $this->saleDate($month, $i, $salesInMonth);
+                $channel = $this->channelForSale($saleNumber);
+                $context = $this->saleContext($channel, $companies, $customers, $cities);
+                $warehouse = $this->warehouseForCity($warehouses, $context['city']);
+                $seller = $sellers[($saleNumber + $month) % max(1, $sellers->count())];
+                $payment = $this->paymentMethod($channel);
+                $itemCount = 2 + ($saleNumber <= $extraItems ? 1 : 0);
+                $selectedProducts = $this->pickProducts($products, $channel, $month, $saleNumber, $itemCount);
+                $saleId = DB::table('sales')->insertGetId([
                     'company_id' => $context['company_id'],
                     'customer_id' => $context['customer_id'],
-                    'seller_id' => $sellerId,
+                    'seller_id' => $seller->id,
+                    'warehouse_id' => $warehouse->id,
                     'sale_type' => $channel,
-                    'valid_until' => $date->copy()->addDays(rand(5, 18))->toDateString(),
-                    'status' => $status,
+                    'delivery_address' => $context['address'],
+                    'delivery_city' => $context['city'],
+                    'delivery_city_id' => $context['city_id'],
+                    'status' => $this->saleStatus($date),
+                    'payment_method' => $payment,
+                    'amount_received' => null,
+                    'change_amount' => null,
                     'total_amount' => 0,
-                    'notes' => $this->quotationNote($channel, $status),
+                    'created_at' => $date,
+                    'updated_at' => $date,
                 ]);
 
                 $total = 0;
-
-                foreach ($items as $product) {
-                    $quantity = max(1, (int) round($this->quantityForSale($product, $channel, $date) * ($channel === 'empresa_institucional' ? 1.2 : 1)));
+                foreach ($selectedProducts as $product) {
+                    $quantity = $this->quantity($product, $channel, $month);
                     $unitPrice = $channel === 'empresa_institucional'
                         ? (float) $product->price_institutional
                         : (float) $product->suggested_price_public;
                     $subtotal = round($quantity * $unitPrice, 2);
+                    $lotId = $this->consumeLot($product->id, $warehouse->id, $quantity);
 
-                    $item = QuotationItem::create([
-                        'quotation_id' => $quotation->id,
+                    $saleItemsRows[] = [
+                        'sale_id' => $saleId,
                         'product_id' => $product->id,
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
                         'subtotal' => $subtotal,
-                    ]);
-
-                    $item->forceFill([
                         'created_at' => $date,
                         'updated_at' => $date,
-                    ])->saveQuietly();
-
+                    ];
+                    $movementRows[] = [
+                        'lot_id' => $lotId,
+                        'user_id' => $seller->id,
+                        'type' => 'venta',
+                        'quantity' => -$quantity,
+                        'note' => sprintf('Venta 2025 #%05d - canal %s.', $saleNumber, str_replace('_', ' ', $channel)),
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ];
                     $total += $subtotal;
                 }
 
-                $quotation->forceFill([
+                [$received, $change] = $this->cashAmounts($payment, $total);
+                $salesRows[] = [
+                    'id' => $saleId,
                     'total_amount' => round($total, 2),
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ])->saveQuietly();
-            }
-        }
-    }
+                    'amount_received' => $received,
+                    'change_amount' => $change,
+                ];
 
-    private function seedSales(
-        $faker,
-        Collection $products,
-        Collection $warehouses,
-        Collection $cities,
-        Collection $companiesByType,
-        Collection $customers,
-        int $sellerId
-    ): void {
-        if (Sale::count() < self::SALES_HISTORY_TARGET) {
-            $monthlyPlan = [34, 36, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74];
-
-            foreach ($this->monthWindows() as $index => [$monthStart, $monthEnd]) {
-                $count = $monthlyPlan[$index] ?? 42;
-
-                for ($i = 0; $i < $count; $i++) {
-                    $channel = $this->pickChannel();
-                    $date = $this->randomDateInWindow($faker, $monthStart, $monthEnd);
-                    $context = $this->saleContext($channel, $companiesByType, $customers, $cities);
-
-                    if (! $context) {
-                        continue;
-                    }
-
-                    $warehouse = $this->warehouseForCity($warehouses, $context['city']);
-                    if (! $warehouse) {
-                        continue;
-                    }
-
-                    $items = $this->pickProductsForSale(
-                        $products,
-                        $channel,
-                        $date,
-                        match ($channel) {
-                            'empresa_institucional' => rand(3, 6),
-                            'tienda_barrio' => rand(3, 5),
-                            default => rand(2, 4),
-                        }
-                    );
-
-                    if ($items->isEmpty()) {
-                        continue;
-                    }
-
-                    $paymentMethod = $this->paymentMethodForChannel($channel);
-                    $status = $this->statusForDate($date);
-
-                    $sale = Sale::create([
-                        'company_id' => $context['company_id'],
-                        'customer_id' => $context['customer_id'],
-                        'seller_id' => $sellerId,
-                        'warehouse_id' => $warehouse->id,
-                        'sale_type' => $channel,
-                        'delivery_address' => $context['address'],
-                        'delivery_city' => $context['city'],
-                        'delivery_city_id' => $context['city_id'],
-                        'status' => $status,
-                        'payment_method' => $paymentMethod,
-                        'amount_received' => $paymentMethod === 'efectivo' ? 0 : null,
-                        'change_amount' => 0,
-                        'total_amount' => 0,
-                    ]);
-
-                    $total = 0;
-
-                    foreach ($items as $product) {
-                        $quantity = $this->quantityForSale($product, $channel, $date);
-                        $unitPrice = $channel === 'empresa_institucional'
-                            ? (float) $product->price_institutional
-                            : (float) $product->suggested_price_public;
-                        $subtotal = round($quantity * $unitPrice, 2);
-
-                        $item = SaleItem::create([
-                            'sale_id' => $sale->id,
-                            'product_id' => $product->id,
-                            'quantity' => $quantity,
-                            'unit_price' => $unitPrice,
-                            'subtotal' => $subtotal,
-                        ]);
-
-                        $item->forceFill([
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ])->saveQuietly();
-
-                        $this->logSaleMovement($product->id, $warehouse->id, $quantity, $sellerId, $date, $sale->id);
-                        $total += $subtotal;
-                    }
-
-                    [$amountReceived, $changeAmount] = $this->cashFlowForSale($paymentMethod, $total);
-
-                    $sale->forceFill([
-                        'total_amount' => round($total, 2),
-                        'amount_received' => $amountReceived,
-                        'change_amount' => $changeAmount,
-                        'created_at' => $date,
-                        'updated_at' => $date,
-                    ])->saveQuietly();
+                if (count($saleItemsRows) >= 2000) {
+                    $this->insertChunked('sale_items', $saleItemsRows);
+                    $this->insertChunked('product_lot_movements', $movementRows);
+                    $saleItemsRows = [];
+                    $movementRows = [];
                 }
             }
         }
 
-        $this->seedTodaySales($faker, $products, $warehouses, $cities, $companiesByType, $customers, $sellerId);
-    }
+        $this->insertChunked('sale_items', $saleItemsRows);
+        $this->insertChunked('product_lot_movements', $movementRows);
 
-    private function seedTodaySales(
-        $faker,
-        Collection $products,
-        Collection $warehouses,
-        Collection $cities,
-        Collection $companiesByType,
-        Collection $customers,
-        int $sellerId
-    ): void {
-        $existingTodaySales = Sale::whereDate('created_at', now()->toDateString())->count();
-        $toCreate = max(0, self::TODAY_SALES_TARGET - $existingTodaySales);
-
-        for ($i = 0; $i < $toCreate; $i++) {
-            $channel = $this->pickChannel();
-            $context = $this->saleContext($channel, $companiesByType, $customers, $cities);
-            if (! $context) {
-                continue;
+        foreach (array_chunk($salesRows, 500) as $chunk) {
+            foreach ($chunk as $row) {
+                DB::table('sales')->where('id', $row['id'])->update([
+                    'total_amount' => $row['total_amount'],
+                    'amount_received' => $row['amount_received'],
+                    'change_amount' => $row['change_amount'],
+                ]);
             }
+        }
 
-            $warehouse = $this->warehouseForCity($warehouses, $context['city']);
-            if (! $warehouse) {
-                continue;
-            }
-
-            $date = now()->copy()->subHours(rand(0, 13))->subMinutes(rand(0, 59));
-            $items = $this->pickProductsForSale($products, $channel, $date, $channel === 'comprador_minorista' ? rand(2, 3) : rand(3, 5));
-
-            if ($items->isEmpty()) {
-                continue;
-            }
-
-            $paymentMethod = $this->paymentMethodForChannel($channel);
-
-            $sale = Sale::create([
-                'company_id' => $context['company_id'],
-                'customer_id' => $context['customer_id'],
-                'seller_id' => $sellerId,
-                'warehouse_id' => $warehouse->id,
-                'sale_type' => $channel,
-                'delivery_address' => $context['address'],
-                'delivery_city' => $context['city'],
-                'delivery_city_id' => $context['city_id'],
-                'status' => rand(0, 100) < 78 ? 'entregado' : 'sin_entregar',
-                'payment_method' => $paymentMethod,
-                'amount_received' => $paymentMethod === 'efectivo' ? 0 : null,
-                'change_amount' => 0,
-                'total_amount' => 0,
+        foreach ($this->lotBalances as $lotId => $quantity) {
+            DB::table('product_lots')->where('id', $lotId)->update([
+                'quantity' => max(0, $quantity),
+                'updated_at' => Carbon::create(2025, 12, 31, 18, 0),
             ]);
-
-            $total = 0;
-
-            foreach ($items as $product) {
-                $quantity = $this->quantityForSale($product, $channel, $date);
-                $unitPrice = $channel === 'empresa_institucional'
-                    ? (float) $product->price_institutional
-                    : (float) $product->suggested_price_public;
-                $subtotal = round($quantity * $unitPrice, 2);
-
-                $item = SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $product->id,
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
-                ]);
-
-                $item->forceFill([
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ])->saveQuietly();
-
-                $this->logSaleMovement($product->id, $warehouse->id, $quantity, $sellerId, $date, $sale->id);
-                $total += $subtotal;
-            }
-
-            [$amountReceived, $changeAmount] = $this->cashFlowForSale($paymentMethod, $total);
-
-            $sale->forceFill([
-                'total_amount' => round($total, 2),
-                'amount_received' => $amountReceived,
-                'change_amount' => $changeAmount,
-                'created_at' => $date,
-                'updated_at' => $date,
-            ])->saveQuietly();
         }
     }
 
-    private function seedBuyerOrders($faker, Collection $products, Collection $customers, int $sellerId): void
+    private function seedTransfers(Collection $products, Collection $warehouses, array $users): void
     {
-        if (BuyerOrder::count() >= self::BUYER_ORDERS_TARGET || $customers->isEmpty()) {
-            return;
-        }
+        $sourceWarehouses = $warehouses->filter(fn ($warehouse, $code) => $code !== 'LPZ')->values();
+        $lpz = $warehouses['LPZ'];
+        $warehouseUsers = $users['warehouse'];
+        $sellers = $users['sellers'];
 
-        foreach ($this->monthWindows() as $index => [$monthStart, $monthEnd]) {
-            $count = 10 + $index;
-
-            for ($i = 0; $i < $count; $i++) {
-                $customer = $customers->random();
-                $userId = $customer->user_id;
-
-                if (! $userId) {
-                    continue;
-                }
-
-                $date = $this->randomDateInWindow($faker, $monthStart, $monthEnd);
-                $items = $this->pickProductsForSale($products, 'comprador_minorista', $date, rand(2, 4));
-
-                if ($items->isEmpty()) {
-                    continue;
-                }
-
-                $order = BuyerOrder::create([
-                    'user_id' => $userId,
-                    'receipt_number' => sprintf('BO-%s-%04d', $date->format('Ym'), BuyerOrder::count() + 1),
-                    'payment_method' => collect(['efectivo', 'qr', 'tarjeta_debito'])->random(),
-                    'payment_status' => $date->isToday() ? collect(['pagado', 'pagado', 'pendiente'])->random() : collect(['pagado', 'pagado', 'pagado', 'reembolsado'])->random(),
-                    'status' => $date->isToday() ? collect(['preparando', 'enviado', 'entregado'])->random() : collect(['entregado', 'entregado', 'entregado', 'cancelado'])->random(),
-                    'subtotal' => 0,
-                    'shipping' => (float) collect([0, 0, 5, 7.5, 10])->random(),
-                    'total' => 0,
-                    'issued_at' => $date,
-                ]);
-
-                $subtotal = 0;
-
-                foreach ($items as $product) {
-                    $quantity = max(1, min(6, $this->quantityForSale($product, 'comprador_minorista', $date)));
-                    $unitPrice = (float) $product->suggested_price_public;
-
-                    BuyerOrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $product->id,
-                        'product_name' => $product->name,
-                        'quantity' => $quantity,
-                        'unit_price' => $unitPrice,
-                        'created_at' => $date,
-                        'updated_at' => $date,
-                    ]);
-
-                    $subtotal += round($quantity * $unitPrice, 2);
-                }
-
-                $order->forceFill([
-                    'subtotal' => round($subtotal, 2),
-                    'total' => round($subtotal + $order->shipping, 2),
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ])->saveQuietly();
-            }
-        }
-    }
-
-    private function seedVendorVisits($faker, Collection $companiesByType, int $sellerId): void
-    {
-        if (VendorVisit::count() >= self::VISITS_TARGET) {
-            return;
-        }
-
-        $companies = $companiesByType->flatten(1)->values();
-        if ($companies->isEmpty()) {
-            return;
-        }
-
-        foreach ($this->monthWindows() as $index => [$monthStart, $monthEnd]) {
-            $count = 12 + (int) floor($index / 2);
-
-            for ($i = 0; $i < $count; $i++) {
-                $company = $companies->random();
-                $date = $this->randomDateInWindow($faker, $monthStart, $monthEnd)->startOfDay();
-                $status = $date->isFuture()
-                    ? 'pendiente'
-                    : collect(['completada', 'completada', 'completada', 'reprogramada'])->random();
-
-                $visit = VendorVisit::create([
-                    'user_id' => $sellerId,
-                    'company_id' => $company->id,
-                    'visit_date' => $date->toDateString(),
-                    'status' => $status,
-                    'note' => $this->visitNote($company->company_type, $status),
-                ]);
-
-                $visit->forceFill([
-                    'created_at' => $date->copy()->setTime(rand(7, 18), rand(0, 59)),
-                    'updated_at' => $date->copy()->setTime(rand(7, 18), rand(0, 59)),
-                ])->saveQuietly();
-            }
-        }
-    }
-
-    private function seedTransfers($faker, Collection $products, Collection $warehouses, int $sellerId, int $warehouseUserId): void
-    {
-        if (Transfer::count() >= self::TRANSFERS_TARGET || ! $warehouses->has('LPZ')) {
-            return;
-        }
-
-        $sourceWarehouses = $warehouses->filter(fn (Warehouse $warehouse) => in_array($warehouse->code, ['SCZ', 'CBA'], true))->values();
-        $targetWarehouse = $warehouses->first(fn (Warehouse $warehouse) => $warehouse->code === 'LPZ');
-
-        if ($sourceWarehouses->isEmpty() || ! $targetWarehouse) {
-            return;
-        }
-
-        $focusProducts = $products
-            ->filter(fn (Product $product) => in_array($product->sku, [
-                'PIL-0001', 'PIL-0002', 'PIL-0031', 'PIL-0035', 'PIL-0051', 'PIL-0055',
-                'PIL-0063', 'PIL-0067', 'PIL-0081', 'PIL-0086', 'PIL-0089',
-            ], true))
-            ->values();
-
-        for ($i = 0; $i < 24; $i++) {
-            $status = match (true) {
-                $i < 14 => Transfer::STATUS_RECEIVED,
-                $i < 20 => Transfer::STATUS_IN_TRANSIT,
-                default => Transfer::STATUS_PENDING,
-            };
-
-            $createdAt = now()->copy()->subDays(330 - ($i * 11))->setTime(rand(7, 18), rand(0, 59));
-            $source = $sourceWarehouses->random();
-
+        for ($i = 0; $i < 96; $i++) {
+            $date = Carbon::create(2025, (($i % 12) + 1), (($i % 24) + 2), 8 + ($i % 8), 0);
+            $status = $i < 78 ? Transfer::STATUS_RECEIVED : ($i < 90 ? Transfer::STATUS_IN_TRANSIT : Transfer::STATUS_PENDING);
             $transfer = Transfer::create([
-                'from_warehouse_id' => $source->id,
-                'to_warehouse_id' => $targetWarehouse->id,
-                'requested_by' => $sellerId,
-                'approved_by' => $warehouseUserId,
-                'received_by' => $status === Transfer::STATUS_RECEIVED ? $warehouseUserId : null,
+                'from_warehouse_id' => $sourceWarehouses[$i % max(1, $sourceWarehouses->count())]->id ?? null,
+                'to_warehouse_id' => $lpz->id,
+                'requested_by' => $sellers[$i % max(1, $sellers->count())]->id,
+                'approved_by' => $warehouseUsers[$i % max(1, $warehouseUsers->count())]->id ?? null,
+                'received_by' => $status === Transfer::STATUS_RECEIVED ? ($warehouseUsers[($i + 1) % max(1, $warehouseUsers->count())]->id ?? null) : null,
                 'status' => $status,
-                'expected_date' => $createdAt->copy()->addDays(rand(1, 6))->toDateString(),
-                'received_date' => $status === Transfer::STATUS_RECEIVED ? $createdAt->copy()->addDays(rand(1, 5))->toDateString() : null,
-                'notes' => 'Reabastecimiento planificado por rotacion, cobertura regional y proyeccion comercial.',
+                'expected_date' => $date->copy()->addDays(2)->toDateString(),
+                'received_date' => $status === Transfer::STATUS_RECEIVED ? $date->copy()->addDays(2)->toDateString() : null,
+                'notes' => 'Reabastecimiento operativo por rotacion regional y cobertura de cuentas clave.',
+                'created_at' => $date,
+                'updated_at' => $date->copy()->addDays($status === Transfer::STATUS_RECEIVED ? 2 : 0),
             ]);
 
-            $items = $focusProducts->shuffle()->take(rand(2, 4));
-
-            foreach ($items as $product) {
-                $requestedQty = rand(24, 120);
-                $receivedQty = $status === Transfer::STATUS_RECEIVED ? max(8, $requestedQty - rand(0, 10)) : null;
-                $damagedQty = $status === Transfer::STATUS_RECEIVED ? rand(0, 4) : 0;
-                $expiresAt = $createdAt->copy()->addDays(rand(30, 210))->toDateString();
-                $lotCode = sprintf('TRF-%s-%02d', $product->sku, $i + 1);
-
+            foreach ($products->slice(($i * 3) % max(1, $products->count()), 3) as $product) {
                 TransferItem::create([
                     'transfer_id' => $transfer->id,
                     'product_id' => $product->id,
-                    'requested_qty' => $requestedQty,
-                    'received_qty' => $receivedQty,
-                    'damaged_qty' => $damagedQty,
-                    'notes' => 'Traslado interplanta para sostener demanda y lotes sanos en LPZ.',
-                    'lot_code' => $status === Transfer::STATUS_RECEIVED ? $lotCode : null,
-                    'receiving_expires_at' => $status === Transfer::STATUS_RECEIVED ? $expiresAt : null,
-                    'receiving_note' => $status === Transfer::STATUS_RECEIVED ? 'Recepcion validada por almacen.' : null,
-                    'created_at' => $createdAt,
-                    'updated_at' => $createdAt,
+                    'requested_qty' => 180 + (($i + $product->id) % 7) * 24,
+                    'received_qty' => $status === Transfer::STATUS_RECEIVED ? 170 + (($i + $product->id) % 7) * 23 : null,
+                    'damaged_qty' => $status === Transfer::STATUS_RECEIVED ? ($i + $product->id) % 4 : 0,
+                    'notes' => 'Controlado por despacho, camara fria y hoja de ruta.',
+                    'lot_code' => $status === Transfer::STATUS_RECEIVED ? sprintf('PIL-2025-LPZ-%s-T%02d', $product->sku, $i + 1) : null,
+                    'receiving_expires_at' => $status === Transfer::STATUS_RECEIVED ? $date->copy()->addDays($this->shelfLife($product, $i % 12))->toDateString() : null,
+                    'receiving_note' => $status === Transfer::STATUS_RECEIVED ? 'Recepcion validada por almacen La Paz.' : null,
+                    'created_at' => $date,
+                    'updated_at' => $date,
                 ]);
-
-                if ($status === Transfer::STATUS_RECEIVED && $receivedQty) {
-                    $lot = ProductLot::updateOrCreate(
-                        [
-                            'warehouse_id' => $targetWarehouse->id,
-                            'product_id' => $product->id,
-                            'lote_code' => $lotCode,
-                        ],
-                        [
-                            'quantity' => $receivedQty,
-                            'expires_at' => $expiresAt,
-                            'safety_threshold' => $product->min_quantity ?? 0,
-                        ]
-                    );
-
-                    $this->upsertMovement(
-                        $lot->id,
-                        'traspaso_demo',
-                        'Ingreso historico por traspaso recibido.',
-                        $warehouseUserId,
-                        $receivedQty,
-                        $createdAt->copy()->addDays(1)
-                    );
-                }
             }
-
-            $transfer->forceFill([
-                'created_at' => $createdAt,
-                'updated_at' => $status === Transfer::STATUS_RECEIVED ? $createdAt->copy()->addDays(2) : $createdAt,
-            ])->saveQuietly();
         }
     }
 
-    private function seedDamageReports($faker, int $warehouseUserId): void
+    private function seedDamageReports(Collection $products, Collection $warehouses, Collection $warehouseUsers): void
     {
-        if (DamageReport::count() >= self::DAMAGES_TARGET) {
-            return;
-        }
+        $warehouseUserId = $warehouseUsers->first()?->id;
+        $lots = ProductLot::where('lote_code', 'like', 'PIL-2025-%')->orderBy('expires_at')->limit(140)->get();
 
-        $lots = ProductLot::with('product')
-            ->where('quantity', '>', 5)
-            ->orderBy('expires_at')
-            ->limit(80)
-            ->get();
-
-        foreach ($lots->take(24) as $index => $lot) {
-            $damagedQty = min(max(0, $lot->quantity - 1), rand(1, 4));
-            if ($damagedQty <= 0) {
+        foreach ($lots as $index => $lot) {
+            $date = Carbon::create(2025, (($index % 12) + 1), (($index % 24) + 3), 10, 15);
+            $qty = min($lot->quantity, 5 + ($index % 14));
+            if ($qty <= 0) {
                 continue;
             }
 
-            $lot->quantity = max(0, $lot->quantity - $damagedQty);
-            $lot->save();
-
-            $reportedAt = now()->copy()->subDays(280 - ($index * 9))->setTime(rand(8, 16), rand(0, 59));
-
-            $report = DamageReport::create([
+            $this->lotBalances[$lot->id] = max(0, ($this->lotBalances[$lot->id] ?? $lot->quantity) - $qty);
+            DamageReport::create([
                 'product_lot_id' => $lot->id,
                 'product_id' => $lot->product_id,
                 'warehouse_id' => $lot->warehouse_id,
                 'reported_by' => $warehouseUserId,
-                'damaged_qty' => $damagedQty,
-                'comment' => $faker->randomElement([
-                    'Golpe en recepcion y merma registrada por control interno.',
-                    'Envase comprometido durante manipulacion en camara fria.',
-                    'Producto separado por dano visible en embalaje secundario.',
-                    'Merma registrada despues de inspeccion de calidad del lote.',
-                ]),
+                'damaged_qty' => $qty,
+                'comment' => 'Merma registrada por control de calidad, cadena de frio o manipulacion de despacho.',
+                'created_at' => $date,
+                'updated_at' => $date,
             ]);
-
-            $report->forceFill([
-                'created_at' => $reportedAt,
-                'updated_at' => $reportedAt,
-            ])->saveQuietly();
-
-            $this->upsertMovement(
-                $lot->id,
-                'dano_demo',
-                'Descuento historico por merma registrada.',
-                $warehouseUserId,
-                -$damagedQty,
-                $reportedAt
-            );
+            ProductLotMovement::create([
+                'lot_id' => $lot->id,
+                'user_id' => $warehouseUserId,
+                'type' => 'merma',
+                'quantity' => -$qty,
+                'note' => 'Baja por control de calidad 2025.',
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]);
         }
     }
 
-    private function seedAuditLogs(int $adminId, int $sellerId, int $warehouseUserId): void
+    private function seedBuyerOrders(Collection $products, Collection $customers): void
     {
-        if (AuditLog::count() >= self::AUDIT_TARGET) {
+        if ($customers->isEmpty()) {
             return;
         }
 
-        $events = collect();
+        for ($i = 0; $i < 1200; $i++) {
+            $date = Carbon::create(2025, (($i % 12) + 1), (($i % 26) + 1), 9 + ($i % 9), ($i * 7) % 60);
+            $customer = $customers[$i % $customers->count()];
+            $order = BuyerOrder::create([
+                'user_id' => $customer->user_id,
+                'receipt_number' => sprintf('PED-2025-%05d', $i + 1),
+                'payment_method' => ['efectivo', 'qr', 'tarjeta_debito'][$i % 3],
+                'payment_status' => $i % 19 === 0 ? 'reembolsado' : 'pagado',
+                'status' => $i % 23 === 0 ? 'cancelado' : 'entregado',
+                'subtotal' => 0,
+                'shipping' => [0, 5, 7.5, 10][$i % 4],
+                'total' => 0,
+                'issued_at' => $date,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]);
 
-        foreach (Sale::latest('created_at')->limit(150)->get() as $sale) {
-            $events->push([
-                'user_id' => $sellerId,
+            $subtotal = 0;
+            foreach ($this->pickProducts($products, 'comprador_minorista', (int) $date->month, $i, 3) as $product) {
+                $qty = 1 + (($i + $product->id) % 4);
+                $price = (float) $product->suggested_price_public;
+                BuyerOrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity' => $qty,
+                    'unit_price' => $price,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+                $subtotal += $qty * $price;
+            }
+
+            $order->forceFill([
+                'subtotal' => round($subtotal, 2),
+                'total' => round($subtotal + $order->shipping, 2),
+            ])->saveQuietly();
+        }
+    }
+
+    private function seedQuotations(Collection $products, Collection $companies, Collection $customers, Collection $sellers): void
+    {
+        for ($i = 0; $i < 960; $i++) {
+            $channel = $i % 5 === 0 ? 'comprador_minorista' : ($i % 2 === 0 ? 'empresa_institucional' : 'tienda_barrio');
+            $date = Carbon::create(2025, (($i % 12) + 1), (($i % 25) + 1), 11, ($i * 11) % 60);
+            $context = $this->saleContext($channel, $companies, $customers, City::get()->keyBy('name'));
+            $seller = $sellers[$i % max(1, $sellers->count())];
+            $quotation = Quotation::create([
+                'company_id' => $context['company_id'],
+                'customer_id' => $context['customer_id'],
+                'seller_id' => $seller->id,
+                'sale_type' => $channel,
+                'valid_until' => $date->copy()->addDays(10)->toDateString(),
+                'status' => ['aceptada', 'aceptada', 'enviada', 'rechazada'][$i % 4],
+                'total_amount' => 0,
+                'notes' => 'Cotizacion comercial para reposicion, volumen y negociacion de precios 2025.',
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]);
+
+            $total = 0;
+            foreach ($this->pickProducts($products, $channel, (int) $date->month, $i, 4) as $product) {
+                $qty = max(2, (int) round($this->quantity($product, $channel, (int) $date->month) * 0.8));
+                $price = $channel === 'empresa_institucional' ? (float) $product->price_institutional : (float) $product->suggested_price_public;
+                $total += $qty * $price;
+                QuotationItem::create([
+                    'quotation_id' => $quotation->id,
+                    'product_id' => $product->id,
+                    'quantity' => $qty,
+                    'unit_price' => $price,
+                    'subtotal' => round($qty * $price, 2),
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+            }
+
+            $quotation->forceFill(['total_amount' => round($total, 2)])->saveQuietly();
+        }
+    }
+
+    private function seedVendorVisits(Collection $companies, Collection $sellers): void
+    {
+        $allCompanies = $companies->flatten(1)->values();
+        if ($allCompanies->isEmpty()) {
+            return;
+        }
+
+        for ($i = 0; $i < 2600; $i++) {
+            $date = Carbon::create(2025, (($i % 12) + 1), (($i % 26) + 1), 8, 0);
+            VendorVisit::create([
+                'user_id' => $sellers[$i % max(1, $sellers->count())]->id,
+                'company_id' => $allCompanies[$i % $allCompanies->count()]->id,
+                'visit_date' => $date->toDateString(),
+                'status' => $i % 17 === 0 ? 'reprogramada' : 'completada',
+                'note' => 'Seguimiento de exhibicion, frio, cobranza y reposicion semanal.',
+                'created_at' => $date,
+                'updated_at' => $date->copy()->addHours(2),
+            ]);
+        }
+    }
+
+    private function seedAuditLogs(array $users): void
+    {
+        $adminId = User::where('email', 'admin@gmail.com')->value('id') ?? $users['sellers']->first()?->id;
+        $sales = Sale::whereYear('created_at', 2025)->latest('id')->limit(900)->get(['id', 'seller_id', 'sale_type', 'status', 'total_amount', 'created_at']);
+        $rows = [];
+
+        foreach ($sales as $sale) {
+            $rows[] = [
+                'user_id' => $sale->seller_id ?: $adminId,
                 'entity_type' => Sale::class,
                 'entity_id' => $sale->id,
                 'action' => 'create',
-                'description' => 'Venta historica registrada para panel comercial.',
-                'old_values' => [],
-                'new_values' => $sale->only(['sale_type', 'status', 'total_amount', 'warehouse_id']),
+                'description' => 'Venta historica registrada en operacion comercial 2025.',
+                'old_values' => json_encode([]),
+                'new_values' => json_encode($sale->only(['sale_type', 'status', 'total_amount'])),
                 'created_at' => $sale->created_at,
-            ]);
+            ];
         }
 
-        foreach (Quotation::latest('created_at')->limit(110)->get() as $quotation) {
-            $events->push([
-                'user_id' => $sellerId,
-                'entity_type' => Quotation::class,
-                'entity_id' => $quotation->id,
-                'action' => 'create',
-                'description' => 'Cotizacion historica generada para seguimiento comercial.',
-                'old_values' => [],
-                'new_values' => $quotation->only(['sale_type', 'status', 'total_amount']),
-                'created_at' => $quotation->created_at,
-            ]);
-        }
-
-        foreach (Transfer::latest('created_at')->limit(80)->get() as $transfer) {
-            $events->push([
-                'user_id' => $warehouseUserId,
-                'entity_type' => Transfer::class,
-                'entity_id' => $transfer->id,
-                'action' => 'update',
-                'description' => 'Traspaso operativo actualizado en historico de almacen.',
-                'old_values' => ['status' => Transfer::STATUS_PENDING],
-                'new_values' => $transfer->only(['status', 'from_warehouse_id', 'to_warehouse_id']),
-                'created_at' => $transfer->updated_at ?? $transfer->created_at,
-            ]);
-        }
-
-        foreach (VendorVisit::latest('created_at')->limit(80)->get() as $visit) {
-            $events->push([
-                'user_id' => $sellerId,
-                'entity_type' => VendorVisit::class,
-                'entity_id' => $visit->id,
-                'action' => 'create',
-                'description' => 'Visita comercial registrada en agenda historica.',
-                'old_values' => [],
-                'new_values' => $visit->only(['company_id', 'status', 'visit_date']),
-                'created_at' => $visit->created_at,
-            ]);
-        }
-
-        foreach (DamageReport::latest('created_at')->limit(40)->get() as $report) {
-            $events->push([
-                'user_id' => $warehouseUserId,
-                'entity_type' => DamageReport::class,
-                'entity_id' => $report->id,
-                'action' => 'create',
-                'description' => 'Merma historica registrada por control de calidad.',
-                'old_values' => [],
-                'new_values' => $report->only(['product_id', 'warehouse_id', 'damaged_qty']),
-                'created_at' => $report->created_at,
-            ]);
-        }
-
-        foreach ($events->take(self::AUDIT_TARGET) as $event) {
-            AuditLog::create([
-                'user_id' => $event['user_id'] ?: $adminId,
-                'entity_type' => $event['entity_type'],
-                'entity_id' => $event['entity_id'],
-                'action' => $event['action'],
-                'description' => $event['description'],
-                'old_values' => $event['old_values'],
-                'new_values' => $event['new_values'],
-                'created_at' => $event['created_at'] ?? now(),
-            ]);
-        }
+        $this->insertChunked('audit_logs', $rows);
     }
 
-    private function monthWindows(): array
+    private function saleContext(string $channel, Collection $companies, Collection $customers, Collection $cities): array
     {
-        $windows = [];
-        $start = now()->copy()->startOfMonth()->subMonths(11);
-
-        for ($i = 0; $i < 12; $i++) {
-            $monthStart = $start->copy()->addMonths($i);
-            $monthEnd = $monthStart->isSameMonth(now())
-                ? now()->copy()
-                : $monthStart->copy()->endOfMonth();
-            $windows[] = [$monthStart, $monthEnd];
-        }
-
-        return $windows;
-    }
-
-    private function pickChannel(): string
-    {
-        return collect([
-            'empresa_institucional',
-            'empresa_institucional',
-            'empresa_institucional',
-            'tienda_barrio',
-            'tienda_barrio',
-            'tienda_barrio',
-            'comprador_minorista',
-            'comprador_minorista',
-        ])->random();
-    }
-
-    private function saleContext(
-        string $channel,
-        Collection $companiesByType,
-        Collection $customers,
-        ?Collection $cities = null
-    ): ?array {
-        if ($channel === 'comprador_minorista') {
-            $customer = $customers->random();
-
+        if ($channel === 'comprador_minorista' && $customers->isNotEmpty()) {
+            $customer = $customers[array_rand($customers->all())];
             return [
                 'company_id' => null,
                 'customer_id' => $customer->id,
                 'city' => $customer->city,
-                'city_id' => $customer->city_id ?: $cities?->get($customer->city)?->id,
+                'city_id' => $customer->city_id ?? ($cities[$customer->city]->id ?? null),
                 'address' => $customer->delivery_address,
             ];
         }
 
-        $companyGroup = $companiesByType->get($channel);
-        if (! $companyGroup instanceof Collection || $companyGroup->isEmpty()) {
-            return null;
-        }
-
-        $company = $companyGroup->random();
+        $group = $companies[$channel] ?? collect();
+        $company = $group->isNotEmpty() ? $group[random_int(0, $group->count() - 1)] : Company::first();
 
         return [
-            'company_id' => $company->id,
+            'company_id' => $company?->id,
             'customer_id' => null,
-            'city' => $company->city,
-            'city_id' => $company->city_id ?: $cities?->get($company->city)?->id,
-            'address' => $company->address,
+            'city' => $company?->city ?? 'La Paz',
+            'city_id' => $company?->city_id ?? ($cities[$company?->city ?? 'La Paz']->id ?? null),
+            'address' => $company?->address ?? 'La Paz',
         ];
     }
 
-    private function warehouseForCity(Collection $warehouses, ?string $city): ?Warehouse
+    private function pickProducts(Collection $products, string $channel, int $month, int $salt, int $count): Collection
     {
-        return match ($city) {
-            'La Paz', 'El Alto' => $warehouses->get('LPZ'),
-            'Santa Cruz' => $warehouses->get('SCZ'),
-            'Cochabamba' => $warehouses->get('CBA'),
-            default => $warehouses->get('LPZ') ?? $warehouses->first(),
-        };
+        return $products
+            ->sortByDesc(fn ($product) => $this->demandScore($product, $channel, $month, $salt))
+            ->take($count)
+            ->values();
     }
 
-    private function paymentMethodForChannel(string $channel): string
+    private function demandScore(Product $product, string $channel, int $month, int $salt): int
     {
-        return match ($channel) {
-            'empresa_institucional' => collect(['transferencia', 'credito', 'qr'])->random(),
-            'tienda_barrio' => collect(['efectivo', 'qr', 'tarjeta_debito'])->random(),
-            default => collect(['efectivo', 'qr', 'tarjeta_debito'])->random(),
-        };
-    }
+        $name = Str::lower($product->name.' '.$product->description);
+        $score = (($product->id * 37 + $salt * 13) % 100);
 
-    private function statusForDate(Carbon $date): string
-    {
-        if ($date->greaterThan(now()->copy()->subDays(5))) {
-            return rand(0, 100) < 72 ? 'entregado' : 'sin_entregar';
+        if (preg_match('/leche|yogurt|pilfrut|juguito|chiqui|chicolac/', $name)) {
+            $score += 45;
         }
-
-        return rand(0, 100) < 90 ? 'entregado' : 'sin_entregar';
-    }
-
-    private function quotationStatusForDate(Carbon $date): string
-    {
-        if ($date->greaterThan(now()->copy()->subDays(10))) {
-            return collect(['enviada', 'enviada', 'borrador', 'aceptada'])->random();
+        if ($channel === 'empresa_institucional' && preg_match('/1 l|2 l|1 kg|5 l|800 ml|946 ml/', $name)) {
+            $score += 30;
         }
-
-        return collect(['aceptada', 'aceptada', 'enviada', 'rechazada'])->random();
-    }
-
-    private function quotationNote(string $channel, string $status): string
-    {
-        $base = match ($channel) {
-            'empresa_institucional' => 'Cotizacion preparada para negociacion con cuenta institucional.',
-            'tienda_barrio' => 'Oferta enviada para reposicion semanal de tienda de barrio.',
-            default => 'Propuesta comercial para pedido de cliente minorista.',
-        };
-
-        return $status === 'rechazada'
-            ? $base.' No se concreto por precio, timing o presupuesto.'
-            : $base;
-    }
-
-    private function visitNote(string $channel, string $status): string
-    {
-        $base = $channel === 'empresa_institucional'
-            ? 'Revision de volumen, exhibicion fria y propuesta de reposicion.'
-            : 'Seguimiento a surtido, rotacion y quiebres en punto de venta.';
-
-        return $status === 'reprogramada'
-            ? $base.' Cliente solicito reprogramacion para la siguiente semana.'
-            : $base;
-    }
-
-    private function randomDateInWindow($faker, Carbon $start, Carbon $end): Carbon
-    {
-        $seconds = max(1, $end->diffInSeconds($start));
-
-        return $start->copy()->addSeconds($faker->numberBetween(0, $seconds));
-    }
-
-    private function pickProductsForSale(Collection $products, string $channel, Carbon $date, int $count): Collection
-    {
-        $available = $products->values();
-        $selected = collect();
-
-        while ($selected->count() < $count && $available->isNotEmpty()) {
-            $index = $this->weightedIndex($available, function (Product $product) use ($channel, $date) {
-                return $this->demandWeight($product, $channel, $date);
-            });
-
-            $selected->push($available->get($index));
-            $available->forget($index);
-            $available = $available->values();
-        }
-
-        return $selected;
-    }
-
-    private function weightedIndex(Collection $items, callable $resolver): int
-    {
-        $weights = $items->map(fn ($item) => max(1, (int) $resolver($item)))->values();
-        $total = $weights->sum();
-        $pivot = rand(1, max(1, $total));
-        $carry = 0;
-
-        foreach ($weights as $index => $weight) {
-            $carry += $weight;
-            if ($pivot <= $carry) {
-                return $index;
-            }
-        }
-
-        return 0;
-    }
-
-    private function demandWeight(Product $product, string $channel, Carbon $date): int
-    {
-        $name = Str::lower($product->name);
-        $category = Str::lower($product->category->name ?? '');
-        $description = Str::lower($product->description ?? '');
-        $month = (int) $date->format('n');
-
-        $weight = 10;
-
-        if (in_array($category, ['leches fluidas', 'yogurt', 'bebidas lacteas', 'jugos y nectares'], true)) {
-            $weight += 14;
-        }
-
-        if (in_array($product->sku, ['PIL-0001', 'PIL-0002', 'PIL-0031', 'PIL-0035', 'PIL-0051', 'PIL-0055', 'PIL-0063', 'PIL-0081', 'PIL-0089'], true)) {
-            $weight += 12;
-        }
-
-        if ($channel === 'empresa_institucional' && preg_match('/(1 l|2 l|1 kg|760 g|1.000 g|5 l|1.800 g|2.200 g)/', $description)) {
-            $weight += 10;
-        }
-
         if ($channel === 'tienda_barrio' && (float) $product->suggested_price_public <= 12) {
-            $weight += 8;
+            $score += 26;
+        }
+        if (in_array($month, [2, 3, 11, 12], true)) {
+            $score += 12;
         }
 
-        if ($channel === 'comprador_minorista' && (float) $product->suggested_price_public <= 20) {
-            $weight += 6;
-        }
-
-        $isSchoolProduct = preg_match('/(pilfrut|juguito|yogurello|chiqui|chicolac)/', $name);
-        if ($isSchoolProduct && in_array($month, [2, 3], true)) {
-            $weight += 18;
-        } elseif ($isSchoolProduct && in_array($month, [4, 5], true)) {
-            $weight -= 6;
-        }
-
-        if (preg_match('/(biogurt|yogurt bebible|greco yogurt griego|leche fresca natural|leche natural larga vida)/', $name)) {
-            $weight += 8;
-        }
-
-        if (in_array($month, [11, 12, 1], true) && preg_match('/(leche|yogurt|mantequilla|crema)/', $name)) {
-            $weight += 5;
-        }
-
-        return max(1, $weight);
+        return $score;
     }
 
-    private function quantityForSale(Product $product, string $channel, Carbon $date): int
+    private function quantity(Product $product, string $channel, int $month): int
     {
-        $description = Str::lower($product->description ?? '');
-        $name = Str::lower($product->name);
-
-        $bulk = preg_match('/(2 l|1 kg|760 g|1.000 g|1.800 g|2.200 g|5 l)/', $description) === 1;
-        $small = preg_match('/(100 g|110 g|120 g|140 ml|150 ml|170 g|170 ml|190 ml|200 ml)/', $description) === 1;
+        $text = Str::lower($product->name.' '.$product->description);
+        $bulk = preg_match('/1 l|2 l|1 kg|5 l|800 ml|946 ml|760 g/', $text);
+        $small = preg_match('/100 g|110 g|120 g|140 ml|150 ml|170 g|190 ml|200 ml/', $text);
 
         $quantity = match ($channel) {
-            'empresa_institucional' => $bulk ? rand(6, 18) : rand(12, 36),
-            'tienda_barrio' => $bulk ? rand(4, 10) : rand(8, 24),
-            default => $bulk ? rand(1, 3) : rand(2, 6),
+            'empresa_institucional' => $bulk ? random_int(96, 420) : random_int(180, 720),
+            'tienda_barrio' => $bulk ? random_int(18, 72) : random_int(36, 144),
+            default => $bulk ? random_int(2, 10) : random_int(3, 18),
         };
 
         if ($small) {
-            $quantity += match ($channel) {
-                'empresa_institucional' => rand(4, 8),
-                'tienda_barrio' => rand(2, 5),
-                default => rand(0, 2),
-            };
+            $quantity = (int) round($quantity * 1.35);
         }
-
-        if (preg_match('/(pilfrut|juguito|chiqui|yogurello)/', $name) && in_array((int) $date->format('n'), [2, 3], true)) {
-            $quantity += match ($channel) {
-                'empresa_institucional' => rand(6, 10),
-                'tienda_barrio' => rand(4, 8),
-                default => rand(1, 3),
-            };
+        if (preg_match('/pilfrut|juguito|chiqui|chicolac/', $text) && in_array($month, [2, 3], true)) {
+            $quantity = (int) round($quantity * 1.28);
         }
 
         return max(1, $quantity);
     }
 
-    private function cashFlowForSale(string $paymentMethod, float $total): array
+    private function consumeLot(int $productId, int $warehouseId, int $quantity): int
     {
-        if ($paymentMethod !== 'efectivo') {
+        $queue = &$this->lotQueues[$productId][$warehouseId];
+
+        foreach ($queue as &$lot) {
+            if ($lot['quantity'] <= 0) {
+                continue;
+            }
+
+            $lot['quantity'] -= $quantity;
+            $this->lotBalances[$lot['id']] = max(0, ($this->lotBalances[$lot['id']] ?? 0) - $quantity);
+            return $lot['id'];
+        }
+
+        throw new \RuntimeException("Stock insuficiente para producto {$productId} en almacen {$warehouseId}.");
+    }
+
+    private function saleDate(int $month, int $index, int $salesInMonth): Carbon
+    {
+        $days = Carbon::create(2025, $month, 1)->daysInMonth;
+        $day = 1 + (int) floor(($index / max(1, $salesInMonth)) * $days);
+        $hour = 7 + ($index % 12);
+        $minute = ($index * 7) % 60;
+
+        return Carbon::create(2025, $month, min($day, $days), $hour, $minute);
+    }
+
+    private function channelForSale(int $saleNumber): string
+    {
+        return match ($saleNumber % 20) {
+            0, 3, 6 => 'comprador_minorista',
+            1, 2, 4, 5, 7, 8, 10, 12, 14 => 'empresa_institucional',
+            default => 'tienda_barrio',
+        };
+    }
+
+    private function warehouseForCity(Collection $warehouses, ?string $city): Warehouse
+    {
+        return match ($city) {
+            'El Alto', 'La Paz' => $warehouses['LPZ'],
+            'Santa Cruz' => $warehouses['SCZ'] ?? $warehouses['LPZ'],
+            'Cochabamba' => $warehouses['CBA'] ?? $warehouses['LPZ'],
+            default => $warehouses['LPZ'],
+        };
+    }
+
+    private function paymentMethod(string $channel): string
+    {
+        return match ($channel) {
+            'empresa_institucional' => ['transferencia', 'credito', 'qr'][random_int(0, 2)],
+            'tienda_barrio' => ['efectivo', 'qr', 'tarjeta_debito'][random_int(0, 2)],
+            default => ['efectivo', 'qr', 'tarjeta_debito'][random_int(0, 2)],
+        };
+    }
+
+    private function saleStatus(Carbon $date): string
+    {
+        return $date->month === 12 && $date->day > 24 && random_int(1, 100) <= 22
+            ? 'sin_entregar'
+            : (random_int(1, 100) <= 94 ? 'entregado' : 'sin_entregar');
+    }
+
+    private function cashAmounts(string $payment, float $total): array
+    {
+        if ($payment !== 'efectivo') {
             return [null, null];
         }
 
-        $amountReceived = ceil(($total + rand(5, 35)) / 10) * 10;
-        $changeAmount = round(max(0, $amountReceived - $total), 2);
-
-        return [$amountReceived, $changeAmount];
+        $received = ceil(($total + random_int(5, 45)) / 10) * 10;
+        return [$received, round($received - $total, 2)];
     }
 
-    private function logSaleMovement(int $productId, int $warehouseId, int $quantity, int $userId, Carbon $date, int $saleId): void
+    private function shelfLife(Product $product, int $month): int
     {
-        $lot = ProductLot::query()
-            ->where('product_id', $productId)
-            ->where('warehouse_id', $warehouseId)
-            ->orderByRaw('CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('expires_at')
-            ->first();
+        $category = $product->category->name ?? '';
 
-        if (! $lot) {
-            return;
-        }
-
-        $this->upsertMovement(
-            $lot->id,
-            'venta_demo',
-            'Salida historica asociada a venta demo #'.$saleId,
-            $userId,
-            -abs($quantity),
-            $date
-        );
+        return match ($category) {
+            'Leches fluidas', 'Leches saborizadas', 'Yogurt', 'Bebidas lacteas' => 35 + (($month % 4) * 12),
+            'Jugos y nectares', 'Agua', 'Te helado', 'Alimento de soya' => 75 + (($month % 5) * 18),
+            'Reposteria', 'Dulce de leche', 'Mantequillas y margarinas' => 120 + (($month % 4) * 24),
+            'Leches en polvo', 'Mermeladas', 'Postres' => 180 + (($month % 6) * 30),
+            default => 90 + (($month % 5) * 20),
+        };
     }
 
-    private function upsertMovement(
-        int $lotId,
-        string $type,
-        string $note,
-        ?int $userId,
-        int $quantity,
-        Carbon $timestamp
-    ): void {
-        $movement = ProductLotMovement::firstOrCreate(
-            [
-                'lot_id' => $lotId,
-                'type' => $type,
-                'note' => $note,
-            ],
-            [
-                'user_id' => $userId,
-                'quantity' => $quantity,
-            ]
-        );
+    private function syncInventory(): void
+    {
+        $rows = ProductLot::select('product_id', 'warehouse_id', DB::raw('SUM(quantity) as quantity'))
+            ->groupBy('product_id', 'warehouse_id')
+            ->get();
 
-        $movement->forceFill([
-            'created_at' => $timestamp,
-            'updated_at' => $timestamp,
-        ])->saveQuietly();
+        foreach ($rows as $row) {
+            DB::table('inventory')->updateOrInsert(
+                ['product_id' => $row->product_id, 'warehouse_id' => $row->warehouse_id],
+                ['quantity' => $row->quantity, 'created_at' => now(), 'updated_at' => now()]
+            );
+        }
+    }
+
+    private function insertChunked(string $table, array $rows, int $size = 1000): void
+    {
+        foreach (array_chunk($rows, $size) as $chunk) {
+            if ($chunk !== []) {
+                DB::table($table)->insert($chunk);
+            }
+        }
     }
 }

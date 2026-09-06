@@ -48,6 +48,11 @@ class Product extends Model
         return $this->hasMany(Inventory::class);
     }
 
+    public function damageReports(): HasMany
+    {
+        return $this->hasMany(DamageReport::class);
+    }
+
     /**
      * Obtiene la URL de la imagen del producto
      * Devuelve una imagen placeholder si no hay imagen

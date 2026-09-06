@@ -18,6 +18,7 @@ class AlmacenSaleController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status');
+        $scope = $request->query('scope');
 
         $baseQuery = Sale::query();
 
@@ -30,6 +31,7 @@ class AlmacenSaleController extends Controller
 
         $sales = Sale::with(['company', 'customer.user', 'items.product', 'warehouse'])
             ->when($status, fn ($query, $value) => $query->where('status', $value))
+            ->when($scope === 'today', fn ($query) => $query->whereDate('created_at', today()))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -37,7 +39,7 @@ class AlmacenSaleController extends Controller
         return view('dashboard.almacen-recepciones', [
             'sales' => $sales,
             'statuses' => Sale::STATUSES,
-            'filters' => ['status' => $status],
+            'filters' => ['status' => $status, 'scope' => $scope],
             'stats' => $stats,
         ]);
     }

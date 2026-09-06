@@ -22,6 +22,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -107,7 +108,10 @@ class AiReplenishmentAgentController extends Controller
                     'index' => route('admin.agent.replenishment'),
                     'index_replenishment' => route('admin.agent.replenishment'),
                     'index_evaluator' => route('admin.agent.replenishment', ['agent' => 'evaluator']),
+                    'index_insights' => route('admin.agent.replenishment.insights-page'),
                     'report' => route('admin.agent.replenishment.report', ['search' => $search, 'category_id' => $categoryId]),
+                    'visual_report' => route('admin.agent.replenishment.visual-report'),
+                    'insights' => route('admin.agent.replenishment.insights'),
                     'run' => route('admin.agent.replenishment.run'),
                     'status' => route('admin.agent.replenishment.status'),
                     'evaluator_real' => route('admin.agent.replenishment.evaluator.real'),
@@ -116,12 +120,40 @@ class AiReplenishmentAgentController extends Controller
         ], 'adminAgentReplenishment'));
     }
 
+    public function insightsPage(Request $request): View
+    {
+        $this->authorizeAgentAccess();
+
+        return view('react-page', AdminReact::page('agentInsights', 'Graficos del Agente | Pil Andina', 'Graficos del Agente', 'agent', [
+            'data' => [
+                'agentMode' => 'insights',
+                'insights' => $this->buildAgentInsights($request),
+                'routes' => [
+                    'index_replenishment' => route('admin.agent.replenishment'),
+                    'index_evaluator' => route('admin.agent.replenishment', ['agent' => 'evaluator']),
+                    'index_insights' => route('admin.agent.replenishment.insights-page'),
+                    'visual_report' => route('admin.agent.replenishment.visual-report'),
+                    'insights' => route('admin.agent.replenishment.insights'),
+                ],
+            ],
+        ], 'adminAgentInsights'));
+    }
+
     public function evaluatorReal(AiEvaluatorAgentService $service): JsonResponse
     {
         $this->authorizeAgentAccess();
 
         return response()->json([
             'data' => $service->evaluateReal(),
+        ]);
+    }
+
+    public function insights(Request $request): JsonResponse
+    {
+        $this->authorizeAgentAccess();
+
+        return response()->json([
+            'data' => $this->buildAgentInsights($request),
         ]);
     }
 
@@ -182,6 +214,19 @@ class AiReplenishmentAgentController extends Controller
                 'category' => $categoryName ?: 'Todas',
             ],
         ], 'reporte-agente-reposicion.pdf');
+    }
+
+    public function visualReport(Request $request)
+    {
+        $this->authorizeAgentAccess();
+
+        $insights = $this->buildAgentInsights($request);
+
+        return ReportService::download('reports.agent-visual-dashboard', [
+            'title' => 'Dashboard comparativo del agente',
+            'generatedAt' => now(),
+            'insights' => $insights,
+        ], 'dashboard-visual-agente.pdf');
     }
 
     public function runNow(Request $request, AiReplenishmentAgentService $service): RedirectResponse|JsonResponse
@@ -346,6 +391,217 @@ class AiReplenishmentAgentController extends Controller
             ->whereIn('code', ['SCZ', 'CBA'])
             ->orderBy('name')
             ->get();
+    }
+
+    private function buildAgentInsights(Request $request): array
+    {
+        $granularity = $request->input('granularity') === 'month' ? 'month' : 'week';
+        $productId = $request->integer('product_id') ?: null;
+        $periods = $this->agentPeriods($granularity);
+        $keys = collect($periods)->pluck('key');
+
+        $sales = $this->salesSeries($granularity, $productId);
+        $transfers = $this->transferSeries($granularity, $productId);
+        $evaluations = $this->evaluationSeries($granularity, $productId);
+
+        $series = collect($periods)->map(function (array $period) use ($sales, $transfers, $evaluations) {
+            $key = $period['key'];
+            $salesPoint = $sales[$key] ?? ['qty' => 0, 'amount' => 0, 'orders' => 0];
+            $transferPoint = $transfers[$key] ?? ['requested' => 0, 'received' => 0, 'transfers' => 0];
+            $evaluationPoint = $evaluations[$key] ?? ['avg_wape' => null, 'changed_factors' => 0, 'good' => 0, 'regular' => 0, 'low' => 0];
+
+            return array_merge($period, [
+                'sales_qty' => (int) data_get($salesPoint, 'qty', 0),
+                'sales_amount' => (float) data_get($salesPoint, 'amount', 0),
+                'sales_orders' => (int) data_get($salesPoint, 'orders', 0),
+                'transfer_requested' => (int) data_get($transferPoint, 'requested', 0),
+                'transfer_received' => (int) data_get($transferPoint, 'received', 0),
+                'transfer_count' => (int) data_get($transferPoint, 'transfers', 0),
+                'avg_wape_percent' => data_get($evaluationPoint, 'avg_wape') === null ? null : round(((float) data_get($evaluationPoint, 'avg_wape')) * 100, 2),
+                'changed_factors' => (int) data_get($evaluationPoint, 'changed_factors', 0),
+                'good' => (int) data_get($evaluationPoint, 'good', 0),
+                'regular' => (int) data_get($evaluationPoint, 'regular', 0),
+                'low' => (int) data_get($evaluationPoint, 'low', 0),
+            ]);
+        })->values();
+
+        $activeSeries = $series
+            ->filter(fn (array $item) => $item['sales_qty'] > 0 || $item['transfer_requested'] > 0 || $item['avg_wape_percent'] !== null)
+            ->values();
+        $current = $activeSeries->last() ?? $series->last();
+        $previous = $activeSeries->count() > 1 ? $activeSeries[$activeSeries->count() - 2] : null;
+
+        return [
+            'granularity' => $granularity,
+            'product_id' => $productId,
+            'product_name' => $productId ? Product::find($productId)?->name : 'General',
+            'products' => $this->agentProductOptions(),
+            'series' => $series->all(),
+            'current' => $current,
+            'previous' => $previous,
+            'deltas' => $this->agentDeltas($current, $previous),
+            'top_products' => $this->topAgentProducts($keys->all(), $granularity),
+        ];
+    }
+
+    private function salesSeries(string $granularity, ?int $productId): Collection
+    {
+        return DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->when($productId, fn ($query) => $query->where('sale_items.product_id', $productId))
+            ->whereBetween('sales.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->selectRaw($this->periodSql('sales.created_at', $granularity).' as period_key')
+            ->selectRaw('SUM(sale_items.quantity) as qty')
+            ->selectRaw('SUM(sale_items.subtotal) as amount')
+            ->selectRaw('COUNT(DISTINCT sales.id) as orders')
+            ->groupBy('period_key')
+            ->get()
+            ->keyBy('period_key');
+    }
+
+    private function transferSeries(string $granularity, ?int $productId): Collection
+    {
+        return DB::table('transfer_items')
+            ->join('transfers', 'transfers.id', '=', 'transfer_items.transfer_id')
+            ->when($productId, fn ($query) => $query->where('transfer_items.product_id', $productId))
+            ->whereBetween('transfers.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->selectRaw($this->periodSql('transfers.created_at', $granularity).' as period_key')
+            ->selectRaw('SUM(transfer_items.requested_qty) as requested')
+            ->selectRaw('SUM(COALESCE(transfer_items.received_qty, 0)) as received')
+            ->selectRaw('COUNT(DISTINCT transfers.id) as transfers')
+            ->groupBy('period_key')
+            ->get()
+            ->keyBy('period_key');
+    }
+
+    private function evaluationSeries(string $granularity, ?int $productId): Collection
+    {
+        if (! Schema::hasTable('ai_forecast_snapshots')) {
+            return collect();
+        }
+
+        return DB::table('ai_forecast_snapshots')
+            ->when($productId, fn ($query) => $query->where('product_id', $productId))
+            ->whereYear('forecast_start', 2025)
+            ->whereYear('forecast_end', 2025)
+            ->selectRaw($this->periodSql('forecast_start', $granularity).' as period_key')
+            ->selectRaw('AVG(wape) as avg_wape')
+            ->selectRaw('SUM(CASE WHEN ABS(COALESCE(factor_after, learning_factor_used) - learning_factor_used) >= 0.0001 THEN 1 ELSE 0 END) as changed_factors')
+            ->selectRaw("SUM(CASE WHEN level = 'BUENO' THEN 1 ELSE 0 END) as good")
+            ->selectRaw("SUM(CASE WHEN level = 'REGULAR' THEN 1 ELSE 0 END) as regular")
+            ->selectRaw("SUM(CASE WHEN level = 'BAJO' THEN 1 ELSE 0 END) as low")
+            ->groupBy('period_key')
+            ->get()
+            ->keyBy('period_key');
+    }
+
+    private function agentPeriods(string $granularity): array
+    {
+        if ($granularity === 'month') {
+            return collect(range(1, 12))->map(fn (int $month) => [
+                'key' => sprintf('2025-%02d', $month),
+                'label' => Carbon::create(2025, $month, 1)->locale('es')->isoFormat('MMM'),
+                'start' => Carbon::create(2025, $month, 1)->toDateString(),
+                'end' => Carbon::create(2025, $month, 1)->endOfMonth()->toDateString(),
+            ])->all();
+        }
+
+        $periods = [];
+        $cursor = Carbon::create(2025, 1, 1)->startOfWeek();
+        if ((int) $cursor->year < 2025) {
+            $cursor->addWeek();
+        }
+        $end = Carbon::create(2025, 12, 31)->startOfWeek();
+        if ($end->copy()->addDays(6)->year > 2025) {
+            $end->subWeek();
+        }
+
+        while ($cursor->lte($end)) {
+            $periods[] = [
+                'key' => $cursor->format('o-W'),
+                'label' => 'S'.$cursor->isoWeek(),
+                'start' => $cursor->toDateString(),
+                'end' => $cursor->copy()->addDays(6)->toDateString(),
+            ];
+            $cursor->addWeek();
+        }
+
+        return $periods;
+    }
+
+    private function periodSql(string $column, string $granularity): string
+    {
+        return $granularity === 'month'
+            ? "DATE_FORMAT($column, '%Y-%m')"
+            : "DATE_FORMAT(DATE_SUB(DATE($column), INTERVAL WEEKDAY($column) DAY), '%x-%v')";
+    }
+
+    private function agentDeltas(?array $current, ?array $previous): array
+    {
+        $delta = function (string $key, bool $lowerIsBetter = false) use ($current, $previous) {
+            $now = (float) ($current[$key] ?? 0);
+            $before = (float) ($previous[$key] ?? 0);
+            $change = $now - $before;
+            $percent = $before != 0 ? ($change / $before) * 100 : ($now > 0 ? 100 : 0);
+
+            return [
+                'current' => $now,
+                'previous' => $before,
+                'change' => $change,
+                'percent' => round($percent, 1),
+                'direction' => abs($change) < 0.0001 ? 'flat' : ($change > 0 ? 'up' : 'down'),
+                'good' => abs($change) < 0.0001 || ($lowerIsBetter ? $change <= 0 : $change >= 0),
+            ];
+        };
+
+        return [
+            'sales_qty' => $delta('sales_qty'),
+            'sales_amount' => $delta('sales_amount'),
+            'transfer_requested' => $delta('transfer_requested'),
+            'avg_wape_percent' => $delta('avg_wape_percent', true),
+            'changed_factors' => $delta('changed_factors', true),
+        ];
+    }
+
+    private function agentProductOptions(): array
+    {
+        return Product::query()
+            ->whereIn('id', DB::table('sale_items')->distinct()->pluck('product_id'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku'])
+            ->map(fn (Product $product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+            ])
+            ->all();
+    }
+
+    private function topAgentProducts(array $periodKeys, string $granularity): array
+    {
+        $latestKey = end($periodKeys) ?: null;
+        if (! $latestKey) {
+            return [];
+        }
+
+        return DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->whereBetween('sales.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->whereRaw($this->periodSql('sales.created_at', $granularity).' = ?', [$latestKey])
+            ->selectRaw('products.id, products.name, products.sku, SUM(sale_items.quantity) as qty, SUM(sale_items.subtotal) as amount')
+            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->orderByDesc('qty')
+            ->limit(6)
+            ->get()
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'name' => $row->name,
+                'sku' => $row->sku,
+                'qty' => (int) $row->qty,
+                'amount' => (float) $row->amount,
+            ])
+            ->all();
     }
 
     private function targetWarehouse(): ?Warehouse

@@ -115,33 +115,7 @@ class SaleController extends Controller
         }
 
         $sales = $salesPaginator
-            ->through(function (Sale $sale) use ($paymentLabels, $request) {
-                return [
-                    'id' => $sale->id,
-                    'company' => $sale->company ? ['name' => $sale->company->name, 'city' => $sale->company->city] : null,
-                    'customer' => $sale->customer ? ['name' => $sale->customer->user->name ?? 'Cliente', 'city' => $sale->customer->city] : null,
-                    'sale_type' => $sale->sale_type,
-                    'status' => $sale->status,
-                    'payment_method' => $sale->payment_method,
-                    'payment_label' => $paymentLabels[$sale->payment_method] ?? 'Sin metodo',
-                    'total_amount' => (float) $sale->total_amount,
-                    'warehouse' => $sale->warehouse ? ['name' => $sale->warehouse->name] : null,
-                    'seller' => $sale->seller ? ['name' => $sale->seller->name] : null,
-                    'delivery_address' => $sale->delivery_address,
-                    'delivery_city' => $sale->delivery_city,
-                    'amount_received' => $sale->amount_received ? (float) $sale->amount_received : null,
-                    'change_amount' => $sale->change_amount ? (float) $sale->change_amount : null,
-                    'created_at_formatted' => optional($sale->created_at)->format('d/m/Y H:i'),
-                    'items' => $sale->items->map(fn (SaleItem $item) => [
-                        'product' => $item->product->name ?? 'Producto',
-                        'sku' => $item->product->sku ?? '',
-                        'qty' => (int) $item->quantity,
-                        'price' => (float) $item->unit_price,
-                        'subtotal' => (float) $item->subtotal,
-                    ])->values(),
-                    'update_url' => route($request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.sales.update' : 'dashboard.sales.update', $sale),
-                ];
-            });
+            ->through(fn (Sale $sale) => $this->saleReactPayload($sale, $paymentLabels, $request));
 
         return view('react-page', AdminReact::page('sales', 'Ventas | Pil Andina', 'Gestion de ventas', 'sales', [
             'data' => [
@@ -176,11 +150,65 @@ class SaleController extends Controller
                 ],
                 'routes' => [
                     'index' => route($listRoute),
+                    'create' => route('dashboard.sales.create'),
                     'store' => route($storeRoute),
                     'lookup' => route($lookupRoute),
                 ],
             ],
         ], 'adminSales'));
+    }
+
+    public function create(Request $request): View
+    {
+        return view('react-page', AdminReact::page('sales-create', 'Crear venta | Pil Andina', 'Crear venta', 'sales', [
+            'data' => [
+                'saleTypes' => Sale::TYPES,
+                'statuses' => Sale::STATUSES,
+                'paymentLabels' => self::PAYMENT_LABELS,
+                'companies' => Company::orderBy('name')->get()->map(fn (Company $company) => [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'city' => $company->city,
+                    'nit' => $company->nit,
+                    'company_type' => $company->company_type,
+                ]),
+                'customers' => Customer::with('user')->get()->map(fn (Customer $customer) => [
+                    'id' => $customer->id,
+                    'name' => $customer->user->name ?? 'Cliente',
+                    'city' => $customer->city,
+                    'nit' => $customer->nit,
+                ]),
+                'laPazWarehouse' => $this->getLaPazWarehouse() ? [
+                    'id' => $this->getLaPazWarehouse()->id,
+                    'name' => $this->getLaPazWarehouse()->name,
+                    'code' => $this->getLaPazWarehouse()->code,
+                ] : null,
+                'cities' => City::orderBy('name')->get()->map(fn (City $city) => ['id' => $city->id, 'name' => $city->name]),
+                'routes' => [
+                    'index' => route('dashboard.sales'),
+                    'store' => route('dashboard.sales.store'),
+                    'lookup' => route('dashboard.sales.lookup'),
+                ],
+            ],
+        ], 'adminSaleCreate'));
+    }
+
+    public function show(Request $request, Sale $sale): View
+    {
+        $sale->load(['company', 'customer.user', 'seller', 'warehouse', 'items.product']);
+
+        return view('react-page', AdminReact::page('sales-show', 'Venta #' . $sale->id . ' | Pil Andina', 'Detalle de venta', 'sales', [
+            'data' => [
+                'sale' => $this->saleReactPayload($sale, self::PAYMENT_LABELS, $request),
+                'saleTypes' => Sale::TYPES,
+                'statuses' => Sale::STATUSES,
+                'paymentLabels' => self::PAYMENT_LABELS,
+                'routes' => [
+                    'index' => route('dashboard.sales'),
+                    'create' => route('dashboard.sales.create'),
+                ],
+            ],
+        ], 'adminSaleShow'));
     }
 
     public function vendorCreate(Request $request): View
@@ -565,6 +593,36 @@ class SaleController extends Controller
             'labels' => $labels,
             'totals' => $totals,
             'counts' => $counts,
+        ];
+    }
+
+    private function saleReactPayload(Sale $sale, array $paymentLabels, Request $request): array
+    {
+        return [
+            'id' => $sale->id,
+            'company' => $sale->company ? ['name' => $sale->company->name, 'city' => $sale->company->city] : null,
+            'customer' => $sale->customer ? ['name' => $sale->customer->user->name ?? 'Cliente', 'city' => $sale->customer->city] : null,
+            'sale_type' => $sale->sale_type,
+            'status' => $sale->status,
+            'payment_method' => $sale->payment_method,
+            'payment_label' => $paymentLabels[$sale->payment_method] ?? 'Sin metodo',
+            'total_amount' => (float) $sale->total_amount,
+            'warehouse' => $sale->warehouse ? ['name' => $sale->warehouse->name] : null,
+            'seller' => $sale->seller ? ['name' => $sale->seller->name] : null,
+            'delivery_address' => $sale->delivery_address,
+            'delivery_city' => $sale->delivery_city,
+            'amount_received' => $sale->amount_received ? (float) $sale->amount_received : null,
+            'change_amount' => $sale->change_amount ? (float) $sale->change_amount : null,
+            'created_at_formatted' => optional($sale->created_at)->format('d/m/Y H:i'),
+            'items' => $sale->items->map(fn (SaleItem $item) => [
+                'product' => $item->product->name ?? 'Producto',
+                'sku' => $item->product->sku ?? '',
+                'qty' => (int) $item->quantity,
+                'price' => (float) $item->unit_price,
+                'subtotal' => (float) $item->subtotal,
+            ])->values(),
+            'show_url' => route('dashboard.sales.show', $sale),
+            'update_url' => route($request->routeIs('dashboard.vendedor.*') ? 'dashboard.vendedor.sales.update' : 'dashboard.sales.update', $sale),
         ];
     }
 

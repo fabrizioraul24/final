@@ -11,11 +11,15 @@ const pageLoaders = {
     adminLots: () => import('./pages/AdminLotsPage'),
     adminTransfers: () => import('./pages/AdminTransfersPage'),
     adminSales: () => import('./pages/AdminSalesPage'),
+    adminSaleCreate: () => import('./pages/AdminSaleCreatePage'),
+    adminSaleShow: () => import('./pages/AdminSaleShowPage'),
     adminQuotations: () => import('./pages/AdminQuotationsPage'),
+    adminQuotationShow: () => import('./pages/AdminQuotationShowPage'),
     adminLogs: () => import('./pages/AdminLogsPage'),
     adminBackups: () => import('./pages/AdminBackupsPage'),
     adminAgentOverview: () => import('./pages/AdminAgentOverviewPage'),
     adminAgentReplenishment: () => import('./pages/AdminAgentReplenishmentPage'),
+    adminAgentInsights: () => import('./pages/AdminAgentInsightsPage'),
     adminResource: () => import('./pages/AdminResourcePage'),
 };
 

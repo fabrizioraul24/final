@@ -3,6 +3,10 @@
 @section('title', 'Registro de danos | Pil Andina')
 @section('page-title', 'Registro de danos')
 
+@php
+    $activeScope = $filters['scope'] ?? null;
+@endphp
+
 @section('content')
 <div class="warehouse-damages-page">
     @if(session('status'))
@@ -40,26 +44,29 @@
     </section>
 
     <section class="fit-metric-grid warehouse-metric-grid">
-        <div class="fit-metric-card orange">
+        <a href="{{ route('dashboard.almacen.damages', ['scope' => 'reports']) }}" class="fit-metric-card orange {{ $activeScope === 'reports' || ! $activeScope ? 'active' : '' }}">
             <span><small>Reportes</small><strong>{{ $stats['reports'] }}</strong><em>Incidencias registradas</em></span>
             <span class="fit-metric-icon"><i class="ri-flag-2-line"></i></span>
-        </div>
-        <div class="fit-metric-card rose">
+        </a>
+        <a href="{{ route('dashboard.almacen.damages', ['scope' => 'units']) }}" class="fit-metric-card rose {{ $activeScope === 'units' ? 'active' : '' }}">
             <span><small>Unidades afectadas</small><strong>{{ number_format((int) $stats['units']) }}</strong><em>Retiradas de stock</em></span>
             <span class="fit-metric-icon"><i class="ri-close-circle-line"></i></span>
-        </div>
-        <div class="fit-metric-card blue">
+        </a>
+        <a href="{{ route('dashboard.almacen.damages', ['scope' => 'products']) }}" class="fit-metric-card blue {{ $activeScope === 'products' ? 'active' : '' }}">
             <span><small>Productos afectados</small><strong>{{ $stats['products'] }}</strong><em>Con historial de dano</em></span>
             <span class="fit-metric-icon"><i class="ri-box-3-line"></i></span>
-        </div>
-        <div class="fit-metric-card indigo">
+        </a>
+        <a href="{{ route('dashboard.almacen.damages', ['scope' => 'today']) }}" class="fit-metric-card indigo {{ $activeScope === 'today' ? 'active' : '' }}">
             <span><small>Hoy</small><strong>{{ $stats['today'] }}</strong><em>Reportes del dia</em></span>
             <span class="fit-metric-icon"><i class="ri-calendar-check-line"></i></span>
-        </div>
+        </a>
     </section>
 
     <section class="fit-filter-card warehouse-damages-filter-card">
         <form method="GET" action="{{ route('dashboard.almacen.damages') }}" class="fit-filter-form warehouse-damages-filter" data-live-search-form>
+            @if($activeScope)
+                <input type="hidden" name="scope" value="{{ $activeScope }}">
+            @endif
             <label class="fit-search-control" for="damage_search">
                 <i class="ri-search-line"></i>
                 <input type="search" id="damage_search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Buscar producto, SKU o descripcion..." data-live-search-input>
@@ -77,7 +84,7 @@
                 <i class="ri-search-line"></i>
                 <span>Filtrar</span>
             </button>
-            @if(($filters['search'] ?? null) || ($filters['product_id'] ?? null))
+            @if(($filters['search'] ?? null) || ($filters['product_id'] ?? null) || ($filters['scope'] ?? null))
                 <a href="{{ route('dashboard.almacen.damages') }}" class="fit-clear-button">Limpiar filtros</a>
             @endif
         </form>

@@ -57,6 +57,11 @@ html.dark .fit-primary-button {
     color: #ffffff;
 }
 
+html.dark .fit-primary-button.danger {
+    background: #e11d48;
+    color: #ffffff;
+}
+
 html.dark .fit-navbar-search input,
 html.dark .fit-icon-button,
 html.dark .fit-profile-menu {

@@ -23,19 +23,24 @@ class AlmacenDamageController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string'],
             'product_id' => ['nullable', 'exists:products,id'],
+            'scope' => ['nullable', 'in:reports,units,products,today'],
         ]);
         $search = $filters['search'] ?? null;
         $productId = $filters['product_id'] ?? null;
+        $scope = $filters['scope'] ?? null;
         $warehouseId = $this->targetWarehouse()?->id;
 
-        $productsWithLots = $this->buildProductsQuery($search, $productId, $warehouseId)
+        $productsWithLots = $this->buildProductsQuery($search, $productId, $warehouseId, $scope)
             ->paginate(8)
             ->withQueryString();
         $productsWithLots->setCollection($this->decorateProducts($productsWithLots->getCollection()));
 
         $reports = DamageReport::with(['lot.product', 'product', 'warehouse', 'reporter'])
             ->when($warehouseId, fn ($query) => $query->where('warehouse_id', $warehouseId))
-            ->latest()
+            ->when($scope === 'products', fn ($query) => $query->whereNotNull('product_id'))
+            ->when($scope === 'today', fn ($query) => $query->whereDate('created_at', today()))
+            ->when($scope === 'units', fn ($query) => $query->orderByDesc('damaged_qty'))
+            ->when($scope !== 'units', fn ($query) => $query->latest())
             ->paginate(10)
             ->withQueryString();
 
@@ -53,6 +58,7 @@ class AlmacenDamageController extends Controller
             'filters' => [
                 'search' => $search,
                 'product_id' => $productId,
+                'scope' => $scope,
             ],
             'stats' => $stats,
             'targetWarehouse' => $this->targetWarehouse(),
@@ -221,7 +227,7 @@ class AlmacenDamageController extends Controller
             ->first();
     }
 
-    private function buildProductsQuery(?string $search, ?string $productId, ?int $warehouseId)
+    private function buildProductsQuery(?string $search, ?string $productId, ?int $warehouseId, ?string $scope = null)
     {
         $lotScope = function ($query) use ($warehouseId) {
             $query
@@ -237,6 +243,11 @@ class AlmacenDamageController extends Controller
             ])
             ->when($search, fn ($query) => $query->whereAnyLikeInsensitive(['name', 'sku', 'description'], $search))
             ->when($productId, fn ($query) => $query->where('id', $productId))
+            ->when(in_array($scope, ['products', 'today'], true), fn ($query) => $query->whereHas('damageReports', function ($reportQuery) use ($warehouseId, $scope) {
+                $reportQuery
+                    ->when($warehouseId, fn ($builder) => $builder->where('warehouse_id', $warehouseId))
+                    ->when($scope === 'today', fn ($builder) => $builder->whereDate('created_at', today()));
+            }))
             ->whereHas('lots', $lotScope)
             ->withSum(['lots as current_stock' => $lotScope], 'quantity')
             ->withCount(['lots as lots_count' => $lotScope])

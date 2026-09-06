@@ -704,6 +704,7 @@ body {
     background: #ffffff;
     color: #0f172a;
     text-align: left;
+    text-decoration: none;
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
     transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -1079,6 +1080,7 @@ body {
     background: #ffffff;
     cursor: pointer;
     line-height: 1;
+    text-decoration: none;
 }
 
 .fit-action-button i {
@@ -2476,6 +2478,7 @@ table.data-table thead,
 .fit-primary-button.danger,
 .btn-danger:hover,
 .company-confirm-submit:hover {
+    color: #ffffff;
     background: var(--fit-coral);
 }
 
