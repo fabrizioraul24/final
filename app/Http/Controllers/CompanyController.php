@@ -220,6 +220,7 @@ class CompanyController extends Controller
             'email' => $company->email,
             'phone' => $company->phone,
             'address' => $company->address,
+            'google_maps_url' => $company->google_maps_url,
             'city' => $company->city,
             'owner_first_name' => $company->owner_first_name,
             'owner_last_name_paterno' => $company->owner_last_name_paterno,

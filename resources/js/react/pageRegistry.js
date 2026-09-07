@@ -10,6 +10,7 @@ const pageLoaders = {
     adminCategories: () => import('./pages/AdminCategoriesPage'),
     adminLots: () => import('./pages/AdminLotsPage'),
     adminTransfers: () => import('./pages/AdminTransfersPage'),
+    adminTransferShow: () => import('./pages/AdminTransferShowPage'),
     adminSales: () => import('./pages/AdminSalesPage'),
     adminSaleCreate: () => import('./pages/AdminSaleCreatePage'),
     adminSaleShow: () => import('./pages/AdminSaleShowPage'),
@@ -19,6 +20,7 @@ const pageLoaders = {
     adminBackups: () => import('./pages/AdminBackupsPage'),
     adminAgentOverview: () => import('./pages/AdminAgentOverviewPage'),
     adminAgentReplenishment: () => import('./pages/AdminAgentReplenishmentPage'),
+    adminAgentAlertDetail: () => import('./pages/AdminAgentAlertDetailPage'),
     adminAgentInsights: () => import('./pages/AdminAgentInsightsPage'),
     adminResource: () => import('./pages/AdminResourcePage'),
 };

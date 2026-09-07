@@ -47,6 +47,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/agente-reposicion/metricas', [AiReplenishmentAgentController::class, 'insights'])->name('agent.replenishment.insights');
     Route::get('/agente-reposicion/estado', [AiReplenishmentAgentController::class, 'status'])->name('agent.replenishment.status');
     Route::get('/agente-reposicion/evaluador/real', [AiReplenishmentAgentController::class, 'evaluatorReal'])->name('agent.replenishment.evaluator.real');
+    Route::get('/agente-reposicion/alertas/{product}', [AiReplenishmentAgentController::class, 'alertDetail'])->name('agent.replenishment.alert-detail');
     Route::post('/agente-reposicion/run', [AiReplenishmentAgentController::class, 'runNow'])->name('agent.replenishment.run');
     Route::post('/agente-reposicion/solicitudes/{id}/aprobar', [AiReplenishmentAgentController::class, 'approveTransferRequest'])->name('agent.replenishment.approve');
     Route::post('/agente-reposicion/solicitudes/{id}/rechazar', [AiReplenishmentAgentController::class, 'rejectTransferRequest'])->name('agent.replenishment.reject');
@@ -143,6 +144,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/traspasos/product-lookup', [TransferController::class, 'lookup'])->name('dashboard.transfers.lookup');
     Route::get('/traspasos/reporte/pdf', [TransferController::class, 'report'])->name('dashboard.transfers.report');
     Route::get('/traspasos/{transfer}/reporte/pdf', [TransferController::class, 'reportSingle'])->name('dashboard.transfers.report.single');
+    Route::get('/traspasos/{transfer}', [TransferController::class, 'show'])->name('dashboard.transfers.show');
 
     Route::get('/ventas', [SaleController::class, 'index'])->name('dashboard.sales');
     Route::get('/ventas/crear', [SaleController::class, 'create'])->name('dashboard.sales.create');

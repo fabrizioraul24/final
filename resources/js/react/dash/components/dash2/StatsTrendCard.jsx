@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
-import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function StatsTrendCard() {
-  const { metrics } = useUser();
+export default function StatsTrendCard({ data }) {
   const { isDark } = useTheme();
   const [timeframe, setTimeframe] = useState('Semana');
+  const selectedMetrics = data?.generalMetrics?.[timeframe] || {};
+  const kpis = data?.kpis || {};
+  const activeUsers = Number(selectedMetrics.active ?? kpis.users_active ?? 0);
+  const inactiveUsers = Number(selectedMetrics.inactive ?? kpis.users_inactive ?? 0);
 
   return (
     <div className={`h-full min-h-[270px] p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
@@ -28,7 +30,7 @@ export default function StatsTrendCard() {
           >
             <option value="Semana">Semana</option>
             <option value="Mes">Mes</option>
-            <option value="Anio">Anio</option>
+            <option value="Anio">Año</option>
           </select>
           <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
@@ -39,7 +41,7 @@ export default function StatsTrendCard() {
         <div className="flex items-center gap-2">
           <ArrowUp size={22} className="text-indigo-500 stroke-[3]" />
           <span className="text-3xl font-extrabold tracking-tight">
-            {metrics.activeGrowth}
+            {activeUsers.toLocaleString()}
           </span>
         </div>
         <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -54,7 +56,7 @@ export default function StatsTrendCard() {
         <div className="flex items-center gap-2">
           <ArrowDown size={22} className="text-rose-400 stroke-[3]" />
           <span className="text-3xl font-extrabold tracking-tight text-slate-700 dark:text-slate-300">
-            {metrics.churnCount}
+            {inactiveUsers.toLocaleString()}
           </span>
         </div>
         <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">

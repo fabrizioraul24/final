@@ -82,6 +82,10 @@ class ProductLot extends Model
     {
         $total = static::where('product_id', $this->product_id)
             ->where('warehouse_id', $this->warehouse_id)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhereDate('expires_at', '>=', now()->toDateString());
+            })
             ->sum('quantity');
 
         DB::table('inventory')->updateOrInsert(

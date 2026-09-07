@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function SplineAreaCard({ data: dashboardData }) {
   const { isDark } = useTheme();
-  const [filter, setFilter] = useState('Todo');
+  const [filter, setFilter] = useState('Hoy');
+  const tabs = [
+    { value: 'Hoy', label: 'Hoy' },
+    { value: 'Semana', label: 'Semana' },
+    { value: 'Mes', label: 'Mes' },
+    { value: 'Rango', label: 'Año' },
+  ];
 
-  const labels = dashboardData?.salesSeries?.labels || [];
-  const values = dashboardData?.salesSeries?.data || [];
+  const selectedPeriod = dashboardData?.revenuePeriods?.[filter] || dashboardData?.revenuePeriods?.Semana || null;
+  const labels = selectedPeriod?.series?.labels || dashboardData?.salesSeries?.labels || [];
+  const values = selectedPeriod?.series?.data || dashboardData?.salesSeries?.data || [];
   const data = labels.length
     ? labels.map((name, index) => ({
         name,
@@ -33,20 +39,31 @@ export default function SplineAreaCard({ data: dashboardData }) {
     }`}>
       {/* Header & Filter */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold tracking-tight">Ventas semanales</h3>
+        <div>
+          <h3 className="text-sm font-bold tracking-tight">Ventas</h3>
+          <p className="text-[10px] text-slate-400">{selectedPeriod?.label || 'Esta semana'}</p>
+        </div>
 
-        <div className="relative">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className={`appearance-none px-3 py-1 pr-7 rounded-full border text-xs font-bold focus:outline-none ${
-              isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-indigo-50/60 border-indigo-200 text-indigo-700'
-            }`}
-          >
-            <option value="Todo">Todo</option>
-            <option value="Este anio">Este anio</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <div className={`flex items-center p-1 rounded-full border ${
+          isDark ? 'bg-slate-800 border-slate-700' : 'bg-indigo-50/70 border-indigo-100'
+        }`}>
+          {tabs.map((tab) => {
+            const isActive = filter === tab.value;
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setFilter(tab.value)}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -66,7 +83,7 @@ export default function SplineAreaCard({ data: dashboardData }) {
             </defs>
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
             <YAxis hide />
-            <Tooltip />
+            <Tooltip formatter={(value, name) => [`Bs ${Number(value || 0).toLocaleString()}`, name === 'lorem' ? 'Actual' : 'Anterior']} />
             <Area type="natural" dataKey="lorem" stroke="#0b4fc1" strokeWidth={3} fillOpacity={1} fill="url(#splinePurple)" />
             <Area type="natural" dataKey="ipsum" stroke="#f25a59" strokeWidth={3} fillOpacity={1} fill="url(#splineOrange)" />
           </AreaChart>

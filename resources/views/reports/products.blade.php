@@ -148,7 +148,7 @@
                         <td>{{ $product->sku }}</td>
                         <td>
                             <span class="product-name">{{ $product->name }}</span>
-                            <span class="product-meta">Min {{ $product->min_quantity }} uds / Max {{ $product->max_quantity }} uds</span>
+                            <span class="product-meta">Min {{ number_format((float) $product->min_quantity, 0) }} uds / Max {{ number_format((float) $product->max_quantity, 0) }} uds</span>
                         </td>
                         <td>{{ $product->category->name ?? 'Sin categoria' }}</td>
                         <td>

@@ -14,7 +14,7 @@ function buildDashboardMetrics(props) {
         revenueGrowth: `${salesDelta >= 0 ? '+' : ''}${salesDelta.toFixed(1)}%`,
         dailySubs: Number(kpis.sales_today_count || 0),
         dailySubsGrowth: `${salesDelta >= 0 ? '+' : ''}${salesDelta.toFixed(1)}%`,
-        weeklyInstalls: Number(props.weeklySalesCount || 0),
+        weeklyInstalls: Number(props.weeklyCustomerRegistrations ?? props.weeklySalesCount ?? 0),
         impressions: Number(kpis.products_active || 0),
         activeGrowth: Number(kpis.users_active || 0),
         churnCount: Number(kpis.users_inactive || 0),

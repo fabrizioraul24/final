@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function RevenueDash2Card({ data }) {
-  const [timeframe, setTimeframe] = useState('Mes');
+  const [timeframe, setTimeframe] = useState('Hoy');
   const timeframeTabs = [
     { value: 'Hoy', label: 'Hoy' },
     { value: 'Semana', label: 'Semana' },
@@ -14,6 +14,9 @@ export default function RevenueDash2Card({ data }) {
   ];
   const { metrics } = useUser();
   const { isDark } = useTheme();
+  const selectedPeriod = data?.revenuePeriods?.[timeframe] || null;
+  const periodLabels = selectedPeriod?.series?.labels || [];
+  const periodValues = selectedPeriod?.series?.data || [];
   const labels = data?.salesSeries?.labels || [];
   const values = data?.salesSeries?.data || [];
   const liveSeries = labels.map((day, index) => ({
@@ -21,6 +24,15 @@ export default function RevenueDash2Card({ data }) {
     value: Number(values[index] || 0),
     line2: Number(values[index - 1] || 0),
   }));
+  const periodSeries = periodLabels.map((day, index) => ({
+    day,
+    value: Number(periodValues[index] || 0),
+    line2: Number(periodValues[index - 1] || 0),
+  }));
+  const selectedTotal = selectedPeriod ? Number(selectedPeriod.total || 0) : Number(metrics.revenue || 0);
+  const selectedCount = selectedPeriod ? Number(selectedPeriod.count || 0) : Number(metrics.dailySubs || 0);
+  const selectedGrowth = selectedPeriod ? Number(selectedPeriod.growth || 0) : Number(String(metrics.revenueGrowth || '0').replace('%', ''));
+  const selectedGrowthLabel = `${selectedGrowth >= 0 ? '+' : ''}${selectedGrowth.toFixed(1)}%`;
 
   // Dynamic X-axis ticks: 4, 8, 12, 16, 20, 24, 28, 31
   const monthData = [
@@ -68,6 +80,10 @@ export default function RevenueDash2Card({ data }) {
   ];
 
   const getData = () => {
+    if (periodSeries.length) {
+      return periodSeries;
+    }
+
     if (liveSeries.length) {
       return liveSeries;
     }
@@ -118,28 +134,36 @@ export default function RevenueDash2Card({ data }) {
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-2xl font-extrabold tracking-tight">
-              {Number(metrics.revenue || 0).toLocaleString()}
+              Bs {selectedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </span>
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+              selectedGrowth >= 0
+                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                : 'bg-rose-500/20 text-rose-500 border-rose-500/30'
+            }`}>
               <TrendingUp size={11} />
-              {metrics.revenueGrowth}
+              {selectedGrowthLabel}
             </span>
           </div>
-          <span className="text-xs text-slate-400 font-medium mt-0.5">Este mes</span>
+          <span className="text-xs text-slate-400 font-medium mt-0.5">{selectedPeriod?.label || 'Este mes'}</span>
         </div>
 
         {/* Metric 2 */}
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-2xl font-extrabold tracking-tight">
-              {metrics.dailySubs}
+              {selectedCount.toLocaleString()}
             </span>
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+              selectedGrowth >= 0
+                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                : 'bg-rose-500/20 text-rose-500 border-rose-500/30'
+            }`}>
               <TrendingUp size={11} />
-              {metrics.dailySubsGrowth}
+              {selectedGrowthLabel}
             </span>
           </div>
-          <span className="text-xs text-slate-400 font-medium mt-0.5">Ventas del dia</span>
+          <span className="text-xs text-slate-400 font-medium mt-0.5">Ventas del periodo</span>
         </div>
       </div>
 

@@ -129,7 +129,7 @@ class ProductLotController extends Controller
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(25)
+            ->paginate(15)
             ->withQueryString();
 
         $lots->through(fn (ProductLot $lot) => [
@@ -146,28 +146,9 @@ class ProductLotController extends Controller
             'action' => route('dashboard.lots.adjust', $lot),
         ]);
 
-        $movementHistory = ProductLotMovement::query()
-            ->with(['lot:id,product_id,lote_code,warehouse_id', 'user:id,name'])
-            ->whereHas('lot', function ($query) use ($product, $resolvedWarehouseId) {
-                $query->where('product_id', $product->id)
-                    ->when($resolvedWarehouseId, fn ($builder) => $builder->where('warehouse_id', $resolvedWarehouseId));
-            })
-            ->latest()
-            ->take(12)
-            ->get()
-            ->map(fn (ProductLotMovement $movement) => [
-                'lot_code' => $movement->lot?->lote_code ?: 'Sin codigo',
-                'type' => ucfirst($movement->type),
-                'quantity' => (int) $movement->quantity,
-                'note' => $movement->note ?: 'Sin nota',
-                'user' => $movement->user?->name ?: 'Sistema',
-                'date' => optional($movement->created_at)->format('d/m/Y H:i'),
-            ]);
-
         return view('dashboard.lotes-detalle', [
             'product' => $product,
             'lots' => $lots,
-            'movementHistory' => $movementHistory,
             'warehouses' => $this->lotWarehouses(),
             'warehouse' => $this->lotWarehouses()->firstWhere('id', (int) $resolvedWarehouseId),
             'filters' => [

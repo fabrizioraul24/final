@@ -12,6 +12,8 @@ html.dark .warehouse-source-pill.manual,
 html.dark .warehouse-transfer-item-card,
 html.dark .warehouse-transfer-item-form input,
 html.dark .warehouse-transfer-generated-lot,
+html.dark .warehouse-agent-timeline > div,
+html.dark .warehouse-agent-metrics > div,
 html.dark .warehouse-damage-inline-form input {
     background: rgba(255, 255, 255, 0.035);
     border-color: rgba(255, 255, 255, 0.08);
@@ -28,6 +30,9 @@ html.dark .warehouse-order-detail-title h1,
 html.dark .warehouse-transfer-item-head h3,
 html.dark .warehouse-transfer-generated-lot strong,
 html.dark .warehouse-transfer-item-form input,
+html.dark .warehouse-agent-timeline strong,
+html.dark .warehouse-agent-metrics strong,
+html.dark .warehouse-agent-message strong,
 html.dark .warehouse-damage-inline-form input {
     color: #f8fafc;
 }
@@ -49,8 +54,30 @@ html.dark .warehouse-transfer-item-form label span,
 html.dark .warehouse-transfer-generated-lot span,
 html.dark .warehouse-transfer-generated-lot small,
 html.dark .warehouse-transfer-origin p,
+html.dark .warehouse-agent-timeline span,
+html.dark .warehouse-agent-metrics span,
 html.dark .warehouse-damage-inline-form label span {
     color: #94a3b8;
+}
+
+html.dark .warehouse-agent-message {
+    border-color: rgba(244, 63, 94, 0.22);
+    background: rgba(127, 29, 29, 0.18);
+}
+
+html.dark .warehouse-agent-message i {
+    background: rgba(244, 63, 94, 0.16);
+    color: #fb7185;
+}
+
+html.dark .warehouse-agent-metrics > div.danger {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(127, 29, 29, 0.16);
+}
+
+html.dark .warehouse-agent-metrics > div.success {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(6, 78, 59, 0.18);
 }
 
 html.dark .warehouse-inventory-branch strong,

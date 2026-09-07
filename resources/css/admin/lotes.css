@@ -66,11 +66,100 @@
     flex-basis: 5.2rem;
 }
 
+.fit-lot-detail-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: stretch;
+    border-color: rgba(11, 79, 193, 0.14);
+    background:
+        linear-gradient(135deg, rgba(11, 79, 193, 0.08), rgba(16, 185, 129, 0.06)),
+        #ffffff;
+}
+
+.fit-lot-detail-hero-main {
+    min-width: 0;
+}
+
+.fit-lot-detail-hero-main h1 {
+    margin-top: 0.2rem;
+}
+
+.fit-lot-health-card {
+    display: grid;
+    align-content: center;
+    gap: 0.42rem;
+    min-width: 260px;
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    border-radius: 1rem;
+    padding: 0.95rem;
+    background: rgba(236, 253, 245, 0.78);
+}
+
+.fit-lot-health-card.critical {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(255, 241, 242, 0.82);
+}
+
+.fit-lot-health-card span,
+.fit-lot-health-card small {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.fit-lot-health-card span {
+    text-transform: uppercase;
+    font-weight: 950;
+}
+
+.fit-lot-health-card strong {
+    color: #0f172a;
+    font-size: 1.18rem;
+    font-weight: 950;
+}
+
+.fit-lot-health-track {
+    height: 0.7rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.fit-lot-health-track > div {
+    height: 100%;
+    border-radius: inherit;
+    background: #10b981;
+}
+
+.fit-lot-health-card.critical .fit-lot-health-track > div {
+    background: #f43f5e;
+}
+
 .fit-lot-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-top: 0.55rem;
+}
+
+.fit-lot-search-panel {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.fit-lot-filter-head h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 950;
+}
+
+.fit-lot-filter-head p {
+    margin: 0.2rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 760;
 }
 
 .fit-lot-stat-grid {
@@ -172,7 +261,7 @@
 }
 
 .fit-lot-detail-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .fit-lot-panel h4 {
@@ -188,6 +277,85 @@
     font-size: 0.82rem;
     font-weight: 750;
     line-height: 1.5;
+}
+
+.fit-lot-page-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.05rem 0 1.25rem;
+}
+
+.fit-lot-page-summary > div {
+    border: 1px solid #e0e7ff;
+    border-radius: 0.9rem;
+    padding: 1rem 1.05rem;
+    background: #ffffff;
+}
+
+.fit-lot-page-summary span {
+    display: block;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fit-lot-page-summary strong {
+    display: block;
+    margin-top: 0.38rem;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.fit-lot-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    border-radius: 999px;
+    padding: 0.22rem 0.62rem;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.12);
+    font-size: 0.68rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.fit-lot-status.warning {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.fit-lot-status.expired {
+    color: #e11d48;
+    background: rgba(244, 63, 94, 0.12);
+}
+
+.fit-lot-side-head {
+    display: grid;
+    gap: 0.28rem;
+    margin-bottom: 0.8rem;
+}
+
+.fit-lot-side-head h4 {
+    margin: 0;
+}
+
+@media (max-width: 900px) {
+    .fit-lot-detail-hero {
+        flex-direction: column;
+    }
+
+    .fit-lot-health-card {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 680px) {
+    .fit-lot-page-summary {
+        grid-template-columns: 1fr;
+    }
 }
 
 .fit-lot-history-table .fit-action-button {
@@ -226,4 +394,3 @@
     font-size: 0.72rem;
     font-weight: 800;
 }
-

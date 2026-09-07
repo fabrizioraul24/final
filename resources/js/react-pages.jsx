@@ -48,6 +48,34 @@ function readPageFromDocument(doc) {
     };
 }
 
+function syncStylesheetsFromDocument(doc) {
+    const currentHrefs = new Set(
+        Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'))
+            .map((link) => new URL(link.href, window.location.origin).href),
+    );
+
+    Array.from(doc.querySelectorAll('link[rel="stylesheet"][href]')).forEach((sourceLink) => {
+        const href = new URL(sourceLink.getAttribute('href'), window.location.origin).href;
+
+        if (currentHrefs.has(href)) {
+            return;
+        }
+
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+
+        Array.from(sourceLink.attributes).forEach((attribute) => {
+            if (!['rel', 'href'].includes(attribute.name)) {
+                link.setAttribute(attribute.name, attribute.value);
+            }
+        });
+
+        document.head.appendChild(link);
+        currentHrefs.add(href);
+    });
+}
+
 function AdminSpaApp({ initialPageKey, initialProps }) {
     const [pageState, setPageState] = React.useState({
         pageKey: initialPageKey,
@@ -114,6 +142,7 @@ function AdminSpaApp({ initialPageKey, initialProps }) {
                 return;
             }
 
+            syncStylesheetsFromDocument(doc);
             document.title = nextPage.title;
             setPageState((current) => ({
                 pageKey: nextPage.pageKey,

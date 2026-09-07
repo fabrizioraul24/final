@@ -4,7 +4,11 @@ import { FieldError, FlashMessages, Modal, Pagination, TableEmpty } from '../com
 
 const statusLabels = { pendiente: 'Pendiente', en_transito: 'En transito', recibido: 'Recibido' };
 
-function TransferStatus({ status }) {
+function formatUnits(value) {
+    return `${new Intl.NumberFormat('es-BO').format(Number(value || 0))} uds`;
+}
+
+export function TransferStatus({ status }) {
     const tone = status === 'recibido' ? 'active' : status === 'en_transito' ? 'transit' : 'pending';
 
     return (
@@ -14,12 +18,76 @@ function TransferStatus({ status }) {
     );
 }
 
-function TransferSource({ transfer }) {
+export function TransferSource({ transfer }) {
     if (transfer.agentRequest) {
         return <span className="fit-role-badge default"><i className="ri-robot-2-line" /> Agente inteligente</span>;
     }
 
     return <span className="fit-role-badge warehouse"><i className="ri-file-list-3-line" /> Registro manual</span>;
+}
+
+export function AgentRequestBreakdown({ transfer }) {
+    const request = transfer.agentRequest;
+    const parsed = request?.parsedReason;
+
+    if (!request) return <TransferSource transfer={transfer} />;
+
+    return (
+        <div className="transfer-agent-explain">
+            <div className="transfer-agent-explain-head">
+                <TransferSource transfer={transfer} />
+                <div>
+                    <span>Solicitud creada</span>
+                    <strong>{request.created_at_formatted}</strong>
+                </div>
+                <div>
+                    <span>Aprobado por</span>
+                    <strong>{transfer.approved_by_label}</strong>
+                </div>
+                <div>
+                    <span>Prioridad</span>
+                    <strong>{request.priority || 'Normal'}</strong>
+                </div>
+            </div>
+
+            {parsed ? (
+                <>
+                    <div className="transfer-agent-main-message">
+                        <i className="ri-error-warning-line" />
+                        <div>
+                            <strong>El agente pidio reposicion porque el stock quedaria por debajo del minimo.</strong>
+                            <p>
+                                Despues de cubrir la demanda prevista de 7 dias quedarian {formatUnits(parsed.result)}.
+                                El minimo operativo definido para este producto es {formatUnits(parsed.threshold)}.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="transfer-agent-metrics">
+                        <div><span>Stock actual</span><strong>{formatUnits(parsed.stock)}</strong></div>
+                        <div><span>Traspasos ya programados</span><strong>{formatUnits(parsed.transfers)}</strong></div>
+                        <div><span>Demanda prevista 7 dias</span><strong>{formatUnits(parsed.demand)}</strong></div>
+                        <div><span>Stock final estimado</span><strong>{formatUnits(parsed.result)}</strong></div>
+                        <div className="danger"><span>Faltante contra minimo</span><strong>{formatUnits(parsed.shortage)}</strong></div>
+                        <div className="success"><span>Reposicion aprobada</span><strong>{formatUnits(request.requested_qty)}</strong></div>
+                    </div>
+
+                    <div className="transfer-agent-formula">
+                        <span>Calculo del agente</span>
+                        <strong>{formatUnits(parsed.stock)} + {formatUnits(parsed.transfers)} - {formatUnits(parsed.demand)} = {formatUnits(parsed.result)}</strong>
+                    </div>
+                </>
+            ) : (
+                <div className="transfer-agent-main-message">
+                    <i className="ri-information-line" />
+                    <div>
+                        <strong>El agente recomendo revisar este producto.</strong>
+                        <p>{request.reason || 'No se registro un motivo tecnico detallado.'}</p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default function AdminTransfersPage({ layout, data, flash, errors, old, csrfToken, logoutAction }) {
@@ -181,9 +249,9 @@ export default function AdminTransfersPage({ layout, data, flash, errors, old, c
                                             <td><span className="fit-muted-text">{transfer.expected_date_formatted}</span></td>
                                             <td className="text-right">
                                                 <div className="fit-row-actions">
-                                                    <button type="button" className="fit-action-button success" onClick={() => setViewTransfer(transfer)} title="Ver detalles">
+                                                    <a className="fit-action-button success" href={transfer.detail_url} title="Ver detalles">
                                                         <i className="ri-eye-line" />
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -327,15 +395,7 @@ export default function AdminTransfersPage({ layout, data, flash, errors, old, c
 
                             <div className="fit-transfer-panel">
                                 <h4>Origen de solicitud</h4>
-                                {viewTransfer.agentRequest ? (
-                                    <div className="fit-transfer-source-detail">
-                                        <TransferSource transfer={viewTransfer} />
-                                        <p>Solicitud creada: {viewTransfer.agentRequest.created_at_formatted}</p>
-                                        <p>Aprobado por: {viewTransfer.approved_by_label}</p>
-                                        {viewTransfer.agentRequest.priority && <p>Prioridad: {viewTransfer.agentRequest.priority}</p>}
-                                        {viewTransfer.agentRequest.reason && <p>Motivo: {viewTransfer.agentRequest.reason}</p>}
-                                    </div>
-                                ) : <TransferSource transfer={viewTransfer} />}
+                                <AgentRequestBreakdown transfer={viewTransfer} />
                             </div>
 
                             <div className="fit-transfer-panel">
@@ -369,8 +429,12 @@ export default function AdminTransfersPage({ layout, data, flash, errors, old, c
                             </div>
 
                             <div className="fit-transfer-panel">
-                                <h4>Notas generales</h4>
-                                <p>{viewTransfer.notes || 'Sin notas generales.'}</p>
+                                <h4>{viewTransfer.agentRequest ? 'Nota de aprobacion' : 'Notas generales'}</h4>
+                                <p>
+                                    {viewTransfer.agentRequest
+                                        ? (viewTransfer.agentRequest.decision_reason || 'El usuario aprobo la sugerencia del agente sin agregar una nota adicional.')
+                                        : (viewTransfer.notes || 'Sin notas generales.')}
+                                </p>
                             </div>
 
                             <div className="fit-modal-footer">

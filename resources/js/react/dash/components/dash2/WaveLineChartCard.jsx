@@ -6,13 +6,13 @@ import { useTheme } from '../../context/ThemeContext';
 export default function WaveLineChartCard({ data: dashboardData }) {
   const { isDark } = useTheme();
 
-  const salesLabels = dashboardData?.salesSeries?.labels || [];
-  const salesValues = dashboardData?.salesSeries?.data || [];
-  const data = salesLabels.length
-    ? salesLabels.map((day, index) => ({
+  const customerLabels = dashboardData?.customerRegistrationSeries?.labels || [];
+  const customerValues = dashboardData?.customerRegistrationSeries?.data || [];
+  const data = customerLabels.length
+    ? customerLabels.map((day, index) => ({
         day,
-        purple: Number(salesValues[index] || 0),
-        orange: Math.max(0, Number(salesValues[index - 1] || 0)),
+        purple: Number(customerValues[index] || 0),
+        orange: Math.max(0, Number(customerValues[index - 1] || 0)),
       }))
     : [
         { day: 'Dom', purple: 40, orange: 20 },
@@ -47,8 +47,8 @@ export default function WaveLineChartCard({ data: dashboardData }) {
       </div>
 
       <div className="mb-1">
-        <h3 className="text-sm font-bold tracking-tight">Ventas</h3>
-        <p className="text-[10px] text-slate-400">Movimiento semanal registrado</p>
+        <h3 className="text-sm font-bold tracking-tight">Clientes</h3>
+        <p className="text-[10px] text-slate-400">Registro semanal de clientes</p>
       </div>
 
       {/* Dual Wave Area Chart */}
@@ -67,7 +67,7 @@ export default function WaveLineChartCard({ data: dashboardData }) {
             </defs>
             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9 }} />
             <YAxis hide />
-            <Tooltip />
+            <Tooltip formatter={(value, name) => [value, name === 'purple' ? 'Registrados' : 'Dia anterior']} />
             <Area type="monotone" dataKey="purple" stroke="#0b4fc1" strokeWidth={2} fillOpacity={1} fill="url(#purpleGrad)" />
             <Area type="monotone" dataKey="orange" stroke="#f25a59" strokeWidth={2} fillOpacity={1} fill="url(#orangeGrad)" />
           </AreaChart>

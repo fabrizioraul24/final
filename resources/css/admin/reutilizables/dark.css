@@ -221,17 +221,27 @@ html.dark .fit-product-sku {
 html.dark .fit-company-contact strong,
 html.dark .fit-company-detail-head strong,
 html.dark .fit-company-detail-grid strong,
+html.dark .fit-company-location-card strong,
 html.dark .fit-product-detail-head strong,
 html.dark .fit-money,
 html.dark .fit-lot-product-head h3,
+html.dark .fit-lot-detail-hero h1,
+html.dark .fit-lot-health-card strong,
+html.dark .fit-lot-filter-head h2,
 html.dark .fit-lot-stat-grid strong,
 html.dark .fit-lot-panel h4,
+html.dark .fit-lot-page-summary strong,
 html.dark .fit-lot-movement-item strong,
 html.dark .fit-category-count strong,
 html.dark .fit-category-count small,
 html.dark .fit-transfer-items-head h4,
 html.dark .fit-transfer-summary strong,
 html.dark .fit-transfer-panel h4,
+html.dark .fit-transfer-show-title h2,
+html.dark .transfer-agent-explain-head strong,
+html.dark .transfer-agent-metrics strong,
+html.dark .transfer-agent-main-message strong,
+html.dark .transfer-agent-formula strong,
 html.dark .fit-sale-total strong,
 html.dark .fit-confirm-form h4 {
     color: #f8fafc;
@@ -239,18 +249,25 @@ html.dark .fit-confirm-form h4 {
 
 html.dark .fit-company-detail-head,
 html.dark .fit-company-detail-grid > div,
+html.dark .fit-company-location-card,
 html.dark .fit-product-detail-head,
 html.dark .fit-product-image,
 html.dark .fit-product-detail-media img,
 html.dark .fit-lot-card,
+html.dark .fit-lot-detail-hero,
+html.dark .fit-lot-health-card,
 html.dark .fit-lot-stat-grid > div,
 html.dark .fit-lot-panel,
+html.dark .fit-lot-page-summary > div,
 html.dark .fit-lot-movement-item,
 html.dark .fit-category-icon,
 html.dark .fit-transfer-items,
 html.dark .fit-transfer-item-row,
 html.dark .fit-transfer-summary > div,
-html.dark .fit-transfer-panel {
+html.dark .fit-transfer-panel,
+html.dark .fit-transfer-show-hero,
+html.dark .transfer-agent-explain-head > div:not(:first-child),
+html.dark .transfer-agent-metrics > div {
     background: #1e212b;
     border-color: rgba(255, 255, 255, 0.08);
 }
@@ -268,9 +285,16 @@ html.dark .fit-lot-card-actions {
 
 html.dark .fit-company-detail-head span,
 html.dark .fit-company-detail-grid span,
+html.dark .fit-company-location-card span,
+html.dark .fit-company-location-card p,
 html.dark .fit-product-detail-head span,
 html.dark .fit-lot-stat-grid span,
+html.dark .fit-lot-detail-hero p,
+html.dark .fit-lot-health-card span,
+html.dark .fit-lot-health-card small,
+html.dark .fit-lot-filter-head p,
 html.dark .fit-lot-panel p,
+html.dark .fit-lot-page-summary span,
 html.dark .fit-lot-movement-item span,
 html.dark .fit-lot-movement-item p,
 html.dark .fit-lot-movement-item time,
@@ -279,10 +303,39 @@ html.dark .fit-empty-card p,
 html.dark .fit-transfer-items-head span,
 html.dark .fit-transfer-summary span,
 html.dark .fit-transfer-panel p,
+html.dark .fit-transfer-show-title p,
 html.dark .fit-transfer-source-detail p,
+html.dark .transfer-agent-explain-head span,
+html.dark .transfer-agent-metrics span,
+html.dark .transfer-agent-formula span,
 html.dark .fit-sale-total,
 html.dark .fit-confirm-form p {
     color: #94a3b8;
+}
+
+html.dark .transfer-agent-main-message {
+    border-color: rgba(244, 63, 94, 0.22);
+    background: rgba(127, 29, 29, 0.18);
+}
+
+html.dark .transfer-agent-main-message i {
+    background: rgba(244, 63, 94, 0.16);
+    color: #fb7185;
+}
+
+html.dark .transfer-agent-metrics > div.danger {
+    border-color: rgba(244, 63, 94, 0.24);
+    background: rgba(127, 29, 29, 0.16);
+}
+
+html.dark .transfer-agent-metrics > div.success {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(6, 78, 59, 0.18);
+}
+
+html.dark .transfer-agent-formula {
+    border-color: rgba(129, 140, 248, 0.28);
+    background: rgba(99, 102, 241, 0.12);
 }
 
 html.dark .fit-sale-client-icon {

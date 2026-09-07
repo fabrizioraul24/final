@@ -10,6 +10,17 @@
         \App\Models\Transfer::STATUS_RECEIVED => 'Recibido',
     ];
     $agentRequest = $transfer->agentTransferRequest;
+    $agentReason = null;
+    if ($agentRequest?->reason && preg_match('/Stock\s+(-?\d+)\s+\+\s+traspasos\s+7d\s+(-?\d+)\s+-\s+demanda\s+proyectada\s+7d\s+(-?\d+)\s+=\s+(-?\d+);\s+cae\s+bajo\s+umbral\s+(-?\d+)/i', $agentRequest->reason, $matches)) {
+        $agentReason = [
+            'stock' => (int) $matches[1],
+            'transfers' => (int) $matches[2],
+            'demand' => (int) $matches[3],
+            'result' => (int) $matches[4],
+            'threshold' => (int) $matches[5],
+            'shortage' => max(0, ((int) $matches[5]) - ((int) $matches[4])),
+        ];
+    }
 @endphp
 
 @section('content')
@@ -152,11 +163,38 @@
             <div class="warehouse-lot-panel">
                 <h4>Origen de solicitud</h4>
                 @if($agentRequest)
-                    <div class="warehouse-transfer-origin">
+                    <div class="warehouse-transfer-origin warehouse-agent-explain">
                         <span class="warehouse-source-pill ai"><i class="ri-robot-2-line"></i> Sugerencia de agente inteligente</span>
-                        <p>Solicitud creada: {{ optional($agentRequest->created_at)->format('d/m/Y H:i') }}</p>
-                        @if($agentRequest->priority)<p>Prioridad: {{ $agentRequest->priority }}</p>@endif
-                        @if($agentRequest->reason)<p>Motivo: {{ $agentRequest->reason }}</p>@endif
+                        <div class="warehouse-agent-timeline">
+                            <div><span>Solicitud creada</span><strong>{{ optional($agentRequest->created_at)->format('d/m/Y H:i') }}</strong></div>
+                            <div><span>Aprobado por</span><strong>{{ $transfer->approvedByUser?->name ?? 'Usuario' }}</strong></div>
+                            <div><span>Prioridad</span><strong>{{ $agentRequest->priority ?: 'Normal' }}</strong></div>
+                        </div>
+                        @if($agentReason)
+                            <div class="warehouse-agent-message">
+                                <i class="ri-error-warning-line"></i>
+                                <div>
+                                    <strong>El agente pidio reposicion porque el stock quedaria por debajo del minimo.</strong>
+                                    <p>Despues de cubrir la demanda prevista de 7 dias quedarian {{ number_format($agentReason['result']) }} uds. El minimo operativo es {{ number_format($agentReason['threshold']) }} uds.</p>
+                                </div>
+                            </div>
+                            <div class="warehouse-agent-metrics">
+                                <div><span>Stock actual</span><strong>{{ number_format($agentReason['stock']) }} uds</strong></div>
+                                <div><span>Traspasos programados</span><strong>{{ number_format($agentReason['transfers']) }} uds</strong></div>
+                                <div><span>Demanda 7 dias</span><strong>{{ number_format($agentReason['demand']) }} uds</strong></div>
+                                <div><span>Stock final</span><strong>{{ number_format($agentReason['result']) }} uds</strong></div>
+                                <div class="danger"><span>Faltante minimo</span><strong>{{ number_format($agentReason['shortage']) }} uds</strong></div>
+                                <div class="success"><span>Reposicion aprobada</span><strong>{{ number_format((int) $agentRequest->requested_qty) }} uds</strong></div>
+                            </div>
+                        @else
+                            <div class="warehouse-agent-message">
+                                <i class="ri-information-line"></i>
+                                <div>
+                                    <strong>El agente recomendo revisar este producto.</strong>
+                                    <p>{{ $agentRequest->reason ?: 'No se registro un motivo tecnico detallado.' }}</p>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 @else
                     <div class="warehouse-transfer-origin">
@@ -167,8 +205,14 @@
             </div>
 
             <div class="warehouse-lot-panel">
-                <h4>Notas generales</h4>
-                <p>{{ $transfer->notes ?: 'Sin notas registradas.' }}</p>
+                <h4>{{ $agentRequest ? 'Nota de aprobacion' : 'Notas generales' }}</h4>
+                <p>
+                    @if($agentRequest)
+                        {{ $agentRequest->decision_reason ?: 'El usuario aprobo la sugerencia del agente sin agregar una nota adicional.' }}
+                    @else
+                        {{ $transfer->notes ?: 'Sin notas registradas.' }}
+                    @endif
+                </p>
             </div>
         </aside>
     </div>

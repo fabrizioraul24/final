@@ -51,6 +51,35 @@ function AgentRuntimeStatus({ data }) {
     );
 }
 
+function AgentConnectionBadge({ data }) {
+    const [online, setOnline] = useState(Boolean(data.agentOnline));
+
+    useEffect(() => {
+        const refresh = async () => {
+            try {
+                const response = await fetch(data.routes.status, { headers: { Accept: 'application/json' } });
+                if (response.ok) {
+                    const payload = await response.json();
+                    setOnline(Boolean(payload.agentOnline));
+                }
+            } catch {
+                // Mantiene el ultimo estado visible hasta la siguiente consulta.
+            }
+        };
+
+        refresh();
+        const refreshTimer = window.setInterval(refresh, 30000);
+
+        return () => window.clearInterval(refreshTimer);
+    }, [data.routes.status]);
+
+    return (
+        <span className={`fit-status ${online ? 'active' : 'inactive'}`}>
+            <span /> {online ? 'Agente en linea' : 'Agente sin conexion'}
+        </span>
+    );
+}
+
 function AgentNavigation({ activeView, onChange, data }) {
     const items = [
         { id: 'overview', label: 'Resumen', icon: 'ri-dashboard-line' },
@@ -95,53 +124,6 @@ export function AgentModeSwitch({ mode, data }) {
                 </a>
             ))}
         </div>
-    );
-}
-
-function GeneratePredictionButton({ route, csrfToken }) {
-    const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState(null);
-
-    const runPrediction = async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-        setMessage(null);
-
-        try {
-            const response = await fetch(route, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({}),
-            });
-            const payload = await response.json();
-
-            if (!response.ok) {
-                throw new Error(payload.message || 'No se pudo generar la prediccion.');
-            }
-
-            setMessage(payload.message || 'Prediccion generada.');
-            window.setTimeout(() => window.location.reload(), 900);
-        } catch (error) {
-            setMessage(error.message || 'No se pudo generar la prediccion.');
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <form method="POST" action={route} className="fit-agent-run-form" onSubmit={runPrediction}>
-            <input type="hidden" name="_token" value={csrfToken} />
-            <button type="submit" className="fit-primary-button" disabled={submitting}>
-                <i className={submitting ? 'ri-loader-4-line ri-spin' : 'ri-play-circle-line'} />
-                <span>{submitting ? 'Generando prediccion...' : 'Generar prediccion'}</span>
-            </button>
-            {message && <small>{message}</small>}
-        </form>
     );
 }
 
@@ -286,11 +268,24 @@ function AdjustmentBadge({ changed }) {
 
 function DecisionChip({ urgent, children, icon }) {
     return (
-        <span className={`fit-agent-decision ${urgent ? 'urgent' : ''}`}>
+        <span className={`fit-agent-decision ${urgent || ''}`}>
             {icon && <i className={icon} />}
             {children}
         </span>
     );
+}
+
+function decisionTone(item) {
+    const level = String(item.decision_level || '').toLowerCase();
+    if (level === 'critical') return 'urgent';
+    if (level === 'preventive') return 'preventive';
+    return 'optimal';
+}
+
+function decisionIcon(tone) {
+    if (tone === 'urgent') return 'ri-alarm-warning-line';
+    if (tone === 'preventive') return 'ri-error-warning-line';
+    return 'ri-checkbox-circle-line';
 }
 
 function EvaluatorSkeleton() {
@@ -782,18 +777,18 @@ function EvaluationsSection({ data }) {
                                 <th>Producto</th>
                                 <th>Demanda 7 dias</th>
                                 <th>Stock actual</th>
-                                <th>Traspasos previstos</th>
+                                <th>Traspasos ya programados</th>
                                 <th>Stock final estimado</th>
                                 <th>Stock minimo</th>
-                                <th>Decision</th>
+                                <th>Estado operativo</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data.forecasts.data.length ? data.forecasts.data.map((item, index) => {
-                                const urgent = String(item.priority || '').toLowerCase() === 'urgente';
+                                const tone = decisionTone(item);
 
                                 return (
-                                    <tr key={`${item.name}-${index}`} className={urgent ? 'urgent-row' : ''}>
+                                    <tr key={`${item.name}-${index}`} className={tone === 'urgent' ? 'urgent-row' : ''}>
                                         <td><strong>{item.name}</strong></td>
                                         <td><span className="fit-muted-text">{Number(item.forecast_7_days).toFixed(0)} uds</span></td>
                                         <td><span className="fit-muted-text">{item.stock} uds</span></td>
@@ -801,8 +796,8 @@ function EvaluationsSection({ data }) {
                                         <td><span className="fit-muted-text">{item.result < 0 ? `Faltan ${Math.abs(item.result)} uds` : `${Number(item.result).toFixed(0)} uds`}</span></td>
                                         <td><span className="fit-muted-text">{item.safety_threshold} uds</span></td>
                                         <td>
-                                            <DecisionChip urgent={urgent} icon={urgent ? 'ri-alarm-warning-line' : 'ri-lightbulb-flash-line'}>
-                                                {item.decision}{urgent ? ' - Urgente' : ''}
+                                            <DecisionChip urgent={tone} icon={decisionIcon(tone)}>
+                                                {item.decision}
                                             </DecisionChip>
                                         </td>
                                     </tr>
@@ -834,7 +829,7 @@ function RequestsSection({ data, onOpen }) {
                         <thead>
                             <tr>
                                 <th>Producto</th>
-                                <th>Cantidad solicitada</th>
+                                <th>Reposicion sugerida</th>
                                 <th>Prioridad</th>
                                 <th>Motivo resumido</th>
                                 <th className="text-right">Detalle</th>
@@ -879,7 +874,7 @@ function RequestsSection({ data, onOpen }) {
     );
 }
 
-function AlertsSection({ data, decisionClass, onOpen }) {
+function AlertsSection({ data, decisionClass }) {
     return (
         <section className="fit-section agent-section" data-agent-view="alerts">
             <div className="fit-section-head">
@@ -920,7 +915,7 @@ function AlertsSection({ data, decisionClass, onOpen }) {
                         </div>
 
                         <div className="alert-card-actions">
-                            <button type="button" className="fit-outline-button" onClick={() => onOpen(productAlert)}>Detalles</button>
+                            <a className="fit-outline-button" href={productAlert.detail_url}>Detalles</a>
                         </div>
                     </div>
                 )) : (
@@ -988,36 +983,62 @@ function RequestModal({ requestModal, csrfToken, onClose }) {
     const demand = parsed?.demand ?? 0;
     const result = parsed?.result ?? null;
     const threshold = parsed?.threshold ?? 0;
-    const missing = result !== null && result < 0 ? Math.abs(result) : 0;
-    const scale = Math.max(stock, transfers, demand, threshold, missing, 1);
+    const requested = Number(requestModal.requested_qty || 0);
+    const missing = result !== null ? Math.max(0, threshold - result) : 0;
+    const resultWithRequest = result !== null ? result + requested : requested;
+    const scale = Math.max(stock, transfers, demand, threshold, missing, requested, resultWithRequest, 1);
     const pct = (value) => Math.min(100, Math.round((value / scale) * 100));
 
     const rows = [
         { label: 'Stock actual', value: stock, pctClass: '' },
-        { label: 'Traspasos previstos', value: transfers, pctClass: '' },
+        { label: 'Traspasos ya programados', value: transfers, pctClass: '' },
         { label: 'Demanda 7 dias', value: demand, pctClass: 'warn' },
         { label: 'Stock minimo', value: threshold, pctClass: 'warn' },
         ...(missing > 0 ? [{ label: 'Unidades faltantes', value: missing, pctClass: 'danger' }] : []),
+        { label: 'Reposicion sugerida', value: requested, pctClass: 'success' },
+        { label: 'Stock estimado con reposicion', value: resultWithRequest, pctClass: 'success' },
     ];
 
     return (
         <Modal open title={`Solicitud de traspaso #${requestModal.id}`} onClose={onClose} wide contentClassName="fit-modal-content fit-agent-modal-content">
             <div className="modal-body">
                 <div className="summary">
-                    <div className="summary-card"><strong>Cantidad solicitada</strong><span>{requestModal.requested_qty} uds</span></div>
+                    <div className="summary-card"><strong>Reposicion sugerida</strong><span>{requestModal.requested_qty} uds</span></div>
                     <div className="summary-card"><strong>Prioridad</strong><DecisionChip urgent={urgent}>{requestModal.priority}</DecisionChip></div>
                     <div className="summary-card"><strong>Estado</strong><span>{requestModal.status}</span></div>
                     <div className="summary-card"><strong>Creada</strong><span>{requestModal.created_at_formatted}</span></div>
                 </div>
 
-                <div className="fit-transfer-panel agent-detail-section">
+                <div className="fit-transfer-panel agent-detail-section agent-replenishment-explain">
                     <h4>Detalle de reposicion</h4>
                     {parsed ? (
                         <>
-                            <p>
-                                <strong>Reposicion necesaria.</strong>
-                                {missing > 0 ? <> Faltan <strong>{missing} unidades</strong> para completar la demanda prevista de 7 dias y mantener el stock minimo.</> : <> Despues de cubrir la demanda prevista quedarian <strong>{result} uds</strong>, por debajo del stock minimo.</>}
-                            </p>
+                            <div className="agent-replenishment-message">
+                                <i className="ri-stock-line" />
+                                <div>
+                                    <strong>Reposicion necesaria.</strong>
+                                    <p>Despues de cubrir la demanda prevista quedarian <strong>{result} uds</strong>. El minimo operativo es <strong>{threshold} uds</strong>, por eso el agente sugiere reponer <strong>{requested} uds</strong>.</p>
+                                </div>
+                            </div>
+                            <div className="agent-replenishment-total">
+                                <div>
+                                    <span>Sin reposicion</span>
+                                    <strong>{result} uds</strong>
+                                    <small>Queda bajo el minimo</small>
+                                </div>
+                                <i className="ri-add-line" />
+                                <div>
+                                    <span>Reposicion sugerida</span>
+                                    <strong>{requested} uds</strong>
+                                    <small>Cantidad para aprobar</small>
+                                </div>
+                                <i className="ri-equal-line" />
+                                <div className="success">
+                                    <span>Total estimado</span>
+                                    <strong>{resultWithRequest} uds</strong>
+                                    <small>Despues de aprobar</small>
+                                </div>
+                            </div>
                             <div className="agent-bars">
                                 {rows.map((row) => (
                                     <div className="agent-bar-row" key={row.label}>
@@ -1119,12 +1140,23 @@ export default function AdminAgentReplenishmentPage({ layout, data, flash, csrfT
     const [alertModal, setAlertModal] = useState(null);
     const agentMode = data.agentMode || 'replenishment';
     const [activeView, setActiveView] = useState(agentMode === 'evaluator' ? 'evaluator' : 'overview');
-    const statusClass = data.agentOnline ? 'active' : 'inactive';
     const decisionClass = (severity) => severity === 'critical' ? 'urgent' : severity;
 
     useEffect(() => {
         setActiveView(agentMode === 'evaluator' ? 'evaluator' : 'overview');
     }, [agentMode]);
+
+    useEffect(() => {
+        if (agentMode !== 'replenishment' || requestModal || alertModal) {
+            return undefined;
+        }
+
+        const refreshTimer = window.setInterval(() => {
+            window.location.reload();
+        }, 60000);
+
+        return () => window.clearInterval(refreshTimer);
+    }, [agentMode, requestModal, alertModal]);
 
     return (
         <DashboardShell sidebar={layout.sidebar} topbar={layout.topbar} csrfToken={csrfToken} logoutAction={logoutAction}>
@@ -1143,9 +1175,7 @@ export default function AdminAgentReplenishmentPage({ layout, data, flash, csrfT
                     </div>
 
                     {agentMode === 'replenishment' ? <div className="fit-users-header-actions fit-agent-header-actions">
-                        <span className={`fit-status ${statusClass}`}><span /> {data.agentOnline ? 'Agente en linea' : 'Agente sin conexion'}</span>
-                        <span className="fit-section-badge indigo"><i className="ri-cpu-line" /> AI_AGENT_URL /api/predict</span>
-                        <GeneratePredictionButton route={data.routes.run} csrfToken={csrfToken} />
+                        <AgentConnectionBadge data={data} />
                         <AgentRuntimeStatus data={data} />
                     </div> : <div className="fit-users-header-actions fit-agent-header-actions">
                         <span className="fit-section-badge indigo"><i className="ri-database-2-line" /> AI_EVALUATOR_AGENT_URL /real</span>
@@ -1159,7 +1189,7 @@ export default function AdminAgentReplenishmentPage({ layout, data, flash, csrfT
                 {agentMode === 'replenishment' && <EvaluationsSection data={data} />}
                 {agentMode === 'evaluator' && <EvaluatorSection route={data.routes.evaluator_real} />}
                 {agentMode === 'replenishment' && <RequestsSection data={data} onOpen={setRequestModal} />}
-                {agentMode === 'replenishment' && <AlertsSection data={data} decisionClass={decisionClass} onOpen={setAlertModal} />}
+                {agentMode === 'replenishment' && <AlertsSection data={data} decisionClass={decisionClass} />}
                 {agentMode === 'replenishment' && <HistorySection data={data} />}
 
                 <RequestModal requestModal={requestModal} csrfToken={csrfToken} onClose={() => setRequestModal(null)} />

@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             DemoDataSeeder::class,
             AgentTransferDemoSeeder::class,
+            Historical2026Seeder::class,
         ]);
     }
 }

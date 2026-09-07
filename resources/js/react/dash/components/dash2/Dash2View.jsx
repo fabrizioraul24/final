@@ -15,7 +15,7 @@ export default function Dash2View({ data }) {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
           <div className="md:col-span-3 h-full">
-            <StatsTrendCard />
+            <StatsTrendCard data={data} />
           </div>
           <div className="md:col-span-3 h-full">
             <CleanCalendarCard />

@@ -1457,8 +1457,12 @@
                         <strong id="cartTotalText">Bs 0.00</strong>
                     </div>
 
-                    <button type="button" class="btn-pill btn-pill-coral" style="width: 100%;" onclick="openPaymentModal()">
-                        <span>Continuar al paso 2</span>
+                    <form action="{{ route('dashboard.payment') }}" method="POST" id="checkoutPageForm" style="margin:0;">
+                        @csrf
+                        <input type="hidden" name="cart" id="checkoutPageCartInput">
+                    </form>
+                    <button type="button" class="btn-pill btn-pill-coral" style="width: 100%;" onclick="goToCheckoutPage()">
+                        <span>Ir a pantalla de pago</span>
                         <i class="ri-arrow-right-line"></i>
                     </button>
                 </aside>
@@ -1798,6 +1802,7 @@
             const totalText = document.getElementById('cartTotalText');
             const modalTotalPay = document.getElementById('modalTotalPay');
             const hiddenCartInput = document.getElementById('hiddenCartInput');
+            const checkoutPageCartInput = document.getElementById('checkoutPageCartInput');
 
             if (!listContainer) return;
 
@@ -1843,6 +1848,7 @@
             if (totalText) totalText.textContent = `Bs ${subtotal.toFixed(2)}`;
             if (modalTotalPay) modalTotalPay.textContent = `Bs ${subtotal.toFixed(2)}`;
             if (hiddenCartInput) hiddenCartInput.value = JSON.stringify(cart);
+            if (checkoutPageCartInput) checkoutPageCartInput.value = JSON.stringify(cart);
 
             const qrTotalLabel = document.getElementById('qrTotalLabel');
             if (qrTotalLabel) qrTotalLabel.textContent = `Monto a Pagar: Bs ${subtotal.toFixed(2)}`;
@@ -1963,12 +1969,19 @@
 
         // Payment Modal handlers
         function openPaymentModal() {
+            goToCheckoutPage();
+        }
+
+        function goToCheckoutPage() {
             if (cart.length === 0) {
-                alert('Tu carrito está vacío. Agrega productos antes de pagar.');
+                alert('Tu carrito esta vacio. Agrega productos antes de pagar.');
                 return;
             }
-            toggleCartDrawer(false);
-            document.getElementById('paymentModal').classList.add('active');
+
+            const checkoutPageCartInput = document.getElementById('checkoutPageCartInput');
+            const checkoutPageForm = document.getElementById('checkoutPageForm');
+            if (checkoutPageCartInput) checkoutPageCartInput.value = JSON.stringify(cart);
+            checkoutPageForm?.submit();
         }
 
         function closePaymentModal() {

@@ -12,16 +12,14 @@ export default function MultiProgressCard({ data }) {
     return Math.min(100, Math.round((Number(value || 0) / total) * 100));
   };
   const total = Math.max(
-    Number(kpis.customers || 0),
-    Number(kpis.products_active || 0),
-    Number(kpis.transfers_active || 0),
+    Number(kpis.customers || 0) + Number(kpis.products_active || 0) + Number(kpis.transfers_active || 0),
     1,
   );
 
   const progressItems = [
-    { label: 'Clientes', percent: progressFrom(kpis.customers, total), color: 'bg-indigo-400' },
-    { label: 'Productos', percent: progressFrom(kpis.products_active, total), color: 'bg-rose-400' },
-    { label: 'Traspasos', percent: progressFrom(kpis.transfers_active, total), color: 'bg-indigo-600' },
+    { label: 'Clientes', value: Number(kpis.customers || 0), percent: progressFrom(kpis.customers, total), color: 'bg-indigo-400' },
+    { label: 'Productos', value: Number(kpis.products_active || 0), percent: progressFrom(kpis.products_active, total), color: 'bg-rose-400' },
+    { label: 'Traspasos', value: Number(kpis.transfers_active || 0), percent: progressFrom(kpis.transfers_active, total), color: 'bg-indigo-600' },
   ];
 
   return (
@@ -37,7 +35,7 @@ export default function MultiProgressCard({ data }) {
           <div key={idx} className="space-y-1">
             <div className="flex justify-between text-xs font-semibold text-slate-400">
               <span>{item.label}</span>
-              <span>{item.percent}%</span>
+              <span>{item.value.toLocaleString()} · {item.percent}%</span>
             </div>
             <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-indigo-50'}`}>
               <div

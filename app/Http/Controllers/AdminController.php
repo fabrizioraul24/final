@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductLot;
 use App\Models\Sale;
@@ -56,6 +57,9 @@ class AdminController extends Controller
                     ],
                 ],
                 'salesSeries' => $data['salesSeries'],
+                'revenuePeriods' => $data['revenuePeriods'],
+                'generalMetrics' => $data['generalMetrics'],
+                'customerRegistrationSeries' => $data['customerRegistrationSeries'],
                 'categoryMix' => $data['categoryMix'],
                 'transferStatuses' => $data['transferStatuses'],
                 'roleMix' => $data['roleMix'],
@@ -120,7 +124,7 @@ class AdminController extends Controller
         $kpis = [
             'sales_today' => $salesToday,
             'sales_today_count' => $salesTodayCount,
-            'customers' => Company::count(),
+            'customers' => Company::count() + Customer::count(),
             'products_active' => Product::where('is_active', true)->count(),
             'transfers_active' => Transfer::where('status', '!=', Transfer::STATUS_RECEIVED)->count(),
             'users_active' => $activeUsersTotal,
@@ -135,6 +139,141 @@ class AdminController extends Controller
         $salesSeries = [
             'labels' => $dates->map->format('d/m'),
             'data' => $dates->map(fn ($d) => (float) ($rawSales[$d->toDateString()] ?? 0)),
+        ];
+
+        $todayHours = collect(range(6, 22, 2));
+        $rawTodaySales = Sale::select(DB::raw('HOUR(created_at) as hour'), DB::raw('SUM(total_amount) as total'))
+            ->whereDate('created_at', $today)
+            ->groupBy('hour')
+            ->pluck('total', 'hour');
+        $todaySeries = [
+            'labels' => $todayHours->map(fn ($h) => str_pad((string) $h, 2, '0', STR_PAD_LEFT) . ':00'),
+            'data' => $todayHours->map(fn ($h) => (float) ($rawTodaySales[$h] ?? 0)),
+        ];
+
+        $weekPreviousStart = $weekStart->copy()->subDays(7);
+        $weekPreviousEnd = $weekStart->copy()->subDay()->endOfDay();
+        $weeklySalesTotal = (float) collect($salesSeries['data'])->sum();
+        $weeklySalesCount = Sale::whereDate('created_at', '>=', $weekStart)->count();
+        $previousWeeklySales = (float) Sale::whereBetween('created_at', [$weekPreviousStart, $weekPreviousEnd])->sum('total_amount');
+
+        $monthStart = $today->copy()->startOfMonth();
+        $monthDates = collect(range(0, $monthStart->diffInDays($today)))
+            ->map(fn ($i) => $monthStart->copy()->addDays($i));
+        $rawMonthSales = Sale::select(DB::raw('DATE(created_at) as day'), DB::raw('SUM(total_amount) as total'))
+            ->whereDate('created_at', '>=', $monthStart)
+            ->whereDate('created_at', '<=', $today)
+            ->groupBy('day')
+            ->pluck('total', 'day');
+        $monthSeries = [
+            'labels' => $monthDates->map->format('d/m'),
+            'data' => $monthDates->map(fn ($d) => (float) ($rawMonthSales[$d->toDateString()] ?? 0)),
+        ];
+        $monthlySales = (float) collect($monthSeries['data'])->sum();
+        $monthlySalesCount = Sale::whereDate('created_at', '>=', $monthStart)
+            ->whereDate('created_at', '<=', $today)
+            ->count();
+        $previousMonthStart = $monthStart->copy()->subMonthNoOverflow();
+        $previousMonthEnd = $monthStart->copy()->subDay()->endOfDay();
+        $previousMonthlySales = (float) Sale::whereBetween('created_at', [$previousMonthStart, $previousMonthEnd])->sum('total_amount');
+
+        $yearStart = $today->copy()->startOfYear();
+        $rangeMonths = collect(range(1, (int) $today->format('n')));
+        $rawRangeSales = Sale::select(DB::raw('MONTH(created_at) as month'), DB::raw('SUM(total_amount) as total'))
+            ->whereDate('created_at', '>=', $yearStart)
+            ->whereDate('created_at', '<=', $today)
+            ->groupBy('month')
+            ->pluck('total', 'month');
+        $rangeSeries = [
+            'labels' => $rangeMonths->map(fn ($m) => $yearStart->copy()->month($m)->format('M')),
+            'data' => $rangeMonths->map(fn ($m) => (float) ($rawRangeSales[$m] ?? 0)),
+        ];
+        $rangeSalesTotal = (float) collect($rangeSeries['data'])->sum();
+        $rangeSalesCount = Sale::whereDate('created_at', '>=', $yearStart)
+            ->whereDate('created_at', '<=', $today)
+            ->count();
+        $previousYearStart = $yearStart->copy()->subYear();
+        $previousYearEnd = $today->copy()->subYear()->endOfDay();
+        $previousRangeSales = (float) Sale::whereBetween('created_at', [$previousYearStart, $previousYearEnd])->sum('total_amount');
+
+        $growth = fn (float $current, float $previous): float => $previous > 0
+            ? round((($current - $previous) / $previous) * 100, 1)
+            : ($current > 0 ? 100.0 : 0.0);
+
+        $revenuePeriods = [
+            'Hoy' => [
+                'label' => 'Hoy',
+                'total' => $salesToday,
+                'count' => $salesTodayCount,
+                'growth' => $growth($salesToday, $salesYesterday),
+                'series' => [
+                    'labels' => $todaySeries['labels'],
+                    'data' => $todaySeries['data'],
+                ],
+            ],
+            'Semana' => [
+                'label' => 'Esta semana',
+                'total' => $weeklySalesTotal,
+                'count' => $weeklySalesCount,
+                'growth' => $growth($weeklySalesTotal, $previousWeeklySales),
+                'series' => [
+                    'labels' => $salesSeries['labels'],
+                    'data' => $salesSeries['data'],
+                ],
+            ],
+            'Mes' => [
+                'label' => 'Este mes',
+                'total' => $monthlySales,
+                'count' => $monthlySalesCount,
+                'growth' => $growth($monthlySales, $previousMonthlySales),
+                'series' => [
+                    'labels' => $monthSeries['labels'],
+                    'data' => $monthSeries['data'],
+                ],
+            ],
+            'Rango' => [
+                'label' => 'Gestion actual',
+                'total' => $rangeSalesTotal,
+                'count' => $rangeSalesCount,
+                'growth' => $growth($rangeSalesTotal, $previousRangeSales),
+                'series' => [
+                    'labels' => $rangeSeries['labels'],
+                    'data' => $rangeSeries['data'],
+                ],
+            ],
+        ];
+
+        $periodUserMetrics = function ($start, $end = null) {
+            $activeQuery = User::query()->whereDate('created_at', '>=', $start);
+            $inactiveQuery = User::onlyTrashed()->whereDate('deleted_at', '>=', $start);
+
+            if ($end) {
+                $activeQuery->whereDate('created_at', '<=', $end);
+                $inactiveQuery->whereDate('deleted_at', '<=', $end);
+            }
+
+            return [
+                'active' => $activeQuery->count(),
+                'inactive' => $inactiveQuery->count(),
+            ];
+        };
+        $generalMetrics = [
+            'Semana' => $periodUserMetrics($weekStart),
+            'Mes' => $periodUserMetrics($monthStart, $today),
+            'Anio' => $periodUserMetrics($yearStart, $today),
+        ];
+
+        $rawCompanyRegistrations = Company::select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as total'))
+            ->whereDate('created_at', '>=', $weekStart)
+            ->groupBy('day')
+            ->pluck('total', 'day');
+        $rawCustomerRegistrations = Customer::select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as total'))
+            ->whereDate('created_at', '>=', $weekStart)
+            ->groupBy('day')
+            ->pluck('total', 'day');
+        $customerRegistrationSeries = [
+            'labels' => $dates->map->format('d/m'),
+            'data' => $dates->map(fn ($d) => (int) ($rawCompanyRegistrations[$d->toDateString()] ?? 0) + (int) ($rawCustomerRegistrations[$d->toDateString()] ?? 0)),
         ];
 
         $categoryMixData = Product::select('category_id', DB::raw('COUNT(*) as total'))
@@ -165,8 +304,7 @@ class AdminController extends Controller
             'data' => $usersByRole->pluck('total')->map(fn ($v) => (int) $v),
         ];
 
-        $weeklySalesCount = Sale::whereDate('created_at', '>=', $weekStart)->count();
-        $weeklySalesTotal = (float) collect($salesSeries['data'])->sum();
+        $weeklyCustomerRegistrations = (int) collect($customerRegistrationSeries['data'])->sum();
         $averageTicket = $weeklySalesCount > 0 ? $weeklySalesTotal / $weeklySalesCount : 0;
         $bestSalesValue = (float) collect($salesSeries['data'])->max();
         $bestSalesIndex = collect($salesSeries['data'])->search($bestSalesValue);
@@ -242,9 +380,6 @@ class AdminController extends Controller
 
         // Target progress (150,000 Bs)
         $monthlyTarget = 150000.0;
-        $monthlySales = (float) Sale::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->sum('total_amount');
         $monthlyTargetProgress = min(100.0, round(($monthlySales / $monthlyTarget) * 100, 1));
 
         // Top Sellers
@@ -347,11 +482,15 @@ class AdminController extends Controller
         return [
             'kpis' => $kpis,
             'salesSeries' => $salesSeries,
+            'revenuePeriods' => $revenuePeriods,
+            'generalMetrics' => $generalMetrics,
+            'customerRegistrationSeries' => $customerRegistrationSeries,
             'categoryMix' => $categoryMix,
             'transferStatuses' => $transferStatuses,
             'roleMix' => $roleMix,
             'weeklySalesTotal' => $weeklySalesTotal,
             'weeklySalesCount' => $weeklySalesCount,
+            'weeklyCustomerRegistrations' => $weeklyCustomerRegistrations,
             'averageTicket' => $averageTicket,
             'bestSalesValue' => $bestSalesValue,
             'bestSalesIndex' => $bestSalesIndex,

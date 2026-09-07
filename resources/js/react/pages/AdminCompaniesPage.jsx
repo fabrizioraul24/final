@@ -25,6 +25,13 @@ function CompanyInitials({ name, muted = false }) {
     return <span className={`fit-user-avatar company-avatar${muted ? ' muted' : ''}`}>{initials}</span>;
 }
 
+function mapsUrl(company) {
+    if (company.google_maps_url) return company.google_maps_url;
+
+    const query = [company.address, company.city, 'Bolivia'].filter(Boolean).join(', ');
+    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : '';
+}
+
 function CompaniesTable({ companies, inactive = false, csrfToken, onView, onEdit, onDeactivate }) {
     return (
         <div className="fit-table-card">
@@ -233,6 +240,12 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                     <FieldError errors={errors} name="address" />
                 </div>
 
+                <div className="fit-form-field span-2">
+                    <label htmlFor={`${prefix}google_maps_url`}>Enlace de Google Maps</label>
+                    <input id={`${prefix}google_maps_url`} type="url" name="google_maps_url" placeholder="https://maps.google.com/..." defaultValue={value('google_maps_url')} />
+                    <FieldError errors={errors} name="google_maps_url" />
+                </div>
+
                 <div className="fit-form-field">
                     <label htmlFor={`${prefix}owner_first_name`}>Nombre del {ownerLabel} *</label>
                     <input id={`${prefix}owner_first_name`} type="text" name="owner_first_name" defaultValue={value('owner_first_name')} required />
@@ -404,6 +417,11 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                 <Modal open={!!viewingCompany} title="Detalle del Cliente" onClose={() => setViewingCompany(null)} wide contentClassName="fit-modal-content">
                     {viewingCompany && (
                         <div className="fit-company-detail">
+                            {(() => {
+                                const mapLink = mapsUrl(viewingCompany);
+
+                                return (
+                                    <>
                             <div className="fit-company-detail-head">
                                 <CompanyInitials name={viewingCompany.name} />
                                 <div>
@@ -418,10 +436,27 @@ export default function AdminCompaniesPage({ layout, data, flash, errors, old, c
                                 <div><span>Ciudad</span><strong>{viewingCompany.city || 'N/D'}</strong></div>
                                 <div><span>Email</span><strong>{viewingCompany.email || 'N/D'}</strong></div>
                                 <div><span>Telefono</span><strong>{viewingCompany.phone || 'N/D'}</strong></div>
-                                <div className="span-2"><span>Direccion</span><strong>{viewingCompany.address || 'N/D'}</strong></div>
                                 <div><span>Creado por</span><strong>{viewingCompany.creator?.name || 'Usuario Pil'}</strong></div>
                                 <div><span>Fecha de alta</span><strong>{viewingCompany.created_at_formatted || 'N/D'}</strong></div>
                             </div>
+
+                            <div className="fit-company-location-card">
+                                <div className="fit-company-location-icon"><i className="ri-map-pin-2-line" /></div>
+                                <div>
+                                    <span>Ubicacion de entrega</span>
+                                    <strong>{viewingCompany.address || 'Sin direccion registrada.'}</strong>
+                                    <p>{viewingCompany.city || 'Sin ciudad'}{viewingCompany.google_maps_url ? ' - Enlace directo guardado' : ' - Busqueda generada desde la direccion'}</p>
+                                </div>
+                                {mapLink && (
+                                    <a className="fit-outline-button compact" href={mapLink} target="_blank" rel="noopener noreferrer">
+                                        <i className="ri-map-2-line" />
+                                        <span>Ver mapa</span>
+                                    </a>
+                                )}
+                            </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                 </Modal>

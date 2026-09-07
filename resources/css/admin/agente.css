@@ -796,6 +796,18 @@
     color: #f43f5e;
 }
 
+.fit-agent-decision.optimal {
+    border-color: rgba(16, 185, 129, 0.28);
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.fit-agent-decision.preventive {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.13);
+    color: #b45309;
+}
+
 .metric-chip.warn {
     border-color: rgba(242, 90, 89, 0.28);
     background: rgba(242, 90, 89, 0.12);
@@ -961,6 +973,89 @@
     gap: 0.72rem;
 }
 
+.agent-replenishment-explain {
+    gap: 1rem;
+}
+
+.agent-replenishment-message {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    border: 1px solid rgba(245, 158, 11, 0.24);
+    border-radius: 1rem;
+    padding: 0.9rem;
+    background: rgba(255, 251, 235, 0.86);
+}
+
+.agent-replenishment-message i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.45rem;
+    height: 2.45rem;
+    border-radius: 0.85rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+    font-size: 1.18rem;
+}
+
+.agent-replenishment-message strong {
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 950;
+}
+
+.agent-replenishment-total {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: stretch;
+}
+
+.agent-replenishment-total > div {
+    border: 1px solid #e0e7ff;
+    border-radius: 0.95rem;
+    padding: 0.85rem;
+    background: #ffffff;
+}
+
+.agent-replenishment-total > div.success {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(236, 253, 245, 0.82);
+}
+
+.agent-replenishment-total > i {
+    display: grid;
+    place-items: center;
+    color: #64748b;
+    font-size: 1.15rem;
+    font-weight: 900;
+}
+
+.agent-replenishment-total span,
+.agent-replenishment-total small {
+    display: block;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 850;
+}
+
+.agent-replenishment-total span {
+    text-transform: uppercase;
+    font-weight: 950;
+}
+
+.agent-replenishment-total strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #0f172a;
+    font-size: 1.08rem;
+    font-weight: 950;
+}
+
+.agent-replenishment-total small {
+    margin-top: 0.2rem;
+}
+
 .agent-bar-row {
     display: grid;
     gap: 0.35rem;
@@ -1064,6 +1159,169 @@
     padding-top: 1.25rem;
 }
 
+.agent-alert-hero {
+    border: 1px solid rgba(11, 79, 193, 0.12);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(238, 242, 255, 0.82));
+}
+
+.agent-alert-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(20rem, 0.9fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.agent-alert-product-panel,
+.agent-alert-verdict {
+    border: 1px solid rgba(11, 79, 193, 0.12);
+    border-radius: 1.15rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.agent-alert-product-panel .alert-product-title img {
+    width: 5.8rem;
+    height: 5.8rem;
+    border-radius: 1.1rem;
+}
+
+.agent-alert-product-panel h2 {
+    margin: 0.16rem 0 0.55rem;
+    color: #0f172a;
+    font-size: 1.45rem;
+    line-height: 1.08;
+}
+
+.agent-alert-verdict {
+    display: grid;
+    gap: 0.65rem;
+    align-content: center;
+}
+
+.agent-alert-verdict strong {
+    color: #0f172a;
+    font-size: 1.3rem;
+    font-weight: 950;
+}
+
+.agent-alert-verdict p {
+    margin: 0;
+    color: #475569;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.agent-alert-verdict.danger {
+    border-color: rgba(244, 63, 94, 0.2);
+    background: rgba(255, 241, 242, 0.85);
+}
+
+.agent-alert-verdict.ok {
+    border-color: rgba(16, 185, 129, 0.2);
+    background: rgba(236, 253, 245, 0.85);
+}
+
+.agent-alert-formula {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    border-radius: 0.9rem;
+    padding: 0.72rem;
+    background: rgba(15, 23, 42, 0.05);
+}
+
+.agent-alert-formula span,
+.agent-alert-formula b,
+.agent-alert-formula strong {
+    font-size: 0.82rem;
+    font-weight: 950;
+}
+
+.agent-alert-formula span {
+    color: #334155;
+}
+
+.agent-alert-formula b {
+    color: #64748b;
+}
+
+.agent-alert-bars {
+    display: grid;
+    gap: 0.72rem;
+    margin-top: 1rem;
+}
+
+.agent-alert-progress-row {
+    display: grid;
+    gap: 0.32rem;
+}
+
+.agent-alert-progress-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.agent-alert-progress-head strong {
+    color: #0f172a;
+}
+
+.agent-alert-progress-track {
+    height: 0.72rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.agent-alert-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--fit-indigo);
+}
+
+.agent-alert-progress-fill.green { background: #10b981; }
+.agent-alert-progress-fill.amber { background: #f59e0b; }
+.agent-alert-progress-fill.rose { background: #f43f5e; }
+.agent-alert-progress-fill.blue { background: #4e6baf; }
+
+.agent-alert-recommendation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.agent-alert-recommendation > div {
+    border: 1px solid rgba(11, 79, 193, 0.12);
+    border-radius: 1rem;
+    padding: 0.9rem;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.agent-alert-recommendation span {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.agent-alert-recommendation strong {
+    display: block;
+    margin-top: 0.18rem;
+    color: #0f172a;
+    font-size: 1.18rem;
+    font-weight: 950;
+}
+
+.agent-alert-recommendation p {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    line-height: 1.45;
+}
+
 html.dark .fit-agent-runtime {
     background: #1e212b;
     border-color: rgba(255, 255, 255, 0.08);
@@ -1071,6 +1329,13 @@ html.dark .fit-agent-runtime {
 
 html.dark .fit-agent-runtime strong,
 html.dark .alert-product-title h4,
+html.dark .agent-alert-product-panel h2,
+html.dark .agent-alert-verdict strong,
+html.dark .agent-alert-formula strong,
+html.dark .agent-alert-progress-head strong,
+html.dark .agent-alert-recommendation strong,
+html.dark .agent-replenishment-message strong,
+html.dark .agent-replenishment-total strong,
 html.dark .agent-detail-section h4,
 html.dark .agent-decision-card h4,
 html.dark .alert-product-card > h4,
@@ -1088,8 +1353,51 @@ html.dark .alert-card-item p,
 html.dark .agent-lot-row p,
 html.dark .agent-detail-section p,
 html.dark .reason-summary p,
+html.dark .agent-alert-verdict p,
+html.dark .agent-alert-recommendation p,
+html.dark .agent-alert-progress-head,
+html.dark .agent-alert-recommendation span,
+html.dark .agent-replenishment-total span,
+html.dark .agent-replenishment-total small,
 html.dark .agent-bar-head {
     color: #94a3b8 !important;
+}
+
+html.dark .agent-alert-hero {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, #171923, #202436);
+}
+
+html.dark .agent-alert-product-panel,
+html.dark .agent-alert-verdict,
+html.dark .agent-alert-recommendation > div {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.72);
+}
+
+html.dark .agent-alert-formula {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .agent-alert-formula span,
+html.dark .agent-alert-formula b {
+    color: #cbd5e1;
+}
+
+html.dark .agent-replenishment-message,
+html.dark .agent-replenishment-total > div {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.72);
+}
+
+html.dark .agent-replenishment-message i {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
+html.dark .agent-replenishment-total > div.success {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(6, 78, 59, 0.18);
 }
 
 html.dark .fit-agent-tabs {
@@ -1171,6 +1479,27 @@ html.dark .agent-bar-track {
 }
 
 @media (max-width: 780px) {
+    .agent-alert-hero-grid,
+    .agent-alert-recommendation {
+        grid-template-columns: 1fr;
+    }
+
+    .agent-replenishment-total {
+        grid-template-columns: 1fr;
+    }
+
+    .agent-replenishment-total > i {
+        min-height: 1rem;
+    }
+
+    .agent-alert-product-panel .alert-product-title {
+        align-items: flex-start;
+    }
+
+    .agent-alert-formula {
+        align-items: flex-start;
+    }
+
     .fit-agent-mode-switch {
         width: 100%;
     }
@@ -1508,6 +1837,88 @@ html.dark .agent-bar-track {
     stroke-dasharray: 900;
     stroke-dashoffset: 900;
     animation: agentLineDraw 0.9s ease forwards;
+}
+
+.agent-wape-chart-wrap {
+    display: grid;
+    gap: 0.72rem;
+}
+
+.agent-wape-recharts {
+    height: 210px;
+    min-width: 0;
+    padding: 0.35rem 0.2rem 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.agent-wape-axis-chart {
+    width: 100%;
+    height: 190px;
+    overflow: visible;
+}
+
+.agent-wape-axis-chart .grid-line {
+    stroke: #e2e8f0;
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+}
+
+.agent-wape-axis-chart .axis-line {
+    stroke: #94a3b8;
+    stroke-width: 1.4;
+}
+
+.agent-wape-axis-chart .axis-label {
+    fill: #64748b;
+    font-size: 0.64rem;
+    font-weight: 850;
+}
+
+.agent-wape-axis-chart .axis-label.day {
+    fill: #334155;
+    font-size: 0.68rem;
+    font-weight: 950;
+}
+
+.agent-wape-axis-chart .axis-title {
+    fill: #475569;
+    font-size: 0.62rem;
+    font-weight: 950;
+}
+
+.agent-wape-axis-chart .wape-line {
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    animation: agentLineDraw 0.9s ease forwards;
+}
+
+.agent-wape-axis-chart .wape-point {
+    fill: #ffffff;
+    stroke: #e11d48;
+    stroke-width: 3;
+}
+
+.agent-axis-help {
+    display: grid;
+    gap: 0.42rem;
+    padding: 0.7rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #ffffff;
+}
+
+.agent-axis-help span {
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.agent-axis-help strong {
+    color: #e11d48;
+    font-weight: 950;
 }
 
 .agent-top-products {

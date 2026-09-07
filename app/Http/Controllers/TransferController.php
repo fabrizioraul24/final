@@ -127,6 +127,29 @@ class TransferController extends Controller
             ->with('status', 'Traspaso registrado correctamente.');
     }
 
+    public function show(Transfer $transfer): View
+    {
+        $transfer->load([
+            'fromWarehouse',
+            'toWarehouse',
+            'requestedByUser',
+            'approvedByUser',
+            'items.product',
+            'agentTransferRequest.product',
+        ]);
+
+        return view('react-page', AdminReact::page('transferShow', 'Traspaso #' . $transfer->id . ' | Pil Andina', 'Detalle de traspaso', 'transfers', [
+            'data' => [
+                'transfer' => $this->transferPayload($transfer),
+                'statuses' => Transfer::STATUSES,
+                'routes' => [
+                    'index' => route('dashboard.transfers'),
+                    'report' => route('dashboard.transfers.report.single', $transfer),
+                ],
+            ],
+        ], 'adminTransferShow'));
+    }
+
     public function report(Request $request)
     {
         $this->ensureApprovedAgentRequestsHaveTransfer();
@@ -270,6 +293,33 @@ class TransferController extends Controller
         return implode("\n", $lines);
     }
 
+    private function parseAgentReason(?string $reason): ?array
+    {
+        if (! $reason) {
+            return null;
+        }
+
+        if (! preg_match('/Stock\s+(-?\d+)\s+\+\s+traspasos\s+7d\s+(-?\d+)\s+-\s+demanda\s+proyectada\s+7d\s+(-?\d+)\s+=\s+(-?\d+);\s+cae\s+bajo\s+umbral\s+(-?\d+)/i', $reason, $matches)) {
+            return null;
+        }
+
+        $stock = (int) $matches[1];
+        $transfers = (int) $matches[2];
+        $demand = (int) $matches[3];
+        $result = (int) $matches[4];
+        $threshold = (int) $matches[5];
+
+        return [
+            'stock' => $stock,
+            'transfers' => $transfers,
+            'demand' => $demand,
+            'result' => $result,
+            'threshold' => $threshold,
+            'shortage' => max(0, $threshold - $result),
+            'formula' => "{$stock} + {$transfers} - {$demand} = {$result}",
+        ];
+    }
+
     private function sourceWarehouses(): \Illuminate\Support\Collection
     {
         return Warehouse::query()
@@ -332,7 +382,11 @@ class TransferController extends Controller
                 'approved_at_formatted' => optional($agentRequest->approved_at)->format('d/m/Y H:i'),
                 'priority' => $agentRequest->priority,
                 'reason' => $agentRequest->reason,
+                'parsedReason' => $this->parseAgentReason($agentRequest->reason),
+                'decision_reason' => $agentRequest->decision_reason,
+                'requested_qty' => (int) $agentRequest->requested_qty,
             ] : null,
+            'detail_url' => route('dashboard.transfers.show', $transfer),
             'report_url' => route('dashboard.transfers.report.single', $transfer),
         ];
     }

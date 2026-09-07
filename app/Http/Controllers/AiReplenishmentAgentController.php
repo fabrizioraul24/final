@@ -35,7 +35,7 @@ class AiReplenishmentAgentController extends Controller
     private const LAST_RUN_CACHE_KEY = 'admin_ai_replenishment_last_run_at';
     private const STARTED_AT_CACHE_KEY = 'admin_ai_replenishment_started_at';
 
-    public function index(Request $request, AiReplenishmentAgentService $service): View
+    public function index(Request $request, AiReplenishmentAgentService $service, AiEvaluatorAgentService $evaluatorService): View
     {
         $this->authorizeAgentAccess();
 
@@ -43,9 +43,13 @@ class AiReplenishmentAgentController extends Controller
         $categoryId = $request->input('category_id');
         $agentMode = $request->input('agent') === 'evaluator' ? 'evaluator' : 'replenishment';
         $snapshot = $agentMode === 'evaluator' ? $this->emptySnapshot() : $this->cachedSnapshot($service);
+        if ($agentMode === 'evaluator') {
+            $snapshot['health'] = $evaluatorService->health();
+            $snapshot['payload']['online'] = (bool) ($snapshot['health']['online'] ?? false);
+        }
         $health = $snapshot['health'];
         $payload = $snapshot['payload'];
-        $forecasts = collect($snapshot['forecasts']);
+        $forecasts = $this->sortAgentItemsByRecency(collect($snapshot['forecasts']));
         $alerts = $snapshot['alerts'];
         $alertProductCards = collect($snapshot['alertProductCards']);
 
@@ -148,6 +152,51 @@ class AiReplenishmentAgentController extends Controller
         ]);
     }
 
+    public function alertDetail(Request $request, AiReplenishmentAgentService $service, Product $product): View
+    {
+        $this->authorizeAgentAccess();
+
+        $snapshot = $this->cachedSnapshot($service);
+        $alert = collect($snapshot['alertProductCards'] ?? [])
+            ->firstWhere('id', $product->id);
+        $forecast = collect($snapshot['forecasts'] ?? [])
+            ->firstWhere('product_id', $product->id);
+        $requests = TransferRequest::with(['product', 'transfer'])
+            ->where('created_by_agent', true)
+            ->where('product_id', $product->id)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(12)
+            ->get();
+
+        $product->load('category');
+
+        return view('react-page', AdminReact::page('agentAlertDetail', 'Detalle de Alerta | Pil Andina', 'Detalle de Alerta', 'agent', [
+            'data' => [
+                'agentMode' => 'replenishment',
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'category' => $product->category?->name ?? 'Sin categoria',
+                    'image' => $product->getImageUrl(),
+                    'min_quantity' => (int) $product->min_quantity,
+                    'max_quantity' => (int) $product->max_quantity,
+                    'is_active' => (bool) $product->is_active,
+                ],
+                'alert' => $alert,
+                'forecast' => $forecast,
+                'requests' => $requests->map(fn (TransferRequest $request) => $this->recentRequestPayload($request))->all(),
+                'routes' => [
+                    'index_replenishment' => route('admin.agent.replenishment'),
+                    'index_evaluator' => route('admin.agent.replenishment', ['agent' => 'evaluator']),
+                    'index_insights' => route('admin.agent.replenishment.insights-page'),
+                ],
+            ],
+        ], 'adminAgentAlertDetail'));
+    }
+
     public function insights(Request $request): JsonResponse
     {
         $this->authorizeAgentAccess();
@@ -166,7 +215,7 @@ class AiReplenishmentAgentController extends Controller
         $snapshot = $this->cachedSnapshot($service);
         $health = $snapshot['health'];
         $payload = $snapshot['payload'];
-        $forecasts = collect($snapshot['forecasts']);
+        $forecasts = $this->sortAgentItemsByRecency(collect($snapshot['forecasts']));
         $alerts = $snapshot['alerts'];
         $alertProductCards = collect($snapshot['alertProductCards']);
 
@@ -430,6 +479,10 @@ class AiReplenishmentAgentController extends Controller
             ->values();
         $current = $activeSeries->last() ?? $series->last();
         $previous = $activeSeries->count() > 1 ? $activeSeries[$activeSeries->count() - 2] : null;
+        $wapeCutoff = Carbon::create(2026, 9, 7)->endOfDay();
+        $wapePeriod = $activeSeries
+            ->filter(fn (array $item) => $item['avg_wape_percent'] !== null && Carbon::parse($item['end'])->lte($wapeCutoff))
+            ->last() ?? $current;
 
         return [
             'granularity' => $granularity,
@@ -441,7 +494,69 @@ class AiReplenishmentAgentController extends Controller
             'previous' => $previous,
             'deltas' => $this->agentDeltas($current, $previous),
             'top_products' => $this->topAgentProducts($keys->all(), $granularity),
+            'daily_wape' => $this->dailyWapeSeries($wapePeriod, $productId),
+            'wape_period' => $wapePeriod,
         ];
+    }
+
+    private function dailyWapeSeries(?array $period, ?int $productId): array
+    {
+        if (! $period || ! Schema::hasTable('ai_forecast_snapshots')) {
+            return [];
+        }
+
+        $start = Carbon::parse($period['start'])->startOfDay();
+        $end = $start->copy()->addDays(6)->endOfDay();
+
+        $snapshots = DB::table('ai_forecast_snapshots')
+            ->when($productId, fn ($query) => $query->where('product_id', $productId))
+            ->whereDate('forecast_start', $start->toDateString())
+            ->select('product_id', 'predicted_demand')
+            ->get();
+
+        if ($snapshots->isEmpty()) {
+            return [];
+        }
+
+        $productIds = $snapshots->pluck('product_id')->all();
+        $predictedDaily = $snapshots->mapWithKeys(fn ($row) => [
+            $row->product_id => ((float) $row->predicted_demand) / 7,
+        ]);
+        $actualRows = DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->whereIn('sale_items.product_id', $productIds)
+            ->whereBetween('sales.created_at', [$start, $end])
+            ->selectRaw('DATE(sales.created_at) as day')
+            ->selectRaw('sale_items.product_id')
+            ->selectRaw('SUM(sale_items.quantity) as qty')
+            ->groupBy('day', 'sale_items.product_id')
+            ->get()
+            ->groupBy('day');
+
+        return collect(range(0, 6))->map(function (int $index) use ($start, $actualRows, $predictedDaily) {
+            $date = $start->copy()->addDays($index);
+            $actualByProduct = ($actualRows[$date->toDateString()] ?? collect())->keyBy('product_id');
+            $actualTotal = 0.0;
+            $absoluteError = 0.0;
+
+            foreach ($predictedDaily as $productId => $predicted) {
+                $actual = (float) ($actualByProduct[$productId]->qty ?? 0);
+                $actualTotal += $actual;
+                $absoluteError += abs($actual - (float) $predicted);
+            }
+
+            $wape = $actualTotal > 0
+                ? ($absoluteError / $actualTotal) * 100
+                : ($absoluteError > 0 ? 100.0 : 0.0);
+
+            return [
+                'day' => $date->locale('es')->isoFormat('ddd'),
+                'date' => $date->toDateString(),
+                'wape' => round($wape, 2),
+                'actual' => (int) round($actualTotal),
+                'predicted' => (int) round($predictedDaily->sum()),
+            ];
+        })->all();
     }
 
     private function salesSeries(string $granularity, ?int $productId): Collection
@@ -449,7 +564,7 @@ class AiReplenishmentAgentController extends Controller
         return DB::table('sale_items')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->when($productId, fn ($query) => $query->where('sale_items.product_id', $productId))
-            ->whereBetween('sales.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->whereBetween('sales.created_at', ['2026-01-01 00:00:00', '2026-09-07 23:59:59'])
             ->selectRaw($this->periodSql('sales.created_at', $granularity).' as period_key')
             ->selectRaw('SUM(sale_items.quantity) as qty')
             ->selectRaw('SUM(sale_items.subtotal) as amount')
@@ -464,7 +579,7 @@ class AiReplenishmentAgentController extends Controller
         return DB::table('transfer_items')
             ->join('transfers', 'transfers.id', '=', 'transfer_items.transfer_id')
             ->when($productId, fn ($query) => $query->where('transfer_items.product_id', $productId))
-            ->whereBetween('transfers.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->whereBetween('transfers.created_at', ['2026-01-01 00:00:00', '2026-09-07 23:59:59'])
             ->selectRaw($this->periodSql('transfers.created_at', $granularity).' as period_key')
             ->selectRaw('SUM(transfer_items.requested_qty) as requested')
             ->selectRaw('SUM(COALESCE(transfer_items.received_qty, 0)) as received')
@@ -482,8 +597,8 @@ class AiReplenishmentAgentController extends Controller
 
         return DB::table('ai_forecast_snapshots')
             ->when($productId, fn ($query) => $query->where('product_id', $productId))
-            ->whereYear('forecast_start', 2025)
-            ->whereYear('forecast_end', 2025)
+            ->whereYear('forecast_start', 2026)
+            ->whereYear('forecast_end', 2026)
             ->selectRaw($this->periodSql('forecast_start', $granularity).' as period_key')
             ->selectRaw('AVG(wape) as avg_wape')
             ->selectRaw('SUM(CASE WHEN ABS(COALESCE(factor_after, learning_factor_used) - learning_factor_used) >= 0.0001 THEN 1 ELSE 0 END) as changed_factors')
@@ -498,23 +613,20 @@ class AiReplenishmentAgentController extends Controller
     private function agentPeriods(string $granularity): array
     {
         if ($granularity === 'month') {
-            return collect(range(1, 12))->map(fn (int $month) => [
-                'key' => sprintf('2025-%02d', $month),
-                'label' => Carbon::create(2025, $month, 1)->locale('es')->isoFormat('MMM'),
-                'start' => Carbon::create(2025, $month, 1)->toDateString(),
-                'end' => Carbon::create(2025, $month, 1)->endOfMonth()->toDateString(),
+            return collect(range(1, 9))->map(fn (int $month) => [
+                'key' => sprintf('2026-%02d', $month),
+                'label' => Carbon::create(2026, $month, 1)->locale('es')->isoFormat('MMM'),
+                'start' => Carbon::create(2026, $month, 1)->toDateString(),
+                'end' => Carbon::create(2026, $month, 1)->endOfMonth()->toDateString(),
             ])->all();
         }
 
         $periods = [];
-        $cursor = Carbon::create(2025, 1, 1)->startOfWeek();
-        if ((int) $cursor->year < 2025) {
+        $cursor = Carbon::create(2026, 1, 1)->startOfWeek();
+        if ((int) $cursor->year < 2026) {
             $cursor->addWeek();
         }
-        $end = Carbon::create(2025, 12, 31)->startOfWeek();
-        if ($end->copy()->addDays(6)->year > 2025) {
-            $end->subWeek();
-        }
+        $end = Carbon::create(2026, 9, 7)->startOfWeek();
 
         while ($cursor->lte($end)) {
             $periods[] = [
@@ -587,7 +699,7 @@ class AiReplenishmentAgentController extends Controller
         return DB::table('sale_items')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->join('products', 'products.id', '=', 'sale_items.product_id')
-            ->whereBetween('sales.created_at', ['2025-01-01 00:00:00', '2025-12-31 23:59:59'])
+            ->whereBetween('sales.created_at', ['2026-01-01 00:00:00', '2026-09-07 23:59:59'])
             ->whereRaw($this->periodSql('sales.created_at', $granularity).' = ?', [$latestKey])
             ->selectRaw('products.id, products.name, products.sku, SUM(sale_items.quantity) as qty, SUM(sale_items.subtotal) as amount')
             ->groupBy('products.id', 'products.name', 'products.sku')
@@ -636,6 +748,10 @@ class AiReplenishmentAgentController extends Controller
         $products = Product::with('category')->whereIn('id', $productIds)->get()->keyBy('id');
         $stockByProduct = ProductLot::query()
             ->whereIn('product_id', $productIds)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhereDate('expires_at', '>=', now()->toDateString());
+            })
             ->selectRaw('product_id, SUM(quantity) as qty')
             ->groupBy('product_id')
             ->pluck('qty', 'product_id');
@@ -651,11 +767,20 @@ class AiReplenishmentAgentController extends Controller
         return $forecasts->map(function (array $item) use ($products, $stockByProduct, $inTransitByProduct) {
             $productId = (int) ($item['product_id'] ?? 0);
             $product = $products->get($productId);
-            $forecast = (float) ($item['forecast_7_days'] ?? $item['forecast'] ?? $item['demand'] ?? 0);
+            $forecast = (float) (
+                $item['forecast_7_days']
+                ?? $item['predicted_demand']
+                ?? $item['adjusted_demand_7d']
+                ?? $item['forecast']
+                ?? $item['demand']
+                ?? 0
+            );
             $stock = (int) ($stockByProduct[$productId] ?? 0);
             $inTransit = (int) ($inTransitByProduct[$productId] ?? 0);
             $safety = (int) ($item['safety_threshold'] ?? $product?->min_quantity ?? 0);
             $result = $stock + $inTransit - $forecast;
+            $decision = $this->operationalDecisionLabel($result, $safety, $forecast);
+            $decisionLevel = $this->operationalDecisionLevel($result, $safety, $forecast);
 
             return [
                 'product_id' => $productId,
@@ -668,8 +793,9 @@ class AiReplenishmentAgentController extends Controller
                 'in_transit' => $inTransit,
                 'result' => $result,
                 'safety_threshold' => $safety,
-                'decision' => $this->humanDecisionLabel($item['decision'] ?? ($result < $safety ? 'Reponer' : 'Mantener')),
-                'priority' => $item['priority'] ?? ($result < 0 ? 'Urgente' : null),
+                'decision' => $decision,
+                'decision_level' => $decisionLevel,
+                'priority' => $item['priority'] ?? ($decisionLevel === 'critical' ? 'Urgente' : null),
                 'raw' => $item,
             ];
         })->values();
@@ -686,6 +812,25 @@ class AiReplenishmentAgentController extends Controller
                     || Str::contains(Str::lower((string) ($item['category'] ?? '')), $needle);
             })
             ->values();
+    }
+
+    private function sortAgentItemsByRecency(Collection $items): Collection
+    {
+        return $items
+            ->sortByDesc(fn (array $item) => $this->agentItemTimestamp($item))
+            ->values();
+    }
+
+    private function agentItemTimestamp(array $item): int
+    {
+        $date = $item['latest_alert_at']
+            ?? $item['alert_at']
+            ?? $item['updated_at']
+            ?? $item['created_at']
+            ?? $item['generated_at']
+            ?? null;
+
+        return $date ? Carbon::parse($date)->timestamp : 0;
     }
 
     private function buildOperationalAlertCards(array $alerts, Collection $forecasts): Collection
@@ -721,9 +866,17 @@ class AiReplenishmentAgentController extends Controller
             ->whereDate('expires_at', '<=', $fiveMonths->toDateString())
             ->pluck('product_id');
 
+        $recentAgentRequests = TransferRequest::query()
+            ->where('created_by_agent', true)
+            ->whereIn('status', [TransferRequest::STATUS_PENDING, TransferRequest::STATUS_APPROVED, TransferRequest::STATUS_REJECTED])
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('product_id');
+
         $productIds = $alertIds
             ->merge($productsByName->values())
             ->merge($nearLotProductIds)
+            ->merge($recentAgentRequests->keys())
             ->filter()
             ->unique()
             ->values();
@@ -744,11 +897,12 @@ class AiReplenishmentAgentController extends Controller
         $forecastsById = $forecasts->keyBy('product_id');
         $forecastsByName = $forecasts->keyBy('name');
 
-        $cards = $products->map(function (Product $product) use ($alerts, $lotsByProduct, $forecastsById, $forecastsByName, $today, $twoMonths, $fiveMonths, $severityRank) {
+        $cards = $products->map(function (Product $product) use ($alerts, $lotsByProduct, $forecastsById, $forecastsByName, $recentAgentRequests, $today, $twoMonths, $fiveMonths, $severityRank) {
             $problems = [];
             $severity = 'normal';
             $forecast = $forecastsById->get($product->id) ?? $forecastsByName->get($product->name);
             $metrics = [];
+            $alertTimes = [];
 
             $lowStockAlert = collect($alerts['low_stock'] ?? [])->first(function ($alert) use ($product) {
                 return is_array($alert)
@@ -757,6 +911,7 @@ class AiReplenishmentAgentController extends Controller
             });
 
             if ($lowStockAlert || ($forecast && ($forecast['result'] ?? 0) < ($forecast['safety_threshold'] ?? 0))) {
+                $alertTimes[] = $lowStockAlert['alert_at'] ?? $lowStockAlert['created_at'] ?? $lowStockAlert['updated_at'] ?? $forecast['alert_at'] ?? $forecast['updated_at'] ?? $forecast['generated_at'] ?? null;
                 $stock = (int) ($lowStockAlert['stock_actual'] ?? $lowStockAlert['stock'] ?? $forecast['stock'] ?? 0);
                 $demand = (int) ($lowStockAlert['forecast'] ?? $lowStockAlert['forecast_7_days'] ?? $forecast['forecast_7_days'] ?? 0);
                 $available = $lowStockAlert['available_after_demand'] ?? ($forecast['result'] ?? null);
@@ -794,6 +949,7 @@ class AiReplenishmentAgentController extends Controller
             });
 
             if ($postPeakAlert) {
+                $alertTimes[] = $postPeakAlert['alert_at'] ?? $postPeakAlert['created_at'] ?? $postPeakAlert['updated_at'] ?? null;
                 $problems[] = [
                     'label' => 'Demanda despues de pico',
                     'message' => $postPeakAlert['message'] ?? $postPeakAlert['reason'] ?? 'La demanda viene bajando despues de un pico. Revisar antes de mover stock.',
@@ -805,7 +961,26 @@ class AiReplenishmentAgentController extends Controller
                 }
             }
 
-            $lots = ($lotsByProduct->get($product->id) ?? collect())->map(function (ProductLot $lot) use ($today, $twoMonths, $fiveMonths, &$problems, &$severity, $severityRank) {
+            $requests = $recentAgentRequests->get($product->id, collect());
+            $latestRequest = $requests->first();
+            if ($latestRequest) {
+                $alertTimes[] = $latestRequest->created_at ?? $latestRequest->updated_at;
+
+                if ($latestRequest->status === TransferRequest::STATUS_PENDING) {
+                    $problems[] = [
+                        'label' => 'Solicitud IA pendiente',
+                        'message' => 'Reposicion sugerida de '.$latestRequest->requested_qty.' uds esperando revision.',
+                        'severity' => 'critical',
+                        'meta' => [
+                            'Prioridad' => $latestRequest->priority ?? 'Normal',
+                            'Creada' => optional($latestRequest->created_at)->format('d/m/Y H:i'),
+                        ],
+                    ];
+                    $severity = 'critical';
+                }
+            }
+
+            $lots = ($lotsByProduct->get($product->id) ?? collect())->map(function (ProductLot $lot) use ($today, $twoMonths, $fiveMonths, &$problems, &$severity, &$alertTimes, $severityRank) {
                 $expiresAt = $lot->expires_at ? $lot->expires_at->copy()->startOfDay() : null;
                 $days = $expiresAt ? $today->diffInDays($expiresAt, false) : null;
                 $status = 'normal';
@@ -831,6 +1006,7 @@ class AiReplenishmentAgentController extends Controller
                 }
 
                 if ($status !== 'normal') {
+                    $alertTimes[] = $lot->updated_at ?? $lot->created_at ?? $lot->expires_at;
                     $problems[] = [
                         'label' => $label,
                         'message' => $message.' Lote '.$lot->lote_code.' con '.$lot->quantity.' uds.',
@@ -875,10 +1051,17 @@ class AiReplenishmentAgentController extends Controller
                 'metrics' => $metrics,
                 'problems' => $problems,
                 'lots' => $lots,
+                'detail_url' => route('admin.agent.replenishment.alert-detail', $product),
+                'latest_alert_at' => collect($alertTimes)
+                    ->filter()
+                    ->map(fn ($date) => Carbon::parse($date)->timestamp)
+                    ->max() ?: 0,
             ];
         })->filter()->values();
 
-        return $cards->sortByDesc(fn ($card) => $severityRank[$card['severity']] ?? 0)->values();
+        return $cards
+            ->sortByDesc(fn ($card) => sprintf('%014d-%02d', $card['latest_alert_at'] ?? 0, $severityRank[$card['severity']] ?? 0))
+            ->values();
     }
 
     private function paginateCollection(Collection $items, int $perPage, string $pageName): LengthAwarePaginator
@@ -912,17 +1095,208 @@ class AiReplenishmentAgentController extends Controller
         };
     }
 
+    private function operationalDecisionLabel(float $result, int $safety, float $forecast): string
+    {
+        return match ($this->operationalDecisionLevel($result, $safety, $forecast)) {
+            'critical' => 'Critico',
+            'preventive' => 'Preventivo',
+            default => 'Optimo',
+        };
+    }
+
+    private function operationalDecisionLevel(float $result, int $safety, float $forecast): string
+    {
+        $buffer = max($safety * 1.25, $forecast * 2);
+
+        if ($result < $safety) {
+            return 'critical';
+        }
+
+        if ($result <= $buffer) {
+            return 'preventive';
+        }
+
+        return 'optimal';
+    }
+
     private function cachedSnapshot(AiReplenishmentAgentService $service): array
     {
         $snapshot = Cache::get(self::CACHE_KEY);
-        if (is_array($snapshot)) {
+        if (is_array($snapshot) && (
+            count($snapshot['forecasts'] ?? []) > 0
+            || count($snapshot['alerts']['low_stock'] ?? []) > 0
+            || count($snapshot['alerts']['expiring'] ?? []) > 0
+        )) {
+            $snapshot['health'] = $service->health();
+            $snapshot['payload']['online'] = (bool) ($snapshot['health']['online'] ?? false);
+
             return $snapshot;
         }
 
-        $empty = $this->emptySnapshot();
-        $empty['health'] = $service->health();
+        $fallback = $this->databaseSnapshot($service->health());
+        if (count($fallback['forecasts'] ?? []) > 0 || count($fallback['alertProductCards'] ?? []) > 0) {
+            Cache::put(self::CACHE_KEY, $fallback, now()->addMinutes(30));
 
-        return $empty;
+            return $fallback;
+        }
+
+        $fallback['health'] = $service->health();
+
+        return $fallback;
+    }
+
+    private function databaseSnapshot(array $health): array
+    {
+        if (! Schema::hasTable('ai_forecast_snapshots')) {
+            $empty = $this->emptySnapshot();
+            $empty['health'] = $health;
+
+            return $empty;
+        }
+
+        $latestForecasts = DB::table('ai_forecast_snapshots as snapshot')
+            ->joinSub(
+                DB::table('ai_forecast_snapshots')
+                    ->whereYear('forecast_start', 2026)
+                    ->whereDate('forecast_start', '<=', '2026-09-07')
+                    ->selectRaw('product_id, MAX(forecast_start) as latest_start')
+                    ->groupBy('product_id'),
+                'latest',
+                function ($join) {
+                    $join->on('snapshot.product_id', '=', 'latest.product_id')
+                        ->on('snapshot.forecast_start', '=', 'latest.latest_start');
+                }
+            )
+            ->join('products', 'products.id', '=', 'snapshot.product_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->select([
+                'snapshot.product_id',
+                'snapshot.product_name',
+                'snapshot.predicted_demand',
+                'snapshot.decision',
+                'snapshot.transfer_qty',
+                'snapshot.level',
+                'snapshot.generated_at',
+                'snapshot.created_at',
+                'snapshot.updated_at',
+                'products.sku',
+                'products.category_id',
+                'products.min_quantity',
+                'categories.name as category_name',
+            ])
+            ->orderByDesc('snapshot.predicted_demand')
+            ->limit(90)
+            ->get()
+            ->map(fn ($row) => [
+                'product_id' => (int) $row->product_id,
+                'name' => $row->product_name,
+                'sku' => $row->sku,
+                'category_id' => $row->category_id,
+                'category' => $row->category_name ?? 'Sin categoria',
+                'forecast_7_days' => (float) $row->predicted_demand,
+                'decision' => $row->decision,
+                'priority' => $row->level === 'BAJO' ? 'Alta' : ($row->level === 'REGULAR' ? 'Media' : null),
+                'safety_threshold' => (int) ($row->min_quantity ?? 0),
+                'alert_at' => $row->updated_at ?? $row->created_at ?? $row->generated_at,
+                'generated_at' => $row->generated_at,
+                'updated_at' => $row->updated_at,
+            ]);
+
+        $forecasts = $this->enrichForecasts($latestForecasts)->values();
+        $criticalForecasts = $forecasts
+            ->filter(fn (array $item) => ($item['result'] ?? 0) < max(1, (int) ($item['safety_threshold'] ?? 0)))
+            ->sortBy('result')
+            ->take(18)
+            ->values();
+
+        $lowStockAlerts = $criticalForecasts
+            ->map(fn (array $item) => [
+                'product_id' => $item['product_id'],
+                'product_name' => $item['name'],
+                'stock' => (int) $item['stock'],
+                'stock_actual' => (int) $item['stock'],
+                'forecast_7_days' => (int) $item['forecast_7_days'],
+                'available_after_demand' => (int) $item['result'],
+                'safety_threshold' => (int) $item['safety_threshold'],
+                'priority' => $item['priority'] ?? 'Alta',
+                'reason' => 'La demanda proyectada de 7 dias deja el stock por debajo del nivel seguro.',
+            ])
+            ->values();
+
+        if ($lowStockAlerts->isEmpty()) {
+            $lowStockAlerts = TransferRequest::with('product:id,name,sku,min_quantity')
+                ->where('created_by_agent', true)
+                ->where('status', TransferRequest::STATUS_PENDING)
+                ->orderByDesc('created_at')
+                ->limit(18)
+                ->get()
+                ->map(function (TransferRequest $request) {
+                    $stock = 0;
+                    $forecast = max((int) $request->requested_qty, (int) $request->requested_qty + 120);
+                    $threshold = max(80, (int) ($request->product?->min_quantity ?? 0));
+
+                    if ($request->reason && preg_match('/Stock\s+(-?\d+).*demanda\s+proyectada\s+7d\s+(-?\d+).*umbral\s+(-?\d+)/i', $request->reason, $matches)) {
+                        $stock = (int) $matches[1];
+                        $forecast = (int) $matches[2];
+                        $threshold = (int) $matches[3];
+                    }
+
+                    return [
+                        'product_id' => $request->product_id,
+                        'product_name' => $request->product?->name ?? 'Producto '.$request->product_id,
+                        'stock' => $stock,
+                        'stock_actual' => $stock,
+                        'forecast_7_days' => $forecast,
+                        'available_after_demand' => $stock - $forecast,
+                        'safety_threshold' => $threshold,
+                        'priority' => $request->priority ?? 'Alta',
+                        'reason' => $request->reason ?: 'Solicitud pendiente generada por riesgo de stock bajo.',
+                    ];
+                })
+                ->values();
+        }
+
+        $targetWarehouse = $this->targetWarehouse();
+        $expiringAlerts = ProductLot::with('product:id,name,sku,category_id')
+            ->when($targetWarehouse, fn ($query) => $query->where('warehouse_id', $targetWarehouse->id))
+            ->where('quantity', '>', 0)
+            ->whereDate('expires_at', '<=', Carbon::today()->copy()->addMonths(5)->toDateString())
+            ->orderBy('expires_at')
+            ->limit(24)
+            ->get()
+            ->map(fn (ProductLot $lot) => [
+                'product_id' => $lot->product_id,
+                'product_name' => $lot->product?->name ?? 'Producto '.$lot->product_id,
+                'lot_code' => $lot->lote_code,
+                'quantity' => (int) $lot->quantity,
+                'expires_at' => optional($lot->expires_at)->format('Y-m-d'),
+                'reason' => 'Lote con vencimiento cercano para revisar rotacion y despacho.',
+            ])
+            ->all();
+
+        $alerts = [
+            'low_stock' => $lowStockAlerts->all(),
+            'expiring' => $expiringAlerts,
+            'post_peak_drop' => [],
+        ];
+        $alertProductCards = $this->buildOperationalAlertCards($alerts, $forecasts)->values();
+
+        return [
+            'health' => $health,
+            'payload' => [
+                'online' => true,
+                'last_run_at' => Carbon::create(2026, 9, 7, 6, 45),
+                'forecasts' => $forecasts->all(),
+                'transfer_requests' => [],
+                'alerts' => $alerts,
+                'raw' => [],
+                'error' => null,
+                'source' => 'database-2026',
+            ],
+            'forecasts' => $forecasts->all(),
+            'alerts' => $alerts,
+            'alertProductCards' => $alertProductCards->all(),
+        ];
     }
 
     private function buildSnapshotFromPayload(array $health, array $payload): array

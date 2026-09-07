@@ -110,8 +110,8 @@ class AiEvaluatorAgentService
         $perPage = min(80, max(10, (int) request()->query('per_page', $productId > 0 ? 80 : 40)));
         $baseQuery = DB::table('ai_forecast_snapshots')
             ->whereDate('forecast_end', '<', now()->toDateString())
-            ->whereYear('forecast_start', 2025)
-            ->whereYear('forecast_end', 2025)
+            ->whereYear('forecast_start', 2026)
+            ->whereYear('forecast_end', 2026)
             ->where(function ($query) {
                 $query->where('predicted_demand', '>', 0)
                     ->orWhere('actual_demand', '>', 0);
@@ -193,7 +193,7 @@ class AiEvaluatorAgentService
             'data_source' => [
                 'type' => 'database',
                 'predictions_loaded' => $total,
-                'period' => '2025 semanal',
+                'period' => '2026 semanal',
             ],
             'raw' => [],
         ];
@@ -201,7 +201,7 @@ class AiEvaluatorAgentService
 
     private function ensureHistoricalForecasts(): void
     {
-        $year = 2025;
+        $year = 2026;
         $weekStarts = $this->weekStartsForYear($year);
         $productIds = DB::table('sale_items')->distinct()->pluck('product_id');
         $products = Product::query()

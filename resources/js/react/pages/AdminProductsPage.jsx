@@ -18,6 +18,10 @@ function ProductStatus({ active }) {
     );
 }
 
+function formatUnits(value) {
+    return `${new Intl.NumberFormat('es-BO').format(Number(value || 0))} uds`;
+}
+
 function ProductsTable({ products, inactive = false, csrfToken, onView, onEdit, onToggle }) {
     return (
         <div className="fit-table-card">
@@ -50,7 +54,7 @@ function ProductsTable({ products, inactive = false, csrfToken, onView, onEdit, 
                                 <td><span className="fit-muted-text">{product.category?.name || 'Sin categoria'}</span></td>
                                 <td><strong className="fit-money">Bs {Number(product.suggested_price_public).toFixed(2)}</strong></td>
                                 <td><strong className="fit-money">Bs {Number(product.price_institutional).toFixed(2)}</strong></td>
-                                <td><span className="fit-muted-text">{product.stock_total} uds</span></td>
+                                <td><span className="fit-muted-text">{formatUnits(product.stock_total)}</span></td>
                                 <td><ProductStatus active={product.is_active} /></td>
                                 <td className="text-right">
                                     <div className="fit-row-actions">
@@ -229,11 +233,11 @@ export default function AdminProductsPage({ layout, data, flash, errors, old, cs
 
                                 <div className="fit-company-detail-grid">
                                     <div><span>Categoria</span><strong>{viewingProduct.category?.name || 'Sin categoria'}</strong></div>
-                                    <div><span>Stock total</span><strong>{viewingProduct.stock_total} uds</strong></div>
+                                    <div><span>Stock total</span><strong>{formatUnits(viewingProduct.stock_total)}</strong></div>
                                     <div><span>Precio publico</span><strong>Bs {Number(viewingProduct.suggested_price_public).toFixed(2)}</strong></div>
                                     <div><span>Precio institucional</span><strong>Bs {Number(viewingProduct.price_institutional).toFixed(2)}</strong></div>
-                                    <div><span>Stock minimo</span><strong>{viewingProduct.min_quantity} uds</strong></div>
-                                    <div><span>Stock maximo</span><strong>{viewingProduct.max_quantity} uds</strong></div>
+                                    <div><span>Stock minimo</span><strong>{formatUnits(viewingProduct.min_quantity)}</strong></div>
+                                    <div><span>Stock maximo</span><strong>{formatUnits(viewingProduct.max_quantity)}</strong></div>
                                     <div className="span-2"><span>Descripcion</span><strong>{viewingProduct.description || 'Sin descripcion'}</strong></div>
                                 </div>
                             </div>

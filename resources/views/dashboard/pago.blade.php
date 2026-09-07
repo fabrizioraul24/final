@@ -4,11 +4,7 @@
     $primary = '#4e6baf';
     $accent = '#86acd4';
     $qrImage = asset('storage/images/QR.jpeg');
-    $mockItems = $cartItems ?? [
-        ['name' => 'Leche Entera PIL 1L', 'qty' => 2, 'price' => 8.50],
-        ['name' => 'Yogurt Frutilla 1L', 'qty' => 1, 'price' => 12.00],
-    ];
-    $items = $cartItems ?? $mockItems;
+    $items = $cartItems ?? [];
     $subtotal = collect($items)->sum(fn($i) => ($i['qty'] ?? 0) * ($i['price'] ?? 0));
     $shipping = $shipping ?? 0;
     $total = $subtotal + $shipping;
@@ -747,7 +743,7 @@
                 </div>
 
                 <div class="summary-items">
-                    @foreach($items as $item)
+                    @forelse($items as $item)
                         <article class="summary-item">
                             <div style="flex:1;">
                                 <strong style="display:block; font-size:0.95rem;">{{ $item['name'] ?? 'Producto' }}</strong>
@@ -755,7 +751,12 @@
                             </div>
                             <strong style="color:var(--text-main);">Bs {{ number_format(($item['qty'] ?? 0) * ($item['price'] ?? 0), 2) }}</strong>
                         </article>
-                    @endforeach
+                    @empty
+                        <article class="summary-item" style="display:block; text-align:center;">
+                            <strong style="display:block; font-size:0.95rem;">Tu carrito esta vacio</strong>
+                            <span style="display:block; color:var(--text-muted); font-size:0.82rem; font-weight:600; margin-top:6px;">Regresa a la tienda y agrega productos antes de pagar.</span>
+                        </article>
+                    @endforelse
                 </div>
 
                 <div style="display:grid; gap:12px;">
@@ -773,7 +774,7 @@
                     </div>
                 </div>
 
-                <button class="confirm-btn" type="button" id="confirmPayment">
+                <button class="confirm-btn" type="button" id="confirmPayment" @if(empty($items)) disabled style="opacity:0.55; cursor:not-allowed;" @endif>
                     <i class="ri-checkbox-circle-line"></i> Confirmar y Pagar
                 </button>
                 <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:20px; line-height:1.4;">
@@ -811,6 +812,7 @@
         });
 
         @if(!empty($paymentSuccess) && $paymentSuccess && $downloadUrl)
+            localStorage.removeItem('pil_cart');
             document.addEventListener('DOMContentLoaded', () => {
                 const modal = document.getElementById('successModal');
                 const closeBtn = document.getElementById('closeModal');

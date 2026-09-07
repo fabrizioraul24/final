@@ -161,3 +161,91 @@
     gap: 0.55rem;
 }
 
+.warehouse-agent-explain {
+    gap: 0.85rem;
+}
+
+.warehouse-agent-timeline,
+.warehouse-agent-metrics {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.warehouse-agent-timeline > div,
+.warehouse-agent-metrics > div {
+    border: 1px solid #dbeafe;
+    border-radius: 0.82rem;
+    padding: 0.7rem;
+    background: #ffffff;
+}
+
+.warehouse-agent-timeline span,
+.warehouse-agent-metrics span {
+    display: block;
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 920;
+    text-transform: uppercase;
+}
+
+.warehouse-agent-timeline strong,
+.warehouse-agent-metrics strong {
+    display: block;
+    margin-top: 0.22rem;
+    color: #1e293b;
+    font-size: 0.84rem;
+    font-weight: 950;
+}
+
+.warehouse-agent-message {
+    display: flex;
+    gap: 0.72rem;
+    align-items: flex-start;
+    border: 1px solid rgba(242, 90, 89, 0.24);
+    border-radius: 0.95rem;
+    padding: 0.82rem;
+    background: rgba(255, 241, 242, 0.82);
+}
+
+.warehouse-agent-message i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.78rem;
+    background: rgba(242, 90, 89, 0.14);
+    color: #e11d48;
+    font-size: 1.08rem;
+}
+
+.warehouse-agent-message strong {
+    color: #1e293b;
+    font-size: 0.88rem;
+    font-weight: 950;
+    line-height: 1.35;
+}
+
+.warehouse-agent-message p {
+    margin-top: 0.28rem;
+}
+
+.warehouse-agent-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.warehouse-agent-metrics > div.danger {
+    border-color: rgba(242, 90, 89, 0.25);
+    background: rgba(255, 241, 242, 0.72);
+}
+
+.warehouse-agent-metrics > div.success {
+    border-color: rgba(16, 185, 129, 0.24);
+    background: rgba(236, 253, 245, 0.82);
+}
+
+@media (max-width: 720px) {
+    .warehouse-agent-metrics {
+        grid-template-columns: 1fr;
+    }
+}
+

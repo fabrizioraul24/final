@@ -17,7 +17,7 @@ class PaymentController extends Controller
     protected function normalizeItems(Request $request): array
     {
         $items = [];
-        $raw = $request->input('cart');
+        $raw = $request->input('cart', old('cart'));
         if ($raw) {
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
@@ -145,7 +145,7 @@ class PaymentController extends Controller
                 ], 'Pago de comprador procesado. Recibo: ' . $order->receipt_number);
             }
         } catch (\Throwable $e) {
-            return back()->withErrors(['cart' => $e->getMessage()]);
+            return back()->withErrors(['cart' => $e->getMessage()])->withInput();
         }
 
         return redirect()

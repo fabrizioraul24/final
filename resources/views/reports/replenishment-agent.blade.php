@@ -1,190 +1,220 @@
 @extends('reports.layout')
 
 @section('content')
-    <div class="summary">
-        <div class="summary-card">
-            <strong>Estado del agente</strong>
-            <span>{{ $agentOnline ? 'En linea' : 'Sin conexion' }}</span>
-        </div>
-        <div class="summary-card">
-            <strong>Filtro</strong>
-            <span>{{ $filters['search'] ?? 'Todos' }}</span>
-        </div>
-        <div class="summary-card">
-            <strong>Categoria</strong>
-            <span>{{ $filters['category'] ?? 'Todas' }}</span>
-        </div>
-        <div class="summary-card">
-            <strong>Productos evaluados</strong>
-            <span>{{ $forecasts->count() }}</span>
-        </div>
-        <div class="summary-card">
-            <strong>Solicitudes pendientes</strong>
-            <span>{{ $pendingRequests->count() }}</span>
-        </div>
-    </div>
-
-    @if($error)
-        <div class="chart-block">
-            <p class="chart-title">Observacion</p>
-            <p style="margin:0;color:#991b1b;">{{ $error }}</p>
-        </div>
-    @endif
-
     @php
         $criticalAlerts = $alertProductCards->whereIn('severity', ['critical', 'expired'])->count();
         $warningAlerts = $alertProductCards->where('severity', 'warning')->count();
         $lowStock = count($alerts['low_stock'] ?? []);
         $expiring = count($alerts['expiring'] ?? []);
-        $maxSummary = max($forecasts->count(), $criticalAlerts, $warningAlerts, $lowStock, $expiring, 1);
+        $evaluated = $forecasts->count();
+        $pending = $pendingRequests->count();
+        $history = $recentRequests->count();
+        $avgForecast = $evaluated > 0 ? $forecasts->avg('forecast_7_days') : 0;
+        $criticalForecasts = $forecasts->filter(fn ($item) => (float) ($item['result'] ?? 0) < 0)->count();
+        $maxSummary = max($evaluated, $criticalAlerts, $warningAlerts, $lowStock, $expiring, $pending, 1);
+        $lastRunLabel = $lastRunAt ? \Carbon\Carbon::parse($lastRunAt)->format('d/m/Y H:i') : 'Sin registro';
     @endphp
 
-    <div class="chart-block">
-        <p class="chart-title">Resumen operativo</p>
-        <div class="bar-row">
-            <span class="bar-label">Evaluados</span>
-            <div class="bar-track"><div class="bar-fill" style="width: {{ ($forecasts->count() / $maxSummary) * 100 }}%;"></div></div>
-            <span class="bar-value">{{ $forecasts->count() }}</span>
+    <style>
+        .agent-report .summary { display: table; width: 100%; border-spacing: 0.45rem 0; table-layout: fixed; }
+        .agent-report .summary-card { display: table-cell; width: 33.333%; min-height: 58px; padding: 0.55rem 0.7rem; vertical-align: top; }
+        .agent-report .summary-card span { font-size: 0.98rem; }
+        .summary-card.blue { border-left: 5px solid #4e6baf; }
+        .summary-card.green { border-left: 5px solid #10b981; }
+        .summary-card.cyan { border-left: 5px solid #0ea5e9; }
+        .summary-card.amber { border-left: 5px solid #f59e0b; }
+        .summary-card.rose { border-left: 5px solid #e11d48; }
+        .summary-card.indigo { border-left: 5px solid #6366f1; }
+        .report-note { margin: 0.2rem 0 0.9rem; color: #5f6a85; font-size: 0.84rem; }
+        .bar-fill.blue { background: #4e6baf; }
+        .bar-fill.green { background: #10b981; }
+        .bar-fill.cyan { background: #0ea5e9; }
+        .bar-fill.amber { background: #f59e0b; }
+        .bar-fill.rose { background: #e11d48; }
+        .agent-report .chart-block { padding: 0.72rem; margin-top: 0.8rem; }
+        .agent-report .bar-row { margin: 0.28rem 0; font-size: 0.72rem; }
+        .agent-report .bar-track { height: 9px; }
+        .agent-report .bar-fill { height: 9px; }
+        .agent-table { margin-top: 0.7rem; }
+        .agent-table th,
+        .agent-table td { font-size: 0.62rem; padding: 0.34rem 0.38rem; vertical-align: top; }
+        .agent-table th:nth-child(1) { width: 27%; }
+        .agent-table th:nth-child(2) { width: 11%; }
+        .agent-table th:nth-child(3) { width: 13%; }
+        .agent-table th:nth-child(4) { width: 12%; }
+        .agent-table th:nth-child(5) { width: 12%; }
+        .agent-table th:nth-child(6) { width: 12%; }
+        .agent-table th:nth-child(7) { width: 13%; }
+        .product-name { display: block; color: #1c1c2d; font-weight: 700; }
+        .product-meta { display: block; margin-top: 0.1rem; color: #5f6a85; font-size: 0.56rem; }
+        .status-pill { display: inline-block; min-width: 66px; padding: 0.16rem 0.42rem; border-radius: 999px; font-size: 0.58rem; font-weight: 700; text-align: center; }
+        .status-pill.ok { background: #dcfce7; color: #047857; }
+        .status-pill.warn { background: #fef3c7; color: #b45309; }
+        .status-pill.danger { background: #ffe4e6; color: #be123c; }
+        .status-pill.info { background: #e0f2fe; color: #0369a1; }
+        .problem-line { display: block; margin-bottom: 0.16rem; color: #334155; }
+        .problem-line strong { color: #1c1c2d; }
+    </style>
+
+    <div class="agent-report">
+        <p class="report-note">
+            Reporte operativo del agente inteligente. Filtro: {{ $filters['search'] ?? 'Todos' }}.
+            Categoria: {{ $filters['category'] ?? 'Todas' }}. Ultima revision: {{ $lastRunLabel }}.
+        </p>
+
+        @if($error)
+            <div class="chart-block">
+                <p class="chart-title">Observacion del agente</p>
+                <p style="margin:0;color:#991b1b;">{{ $error }}</p>
+            </div>
+        @endif
+
+        <div class="summary">
+            <div class="summary-card blue">
+                <strong>Productos evaluados</strong>
+                <span>{{ number_format($evaluated, 0) }}</span>
+            </div>
+            <div class="summary-card rose">
+                <strong>Alertas criticas</strong>
+                <span>{{ number_format($criticalAlerts, 0) }}</span>
+            </div>
+            <div class="summary-card amber">
+                <strong>Solicitudes pendientes</strong>
+                <span>{{ number_format($pending, 0) }}</span>
+            </div>
         </div>
-        <div class="bar-row">
-            <span class="bar-label">Criticos</span>
-            <div class="bar-track"><div class="bar-fill" style="width: {{ ($criticalAlerts / $maxSummary) * 100 }}%;"></div></div>
-            <span class="bar-value">{{ $criticalAlerts }}</span>
+
+        <div class="summary">
+            <div class="summary-card green">
+                <strong>Demanda promedio 7 dias</strong>
+                <span>{{ number_format((float) $avgForecast, 0) }} uds</span>
+            </div>
+            <div class="summary-card cyan">
+                <strong>Lotes por vencer</strong>
+                <span>{{ number_format($expiring, 0) }}</span>
+            </div>
+            <div class="summary-card indigo">
+                <strong>Historial reciente</strong>
+                <span>{{ number_format($history, 0) }}</span>
+            </div>
         </div>
-        <div class="bar-row">
-            <span class="bar-label">Advertencias</span>
-            <div class="bar-track"><div class="bar-fill" style="width: {{ ($warningAlerts / $maxSummary) * 100 }}%;"></div></div>
-            <span class="bar-value">{{ $warningAlerts }}</span>
+
+        <div class="chart-block">
+            <p class="chart-title">Pulso operativo del agente</p>
+            @foreach([
+                ['label' => 'Productos evaluados', 'value' => $evaluated, 'class' => 'blue'],
+                ['label' => 'Resultado negativo', 'value' => $criticalForecasts, 'class' => 'rose'],
+                ['label' => 'Stock bajo', 'value' => $lowStock, 'class' => 'amber'],
+                ['label' => 'Lotes por vencer', 'value' => $expiring, 'class' => 'cyan'],
+                ['label' => 'Solicitudes pendientes', 'value' => $pending, 'class' => 'green'],
+            ] as $row)
+                <div class="bar-row">
+                    <span class="bar-label">{{ $row['label'] }}</span>
+                    <div class="bar-track"><div class="bar-fill {{ $row['class'] }}" style="width: {{ max(2, ($row['value'] / $maxSummary) * 100) }}%;"></div></div>
+                    <span class="bar-value">{{ number_format($row['value'], 0) }}</span>
+                </div>
+            @endforeach
         </div>
-        <div class="bar-row">
-            <span class="bar-label">Stock bajo</span>
-            <div class="bar-track"><div class="bar-fill" style="width: {{ ($lowStock / $maxSummary) * 100 }}%;"></div></div>
-            <span class="bar-value">{{ $lowStock }}</span>
-        </div>
-        <div class="bar-row">
-            <span class="bar-label">Por vencer</span>
-            <div class="bar-track"><div class="bar-fill" style="width: {{ ($expiring / $maxSummary) * 100 }}%;"></div></div>
-            <span class="bar-value">{{ $expiring }}</span>
-        </div>
+
+        <h3 style="margin-top:1.25rem;">Evaluaciones de reposicion</h3>
+        <table class="agent-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>Demanda 7d</th>
+                    <th>Stock</th>
+                    <th>Programado</th>
+                    <th>Resultado</th>
+                    <th>Estado operativo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($forecasts->take(28) as $item)
+                    @php
+                        $level = $item['decision_level'] ?? 'optimal';
+                        $decisionClass = $level === 'critical' ? 'danger' : ($level === 'preventive' ? 'warn' : 'ok');
+                    @endphp
+                    <tr>
+                        <td>
+                            <span class="product-name">{{ $item['name'] }}</span>
+                            <span class="product-meta">{{ $item['category'] ?? 'Sin categoria' }}</span>
+                        </td>
+                        <td>{{ $item['sku'] ?? 'N/D' }}</td>
+                        <td>{{ number_format((float) ($item['forecast_7_days'] ?? 0), 0) }} uds</td>
+                        <td>{{ number_format((float) ($item['stock'] ?? 0), 0) }} uds</td>
+                        <td>{{ number_format((float) ($item['in_transit'] ?? 0), 0) }} uds</td>
+                        <td>{{ number_format((float) ($item['result'] ?? 0), 0) }} uds</td>
+                        <td><span class="status-pill {{ $decisionClass }}">{{ $item['decision'] ?? 'Optimo' }}</span></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="7">Sin evaluaciones para el filtro seleccionado.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        <h3 style="margin-top:1.25rem;">Alertas por producto</h3>
+        <table class="agent-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>Categoria</th>
+                    <th>Estado</th>
+                    <th colspan="3">Problemas detectados</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($alertProductCards->take(18) as $card)
+                    @php
+                        $severityClass = in_array($card['severity'] ?? '', ['critical', 'expired'], true) ? 'danger' : (($card['severity'] ?? '') === 'warning' ? 'warn' : 'info');
+                    @endphp
+                    <tr>
+                        <td><span class="product-name">{{ $card['name'] }}</span></td>
+                        <td>{{ $card['sku'] ?? 'N/D' }}</td>
+                        <td>{{ $card['category'] }}</td>
+                        <td><span class="status-pill {{ $severityClass }}">{{ $card['severity_label'] }}</span></td>
+                        <td colspan="3">
+                            @foreach(collect($card['problems'])->take(2) as $problem)
+                                <span class="problem-line"><strong>{{ $problem['label'] }}:</strong> {{ $problem['message'] }}</span>
+                            @endforeach
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="7">Sin alertas operativas para el filtro seleccionado.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        <h3 style="margin-top:1.25rem;">Solicitudes e historial</h3>
+        <table class="agent-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Producto</th>
+                    <th>Reposicion sugerida</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th colspan="2">Motivo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($pendingRequests->merge($recentRequests)->take(24) as $request)
+                    @php
+                        $statusClass = $request->status === 'approved' ? 'ok' : ($request->status === 'rejected' ? 'danger' : 'warn');
+                    @endphp
+                    <tr>
+                        <td>{{ optional($request->created_at)->format('d/m/Y H:i') }}</td>
+                        <td><span class="product-name">{{ $request->product?->name ?? 'Producto '.$request->product_id }}</span></td>
+                        <td>{{ number_format((float) $request->requested_qty, 0) }} uds</td>
+                        <td>{{ $request->priority ?? 'Normal' }}</td>
+                        <td><span class="status-pill {{ $statusClass }}">{{ ucfirst($request->status) }}</span></td>
+                        <td colspan="2">{{ $request->reason ?: 'Solicitud generada por el agente inteligente.' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="7">Sin solicitudes del agente para el filtro seleccionado.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-
-    <h3 style="margin-top:1.5rem;">Evaluaciones de reposicion</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>SKU</th>
-                <th>Demanda 7 dias</th>
-                <th>Stock</th>
-                <th>Traspasos</th>
-                <th>Resultado</th>
-                <th>Decision</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($forecasts as $item)
-                <tr>
-                    <td>{{ $item['name'] }}</td>
-                    <td>{{ $item['sku'] ?? 'N/D' }}</td>
-                    <td>{{ number_format($item['forecast_7_days'], 0) }} uds</td>
-                    <td>{{ $item['stock'] }} uds</td>
-                    <td>{{ $item['in_transit'] }} uds</td>
-                    <td>{{ number_format($item['result'], 0) }} uds</td>
-                    <td>{{ $item['decision'] }}{{ $item['priority'] ? ' - '.$item['priority'] : '' }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7">Sin evaluaciones para el filtro seleccionado.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <h3 style="margin-top:1.5rem;">Alertas por producto</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>SKU</th>
-                <th>Categoria</th>
-                <th>Estado</th>
-                <th>Problemas detectados</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($alertProductCards as $card)
-                <tr>
-                    <td>{{ $card['name'] }}</td>
-                    <td>{{ $card['sku'] ?? 'N/D' }}</td>
-                    <td>{{ $card['category'] }}</td>
-                    <td>{{ $card['severity_label'] }}</td>
-                    <td>
-                        @foreach(collect($card['problems'])->take(3) as $problem)
-                            <div><strong>{{ $problem['label'] }}:</strong> {{ $problem['message'] }}</div>
-                        @endforeach
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5">Sin alertas operativas para el filtro seleccionado.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <h3 style="margin-top:1.5rem;">Solicitudes pendientes</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Prioridad</th>
-                <th>Motivo</th>
-                <th>Fecha</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($pendingRequests as $request)
-                <tr>
-                    <td>{{ $request->product?->name ?? 'Producto '.$request->product_id }}</td>
-                    <td>{{ $request->requested_qty }} uds</td>
-                    <td>{{ $request->priority ?? 'Normal' }}</td>
-                    <td>{{ $request->reason ?: 'Sin motivo registrado.' }}</td>
-                    <td>{{ optional($request->created_at)->format('d/m/Y H:i') }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5">Sin solicitudes pendientes para el filtro seleccionado.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <h3 style="margin-top:1.5rem;">Historial reciente</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Estado</th>
-                <th>Decision humana</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($recentRequests as $request)
-                <tr>
-                    <td>{{ optional($request->created_at)->format('d/m/Y H:i') }}</td>
-                    <td>{{ $request->product?->name ?? 'Producto '.$request->product_id }}</td>
-                    <td>{{ $request->requested_qty }} uds</td>
-                    <td>{{ $request->status }}</td>
-                    <td>{{ $request->approved_by ? 'Aprobado' : ($request->rejected_by ? 'Rechazado' : 'Pendiente') }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5">Sin historial reciente para el filtro seleccionado.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
 @endsection

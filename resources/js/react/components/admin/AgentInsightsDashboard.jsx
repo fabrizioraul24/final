@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Modal } from './common';
 
 function insightNumber(value, suffix = '') {
@@ -40,6 +41,60 @@ function InsightSparkline({ series, metric, color = '#0b4fc1' }) {
             <polyline points={points} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
             <polygon points={`0,${height} ${points} ${width},${height}`} fill={color} opacity="0.08" />
         </svg>
+    );
+}
+
+function WapeAxisChart({ series }) {
+    const weekdays = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+    const data = weekdays.map((day, index) => {
+        const source = series[index] || {};
+
+        return {
+            day,
+            wape: Number(source.wape ?? 0),
+            actual: Number(source.actual ?? 0),
+            predicted: Number(source.predicted ?? 0),
+        };
+    });
+    const maxValue = Math.max(...data.map((item) => item.wape), 10);
+
+    return (
+        <div className="agent-wape-chart-wrap">
+            <div className="agent-wape-recharts">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="agentWapeGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#e11d48" stopOpacity={0.34} />
+                                <stop offset="95%" stopColor="#e11d48" stopOpacity={0.02} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="4 6" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 800 }} />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                            domain={[0, Math.ceil(maxValue + 5)]}
+                            tickFormatter={(value) => `${value}%`}
+                        />
+                        <Tooltip
+                            formatter={(value, name, props) => {
+                                if (name === 'wape') return [`${Number(value || 0).toFixed(2)}%`, 'Error WAPE'];
+                                return [value, props?.name || name];
+                            }}
+                            labelFormatter={(label) => `Dia: ${label}`}
+                            contentStyle={{ borderRadius: 12, borderColor: '#e2e8f0', fontSize: 12 }}
+                        />
+                        <Area type="natural" dataKey="wape" stroke="#e11d48" strokeWidth={3} fill="url(#agentWapeGradient)" dot={{ r: 4, fill: '#fff', stroke: '#e11d48', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="agent-axis-help">
+                <span><strong>X</strong> muestra los dias de la semana.</span>
+                <span><strong>Y</strong> muestra el error WAPE en porcentaje; mientras mas bajo, mejor fue la prediccion.</span>
+            </div>
+        </div>
     );
 }
 
@@ -160,9 +215,9 @@ export default function AgentInsightsDashboard({ data }) {
 
                 <article className="agent-insight-panel">
                     <div className="agent-insight-panel-head">
-                        <div><strong>Error WAPE</strong><span>Menor es mejor</span></div>
+                        <div><strong>Error WAPE</strong><span>Grafico X/Y</span></div>
                     </div>
-                    <InsightSparkline series={recentSeries} metric="avg_wape_percent" color="#e11d48" />
+                    <WapeAxisChart series={insights?.daily_wape || []} />
                 </article>
 
                 <article className="agent-insight-panel">

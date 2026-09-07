@@ -9,6 +9,21 @@
     $lotsCount = (int) ($product->lots_count ?? 0);
     $isCritical = $minimumStock > 0 && $currentStock <= $minimumStock;
     $nextExpiry = $product->next_expiry ? \Carbon\Carbon::parse($product->next_expiry)->format('d/m/Y') : 'Sin fecha';
+    $stockPercent = $minimumStock > 0 ? min(100, round(($currentStock / $minimumStock) * 100)) : 100;
+    $pageLots = collect($lots->items());
+    $pageStock = (int) $pageLots->sum('quantity');
+    $pageExpiring = $pageLots->filter(function ($lot) {
+        if (empty($lot['raw_expires_at'])) {
+            return false;
+        }
+
+        $expiresAt = \Carbon\Carbon::parse($lot['raw_expires_at']);
+
+        return $expiresAt->isFuture() && $expiresAt->diffInDays(now()) <= 30;
+    })->count();
+    $pageExpired = $pageLots->filter(function ($lot) {
+        return ! empty($lot['raw_expires_at']) && \Carbon\Carbon::parse($lot['raw_expires_at'])->isPast();
+    })->count();
 @endphp
 
 @section('content')
@@ -25,8 +40,8 @@
             </div>
         @endif
 
-        <section class="fit-users-header">
-            <div class="fit-users-header-left">
+        <section class="fit-users-header fit-lot-detail-hero">
+            <div class="fit-users-header-left fit-lot-detail-hero-main">
                 <span class="fit-product-image fit-lot-product-image large">
                     <img src="{{ $product->getImageUrl() }}" alt="{{ $product->name }}">
                 </span>
@@ -37,6 +52,14 @@
                     <h1>{{ $product->name }}</h1>
                     <p>SKU: {{ $product->sku }} · {{ $product->category->name ?? 'Sin categoria' }} · {{ $warehouse?->name ?? 'La Paz' }}</p>
                 </div>
+            </div>
+            <div class="fit-lot-health-card {{ $isCritical ? 'critical' : 'stable' }}">
+                <span>Estado de stock</span>
+                <strong>{{ $isCritical ? 'Reabastecer' : 'Operativo' }}</strong>
+                <div class="fit-lot-health-track">
+                    <div style="width: {{ max(4, $stockPercent) }}%;"></div>
+                </div>
+                <small>{{ number_format($currentStock) }} uds actuales @if($minimumStock) / minimo {{ number_format($minimumStock) }} @endif</small>
             </div>
         </section>
 
@@ -69,7 +92,13 @@
             </section>
         @endif
 
-        <section class="fit-filter-card">
+        <section class="fit-filter-card fit-lot-search-panel">
+            <div class="fit-lot-filter-head">
+                <div>
+                    <h2>Buscar lotes</h2>
+                    <p>Filtra por codigo, bodega, fecha de vencimiento o lotes proximos a vencer.</p>
+                </div>
+            </div>
             <form method="GET" action="{{ route('dashboard.lots.show', $product) }}" class="fit-lot-filter-form">
                 <label class="fit-search-control" for="search">
                     <i class="ri-search-line"></i>
@@ -117,6 +146,12 @@
                     <span class="fit-section-badge green">{{ $lots->perPage() }} por pagina</span>
                 </div>
 
+                <div class="fit-lot-page-summary">
+                    <div><span>Stock en esta pagina</span><strong>{{ number_format($pageStock) }} uds</strong></div>
+                    <div><span>Proximos a vencer</span><strong>{{ number_format($pageExpiring) }}</strong></div>
+                    <div><span>Vencidos</span><strong>{{ number_format($pageExpired) }}</strong></div>
+                </div>
+
                 <div class="fit-table-card">
                     <div class="fit-table-scroll">
                         <table class="fit-users-table fit-lot-history-table">
@@ -126,6 +161,7 @@
                                     <th>Stock</th>
                                     <th>Bodega</th>
                                     <th>Vence</th>
+                                    <th>Estado</th>
                                     <th>Ultimo mov.</th>
                                     <th>Usuario</th>
                                     <th class="text-right">Accion</th>
@@ -133,11 +169,25 @@
                             </thead>
                             <tbody>
                                 @forelse($lots as $lot)
+                                    @php
+                                        $lotExpiresAt = $lot['raw_expires_at'] ? \Carbon\Carbon::parse($lot['raw_expires_at']) : null;
+                                        $lotStatus = 'vigente';
+                                        $lotStatusLabel = 'Vigente';
+
+                                        if ($lotExpiresAt?->isPast()) {
+                                            $lotStatus = 'expired';
+                                            $lotStatusLabel = 'Vencido';
+                                        } elseif ($lotExpiresAt && $lotExpiresAt->diffInDays(now()) <= 30) {
+                                            $lotStatus = 'warning';
+                                            $lotStatusLabel = 'Por vencer';
+                                        }
+                                    @endphp
                                     <tr>
                                         <td><code class="fit-code">{{ $lot['code'] }}</code></td>
                                         <td><strong>{{ number_format($lot['quantity']) }}</strong></td>
                                         <td><span class="fit-muted-text">{{ $lot['warehouse'] }}</span></td>
                                         <td><span class="fit-muted-text">{{ $lot['expires_at'] }}</span></td>
+                                        <td><span class="fit-lot-status {{ $lotStatus }}">{{ $lotStatusLabel }}</span></td>
                                         <td>
                                             <span class="fit-muted-text">
                                                 {{ $lot['last_movement'] }}
@@ -164,7 +214,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="fit-muted-text" style="text-align:center; padding:1.4rem;">No encontramos lotes para estos filtros.</td>
+                                        <td colspan="8" class="fit-muted-text" style="text-align:center; padding:1.4rem;">No encontramos lotes para estos filtros.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -177,21 +227,6 @@
                 </div>
             </section>
 
-            <aside class="fit-lot-panel">
-                <h4>Movimientos recientes</h4>
-                <div class="fit-lot-movement-list">
-                    @forelse($movementHistory as $item)
-                        <div class="fit-lot-movement-item">
-                            <strong>{{ $item['type'] }} {{ $item['quantity'] > 0 ? '+' : '' }}{{ $item['quantity'] }}</strong>
-                            <span>Lote: {{ $item['lot_code'] }}</span>
-                            <p>{{ $item['note'] }}</p>
-                            <time>{{ $item['user'] }} · {{ $item['date'] }}</time>
-                        </div>
-                    @empty
-                        <p class="fit-lot-empty">Sin movimientos recientes.</p>
-                    @endforelse
-                </div>
-            </aside>
         </div>
     </div>
 
